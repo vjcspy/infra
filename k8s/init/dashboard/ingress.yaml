@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: kubernetes-dashboard-ingress
+  namespace: kubernetes-dashboard
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true" # Không chuyển hướng sang HTTPS
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - k8s.dinhkhoile.com # Domain cho TLS
+      secretName: kubernetes-dashboard-tls # Tên Secret chứa chứng chỉ TLS
+  rules:
+    - host: k8s.dinhkhoile.com # Thay thế bằng domain hoặc IP của bạn
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: kubernetes-dashboard-web # Service sử dụng HTTP (cổng 8000)
+                port:
+                  number: 8000 # port của service

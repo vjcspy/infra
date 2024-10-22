@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: kubernetes-dashboard-kong-proxy-nodeport
+  namespace: kubernetes-dashboard
+  labels:
+    app.kubernetes.io/instance: kubernetes-dashboard
+    app.kubernetes.io/name: kong
+spec:
+  type: NodePort  # Đổi từ ClusterIP thành NodePort
+  selector:
+    app.kubernetes.io/component: app
+    app.kubernetes.io/instance: kubernetes-dashboard
+    app.kubernetes.io/name: kong
+  ports:
+  - name: kong-proxy-node-port
+    port: 443  # Cổng trong cluster
+    protocol: TCP
+    targetPort: 8443  # Cổng trên Pod
+    nodePort: 32260  # Cổng expose ra bên ngoài (cổng trong khoảng 30000-32767)
