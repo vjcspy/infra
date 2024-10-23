@@ -1,0 +1,22 @@
+connector:
+  name: vjcspy_gitconnector  # Tên của connector
+  identifier: vjcspygitconnector  # Mã định danh của connector. Nó được dùng khi bạn tham chiếu đến connector này trong các phần khác của pipeline hoặc cấu hình.
+  description: ""  # Mô tả (đang để trống)
+  orgIdentifier: default  # Mã định danh tổ chức (organization) trong Harness
+  projectIdentifier: default_project  # Mã định danh dự án (project) trong Harness
+  type: Github  # Loại connector, ở đây là Github
+  spec:
+    url: https://github.com/GITHUB_USERNAME  # URL trỏ đến tài khoản người dùng GitHub của bạn
+    authentication:
+      type: Http  # Loại xác thực qua HTTP
+      spec:
+        type: UsernameToken  # Sử dụng Username và Token để xác thực
+        spec:
+          username: GITHUB_USERNAME  # Tên người dùng GitHub của bạn
+          tokenRef: harness_gitpat  # Tham chiếu đến GitHub PAT với quyền repo
+    apiAccess:
+      type: Token  # Truy cập API của GitHub bằng Token
+      spec:
+        tokenRef: harness_gitpat  # Tham chiếu đến token GitHub (PAT) với quyền repo
+    executeOnDelegate: false  # Xác thực không được thực hiện qua delegate mà trực tiếp từ Harness
+    type: Account  # Loại kết nối cho phép truy cập toàn bộ các repo trong tài khoản GitHub
