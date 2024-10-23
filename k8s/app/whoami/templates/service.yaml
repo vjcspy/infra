@@ -4,7 +4,7 @@ metadata:
   name: {{ include "whoami.fullname" . }}
   labels:
     {{- include "whoami.labels" . | nindent 4 }}
-  namespace: {{ include "whoami.serviceAccountName" . }}
+  namespace: {{ include "whoami.name" . }}
 spec:
   type: {{ .Values.service.type }}
   ports:

@@ -14,7 +14,7 @@ service:
               store:
                 type: Github
                 spec:
-                  connectorRef: vjcspy_gitconnector
+                  connectorRef: vjcspygitconnector
                   gitFetchType: Branch
                   folderPath: /k8s/app/whoami
                   repoName: infra
