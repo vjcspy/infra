@@ -1,0 +1,15 @@
+infrastructureDefinition:
+  name: devinfra
+  identifier: devinfra
+  description: ""
+  tags: {}
+  orgIdentifier: default
+  projectIdentifier: default_project
+  environmentRef: dev
+  deploymentType: Kubernetes
+  type: KubernetesDirect
+  spec:
+    connectorRef: harnessk8sconnector
+    namespace: default
+    releaseName: r<+INFRA_KEY>
+  allowSimultaneousDeployments: false

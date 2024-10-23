@@ -1,0 +1,28 @@
+service:
+  name: whoami
+  identifier: whoami
+  orgIdentifier: default
+  projectIdentifier: default_project
+  serviceDefinition:
+    type: Kubernetes
+    spec:
+      manifests:
+        - manifest:
+            identifier: whoami
+            type: HelmChart
+            spec:
+              store:
+                type: Github
+                spec:
+                  connectorRef: vjcspy_gitconnector
+                  gitFetchType: Branch
+                  folderPath: /k8s/app/whoami
+                  repoName: infra
+                  branch: main
+              subChartPath: ""
+              valuesPaths:
+                - k8s/app/whoami/values.yaml
+              skipResourceVersioning: false
+              enableDeclarativeRollback: false
+              helmVersion: V3
+  gitOpsEnabled: false

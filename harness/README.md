@@ -22,3 +22,11 @@ Tạo connector để có thể access được vào các repo của mình
 harness connector --file harness/connector/github-connector.yaml apply --git-user vjcspy
 ```
 
+### Kubernetes Cluster Connector
+
+Là việc tạo connector sử dụng delegate(name=helm-delegate) đã tạo ban đầu 
+
+```
+harness connector --file harness/connector/kubernetes-connector.yaml apply --delegate-name helm-delegate
+```
+
