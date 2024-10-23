@@ -1,46 +1,54 @@
 pipeline:
-  name: whoami_k8s_rolling_pipeline
-  identifier: whoami_k8s_rolling_pipeline
-  projectIdentifier: default_project
-  orgIdentifier: default
-  tags: {}
+  name: whoami_k8s_rolling_pipeline  # Tên của pipeline, dùng để nhận diện pipeline này trong dự án.
+  identifier: whoami_k8s_rolling_pipeline  # Định danh duy nhất cho pipeline, không thể trùng lặp trong cùng một project.
+  projectIdentifier: default_project  # Tham chiếu tới project mà pipeline này thuộc về.
+  orgIdentifier: default  # Tham chiếu đến tổ chức mà project này thuộc về.
+  tags: { }  # Các thẻ (tags) giúp phân loại pipeline, hiện tại đang để trống.
+
   stages:
     - stage:
         name: deploywhoami
         identifier: deploywhoami
         description: ""
-        type: Deployment
+        type: Deployment  # Loại của stage là "Deployment", tức là dùng để triển khai ứng dụng.
         spec:
-          deploymentType: Kubernetes
+          deploymentType: Kubernetes  # Loại deployment là "Kubernetes", tức ứng dụng sẽ được triển khai lên một cluster Kubernetes.
+
           service:
-            serviceRef: whoami
+            serviceRef: whoami  # Tham chiếu đến service "whoami" đã được định nghĩa trong Harness.
+
           environment:
-            environmentRef: dev
-            deployToAll: false
+            environmentRef: dev  # Tham chiếu đến môi trường "dev" mà ứng dụng sẽ được triển khai vào.
+            deployToAll: false  # Chỉ triển khai lên một số infrastructure được chọn, không phải tất cả.
+
             infrastructureDefinitions:
-              - identifier: devinfra
+              - identifier: devinfra  # Tham chiếu đến cấu hình cơ sở hạ tầng (infrastructure) "devinfra" trong môi trường dev.
+
           execution:
             steps:
               - step:
                   name: Rollout Deployment
                   identifier: rolloutDeployment
-                  type: K8sRollingDeploy
+                  type: K8sRollingDeploy  # Loại bước này là "K8sRollingDeploy", sử dụng chiến lược Rolling Deploy của Kubernetes để triển khai.
                   timeout: 10m
                   spec:
-                    skipDryRun: false
-                    pruningEnabled: false
+                    skipDryRun: false  # Không bỏ qua quá trình dry run (kiểm tra trước khi triển khai thật).
+                    pruningEnabled: false  # Không bật tính năng pruning (xóa các tài nguyên cũ không còn dùng).
+
             rollbackSteps:
               - step:
-                  name: Rollback Rollout Deployment
-                  identifier: rollbackRolloutDeployment
-                  type: K8sRollingRollback
+                  name: Rollback Rollout Deployment  # Tên của bước rollback trong trường hợp có lỗi.
+                  identifier: rollbackRolloutDeployment  # Định danh duy nhất cho bước rollback này.
+                  type: K8sRollingRollback  # Loại bước là "K8sRollingRollback", dùng để quay lại trạng thái trước khi triển khai.
                   timeout: 10m
                   spec:
-                    pruningEnabled: false
-        tags: {}
+                    pruningEnabled: false  # Không bật tính năng pruning khi rollback.
+
+        tags: { }  # Các thẻ để phân loại stage, hiện tại để trống.
+
         failureStrategies:
-          - onFailure:
+          - onFailure: # Chiến lược xử lý khi gặp lỗi.
               errors:
-                - AllErrors
+                - AllErrors  # Áp dụng cho tất cả các lỗi.
               action:
-                type: StageRollback
+                type: StageRollback  # Thực hiện rollback toàn bộ stage khi xảy ra lỗi.
