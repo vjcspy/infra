@@ -65,9 +65,9 @@ ingress:
     kubernetes.io/tls-acme: "true"
   hosts:
     # TODO: get from pipeline
-    - host: k8s.dinhkhoile.com
+    - host: whoami.dinhkhoile.com
       paths:
-        - path: /whoami
+        - path: /
           pathType: ImplementationSpecific
   tls: [ ]
   #  - secretName: chart-example-tls
