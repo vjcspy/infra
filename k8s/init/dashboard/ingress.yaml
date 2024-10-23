@@ -4,8 +4,9 @@ metadata:
   name: kubernetes-dashboard-ingress
   namespace: kubernetes-dashboard
   annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
-    nginx.ingress.kubernetes.io/ssl-redirect: "true" # Không chuyển hướng sang HTTPS
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/ssl-redirect: "true" # Chuyển hướng sang HTTPS
+    nginx.ingress.kubernetes.io/use-regex: "true" # Cho phép sử dụng regex trong đường dẫn
 spec:
   ingressClassName: nginx
   tls:
@@ -13,13 +14,13 @@ spec:
         - k8s.dinhkhoile.com # Domain cho TLS
       secretName: kubernetes-dashboard-tls # Tên Secret chứa chứng chỉ TLS
   rules:
-    - host: k8s.dinhkhoile.com # Thay thế bằng domain hoặc IP của bạn
+    - host: k8s.dinhkhoile.com
       http:
         paths:
-          - path: /
+          - path: /dashboard(/|$)(.*)
             pathType: Prefix
             backend:
               service:
-                name: kubernetes-dashboard-web # Service sử dụng HTTP (cổng 8000)
+                name: kubernetes-dashboard-web # Service của Kubernetes Dashboard
                 port:
-                  number: 8000 # port của service
+                  number: 8000 # Port của Service
