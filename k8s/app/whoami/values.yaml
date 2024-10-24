@@ -105,11 +105,11 @@ autoscaling:
   # targetMemoryUtilizationPercentage: 80
 
 # Additional volumes on the output Deployment definition.
-volumes: [ ]
-# - name: foo
-#   secret:
-#     secretName: mysecret
-#     optional: false
+volumes:
+  - name: host-volume
+    hostPath:
+      path: /mnt/existing_ebs_volume
+      type: Directory
 
 # Additional volumeMounts on the output Deployment definition.
 volumeMounts: [ ]
