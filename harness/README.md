@@ -2,6 +2,8 @@
 
 ## Setup
 
+Steps to set up new Harness CD
+
 ### Kubernetes Delegate
 
 Follow theo document để install latest version (Project Settings -> Delegates)
