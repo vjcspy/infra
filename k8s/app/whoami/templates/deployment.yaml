@@ -27,10 +27,10 @@ spec:
       initContainers:
         - name: check-host-mounted-ebs-volume
           image: busybox
-          command: [ 'sh', '-c', 'for i in $(seq 1 5); do if [ -f /existing_ebs_volume/DONT_DELETE ]; then exit 0; fi; sleep 15; done; exit 1' ]
+          command: [ 'sh', '-c', 'for i in $(seq 1 5); do echo "Checking attempt $i..."; if [ -f /host_ebs_volume/DONT_DELETE ]; then echo "File found, exiting successfully."; exit 0; fi; echo "File not found, retrying..."; sleep 15; done; echo "File not found after 5 attempts, exiting with error."; exit 1' ]
           volumeMounts:
             - name: host-volume
-              mountPath: /existing_ebs_volume
+              mountPath: /host_ebs_volume
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
