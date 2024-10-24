@@ -33,7 +33,7 @@ pipeline:
                   timeout: 10m
                   spec:
                     skipDryRun: false  # Không bỏ qua quá trình dry run (kiểm tra trước khi triển khai thật).
-                    pruningEnabled: false  # Không bật tính năng pruning (xóa các tài nguyên cũ không còn dùng).
+                    pruningEnabled: true  # Không bật tính năng pruning (xóa các tài nguyên cũ không còn dùng).
 
             rollbackSteps:
               - step:
@@ -42,7 +42,7 @@ pipeline:
                   type: K8sRollingRollback  # Loại bước là "K8sRollingRollback", dùng để quay lại trạng thái trước khi triển khai.
                   timeout: 10m
                   spec:
-                    pruningEnabled: false  # Không bật tính năng pruning khi rollback.
+                    pruningEnabled: true  # Không bật tính năng pruning khi rollback.
 
         tags: { }  # Các thẻ để phân loại stage, hiện tại để trống.
 

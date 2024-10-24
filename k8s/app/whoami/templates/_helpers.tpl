@@ -60,3 +60,8 @@ Create the name of the service account to use
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
 {{- end }}
+
+{{/* Định nghĩa tên đầy đủ của secret với revision */}}
+{{- define "whoami.tlsSecretFullName" -}}
+{{- printf "%s-%d" .Values.tlsSecret.name .Release.Revision | trunc 63 | trimSuffix "-" }}
+{{- end }}

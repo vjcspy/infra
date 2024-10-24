@@ -19,7 +19,7 @@ Không cần làm step này nữa
 
 ```bash
 # ví dụ tạo tls secret cho k8s-dashboard
-kubectl create secret tls kubernetes-dashboard-tls --key common.key --cert common.crt -n kubernetes-dashboard
+kubectl create secret tls kubernetes-dashboard-tls --key tls.key --cert tls.crt -n kubernetes-dashboard
 ```
 
 3. Sau đó apply toàn bộ thư mục dashboard để tạo ingress, service account(dùng để access)

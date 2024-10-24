@@ -10,7 +10,6 @@ Trước đó yêu cầu đã phải có:
 - Harness kubernetes connector
 
 
-
 Tạo Harness service
 
 ```shell
