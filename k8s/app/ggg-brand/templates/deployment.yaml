@@ -67,7 +67,7 @@ spec:
               readOnly: true
             # mount nginx
             - name: host-volume
-              mountPath: /otp/docker/etc/nginx/site-available
+              mountPath: /opt/docker/etc/nginx/site-available
               subPath: ggg_mkt/config/nginx/site-available
               readOnly: true
             # mount ssl
