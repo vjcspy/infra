@@ -43,7 +43,7 @@ podSecurityContext: { }
 
 securityContext: { }
   # capabilities:
-  #   drop:
+#   drop:
 #   - ALL
 # readOnlyRootFilesystem: true
 # runAsNonRoot: true
@@ -64,6 +64,10 @@ ingress:
     kubernetes.io/ingress.class: nginx
     nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
     nginx.ingress.kubernetes.io/ssl-verify: "false"
+    # Thêm annotation này để force SSL redirect
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    # Nếu bạn muốn redirect tất cả HTTP traffic sang HTTPS
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
   hosts:
     - host: brand-pcms.ggg.systems
       paths:
@@ -79,7 +83,7 @@ resources: { }
   # resources, such as Minikube. If you do want to specify resources, uncomment the following
   # lines, adjust them as necessary, and remove the curly braces after 'resources.'
   # Limits:
-  #   cpu: 100m
+#   cpu: 100m
 #   memory: 128Mi
 # requests:
 #   cpu: 100m
