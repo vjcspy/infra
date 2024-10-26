@@ -66,6 +66,9 @@ ingress:
     nginx.ingress.kubernetes.io/ssl-verify: "false"
     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-ssl-protocols: "TLSv1.2 TLSv1.3"
+    nginx.ingress.kubernetes.io/ssl-passthrough: "true"  # Enable SSL passthrough
+    nginx.ingress.kubernetes.io/secure-backends: "true"
   hosts:
     - host: brand-pcms.ggg.systems
       paths:
