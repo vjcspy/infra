@@ -14,7 +14,11 @@ curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--disable=traefik" sh -
 
 ### Install nginx-ingress
 
+Lưu ý phải cài đúng của kubernetes nhé, không cài của F5 thì cách hoạt động sẽ khác hoàn toàn (không sử dụng được các annotations)
+
 ```shell
-helm install nginx-ingress oci://ghcr.io/nginxinc/charts/nginx-ingress --version 1.4.0
+helm upgrade --install ingress-nginx ingress-nginx \
+  --repo https://kubernetes.github.io/ingress-nginx \
+  --namespace ingress-nginx --create-namespace;
 ```
 
