@@ -56,12 +56,24 @@ spec:
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
+            # mount brand magento source
             - name: host-volume
               mountPath: /brand-pcms
               subPath: ggg_mkt/brand-pcms
+            # mount root vhost config
             - name: host-volume
               mountPath: /opt/docker/etc/nginx/vhost.conf
               subPath: ggg_mkt/config/nginx/vhost.conf
+              readOnly: true
+            # mount nginx
+            - name: host-volume
+              mountPath: /otp/docker/etc/nginx/site-available
+              subPath: ggg_mkt/config/nginx/site-available
+              readOnly: true
+            # mount ssl
+            - name: host-volume
+              mountPath: /opt/docker/etc/ssl
+              subPath: ggg_mkt/config/ssl
               readOnly: true
         - name: mysql
           securityContext:
