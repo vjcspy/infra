@@ -23,6 +23,15 @@ spec:
         {{- toYaml . | nindent 8 }}
         {{- end }}
     spec:
+      initContainers:
+        # First time after restart cluster always fail
+        - name: check-host-mounted-ebs-volume
+          image: busybox
+          command: [ 'sh', '-c', 'for i in $(seq 1 5); do echo "Checking attempt $i..."; if [ -f /host_ebs_volume/DONT_DELETE ]; then echo "File found, exiting successfully."; exit 0; fi; echo "File not found, retrying..."; sleep 10; done; echo "File not found after 5 attempts, exiting with error."; exit 1' ]
+          volumeMounts:
+            - name: host-volume
+              mountPath: /host_ebs_volume
+              subPath:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
@@ -46,10 +55,75 @@ spec:
             {{- toYaml .Values.readinessProbe | nindent 12 }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
-          {{- with .Values.volumeMounts }}
           volumeMounts:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
+            - name: host-volume
+              mountPath: /brand-pcms
+              subPath: ggg_mkt/brand-pcms
+            - name: host-volume
+              mountPath: /opt/docker/etc/nginx/vhost.conf
+              subPath: ggg_mkt/config/nginx/vhost.conf
+              readOnly: true
+        - name: mysql
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: mysql:5.7
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              value: root
+            - name: MYSQL_DATABASE
+              value: docker
+            - name: MYSQL_USER
+              value: docker
+            - name: MYSQL_PASSWORD
+              value: docker
+          volumeMounts:
+            - name: host-volume
+              mountPath: /var/lib/mysql
+              subPath: ggg_mkt/docker_data/mysql
+            - name: host-volume
+              mountPath: /var/log/mysql
+              subPath: ggg_mkt/docker_data/logs/mysql
+        - name: elasticsearch
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: docker.elastic.co/elasticsearch/elasticsearch:7.8.1
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: discovery.type
+              value: single-node
+            - name: cluster.max_shards_per_node
+              value: "5100"
+          volumeMounts:
+            - name: host-volume
+              mountPath: /usr/share/elasticsearch/data
+              subPath: ggg_mkt/docker_data/elasticsearch
+        - name: redis
+          image: redis:5.0
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "200m"
+            limits:
+              memory: "128Mi"
+              cpu: "200m"
+          livenessProbe:
+            exec:
+              command:
+                - redis-cli
+                - ping
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 30
+            failureThreshold: 3
+          securityContext:
+            capabilities:
+              add:
+                - SYS_RESOURCE
+          env:
+            - name: NET_CORE_SOMAXCONN
+              value: "1024"
       {{- with .Values.volumes }}
       volumes:
         {{- toYaml . | nindent 8 }}

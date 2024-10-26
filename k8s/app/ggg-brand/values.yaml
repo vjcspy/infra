@@ -14,7 +14,7 @@ image:
   tag: ""
 
 # This is for the secretes for pulling an image from a private repository more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
-imagePullSecrets: []
+imagePullSecrets: [ ]
 # This is to override the chart name.
 nameOverride: ""
 fullnameOverride: ""
@@ -26,28 +26,28 @@ serviceAccount:
   # Automatically mount a ServiceAccount's API credentials?
   automount: true
   # Annotations to add to the service account
-  annotations: {}
+  annotations: { }
   # The name of the service account to use.
   # If not set and create is true, a name is generated using the fullname template
   name: ""
 
 # This is for setting Kubernetes Annotations to a Pod.
 # For more information checkout: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/ 
-podAnnotations: {}
+podAnnotations: { }
 # This is for setting Kubernetes Labels to a Pod.
 # For more information checkout: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
-podLabels: {}
+podLabels: { }
 
-podSecurityContext: {}
-  # fsGroup: 2000
+podSecurityContext: { }
+# fsGroup: 2000
 
-securityContext: {}
+securityContext: { }
   # capabilities:
   #   drop:
-  #   - ALL
-  # readOnlyRootFilesystem: true
-  # runAsNonRoot: true
-  # runAsUser: 1000
+#   - ALL
+# readOnlyRootFilesystem: true
+# runAsNonRoot: true
+# runAsUser: 1000
 
 # This is for setting up a service more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/
 service:
@@ -58,32 +58,31 @@ service:
 
 # This block is for setting up the ingress for more information can be found here: https://kubernetes.io/docs/concepts/services-networking/ingress/
 ingress:
-  enabled: false
-  className: ""
-  annotations: {}
-    # kubernetes.io/ingress.class: nginx
-    # kubernetes.io/tls-acme: "true"
+  enabled: true
+  className: "nginx"
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    kubernetes.io/tls-acme: "true"
   hosts:
-    - host: chart-example.local
+    - host: brand-pcms.ggg.systems
       paths:
         - path: /
           pathType: ImplementationSpecific
-  tls: []
-  #  - secretName: chart-example-tls
-  #    hosts:
-  #      - chart-example.local
+  tls:
+    - hosts:
+        - brand-pcms.ggg.systems
 
-resources: {}
-  # We usually recommend not to specify default resources and to leave this as a conscious
+resources: { }
+  # We usually recommend not specifying default resources and to leave this as a conscious
   # choice for the user. This also increases chances charts run on environments with little
   # resources, such as Minikube. If you do want to specify resources, uncomment the following
-  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
-  # limits:
+  # lines, adjust them as necessary, and remove the curly braces after 'resources.'
+  # Limits:
   #   cpu: 100m
-  #   memory: 128Mi
-  # requests:
-  #   cpu: 100m
-  #   memory: 128Mi
+#   memory: 128Mi
+# requests:
+#   cpu: 100m
+#   memory: 128Mi
 
 # This is to setup the liveness and readiness probes more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
 livenessProbe:
@@ -104,20 +103,81 @@ autoscaling:
   # targetMemoryUtilizationPercentage: 80
 
 # Additional volumes on the output Deployment definition.
-volumes: []
-# - name: foo
-#   secret:
-#     secretName: mysecret
-#     optional: false
+volumes:
+  - name: host-volume
+    hostPath:
+      path: /mnt/existing_ebs_volume
+      type: Directory
 
 # Additional volumeMounts on the output Deployment definition.
-volumeMounts: []
+volumeMounts: [ ]
 # - name: foo
 #   mountPath: "/etc/foo"
 #   readOnly: true
 
-nodeSelector: {}
+nodeSelector: { }
 
-tolerations: []
+tolerations: [ ]
 
-affinity: {}
+affinity: { }
+
+tlsSecret:
+  name: ggg-systems-tls-secret
+  data:
+    tlsKey: |-
+      -----BEGIN PRIVATE KEY-----
+      MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDvazTDbBRIdxXZ
+      UmnYfl/oyDtvBiaQwjGc31IqdwqauCSFYf8+ti2yEqHPz385Jp+ReUunyea2nM7S
+      h/jfyJsSGzmNY5ErlL/n+WlUiY+wBklztc/ZjkifUSB78LWdqqhtCaAYciMETMId
+      B3ExwcvMDrUc2MBoYo+/LJEMm0rVSoxSO6CsYOzR1xbcDtdQA1wiKvQlMfc+OHCa
+      ntNApzjkqzsl9E37kzMN3/QxdkJIH2NjmImhsqYYYc/yTFHnR0e3ZREJJdBh6Hdr
+      Idb6ZHGX+nnr32loFhipAJuPntYbmlgKJjbT1KhbQmR2iLQuQh7O0yxUTDyXG+g7
+      H3+OtY2hAgMBAAECggEACa9BfCI0E9ZVWOwfgfVitczbspsCFlr0nM7fyP31vNp0
+      B702EPhXktt0Fi7ji5FHZSAN8mSVY4+mQhfj9lFsDGhzhIehiKzEsoKBQz0pRcqL
+      UBXrqXY6887ZTIopHo6Xr4lzI2oChpsAQyJY7tVTBBcYNmmCJvbNr8MCvwrNFSGR
+      0WOPtHfSoxX3eQnxdGJfbo3cZTlWGto34UuKitIRKPBHIH24lgr0qmE/LCcqSI+0
+      fSi0EFur/PfzT6ugP9RY9VhTHi3LwvertC1EXhu4hOlzoYUWu5pbTB3Q0IIy1PNj
+      1j7QORyUluASlbJYb6u+PiawHUwEySlTSa9A4v2pLQKBgQD7vLXUk+Gew1WuG3Xf
+      Qgbc6RhWbtjb4Vy+vzF4GoU7evwfoLRt9RoBnYJzxeQuA9QcuvoP+qqK6yobwrum
+      W1Rz5DJvjga+jpUfYEcKTKX8vwxpNjE+f0kdk/ewR8oVovRP+6fVovHVOtZ+eLam
+      pL5jSmHkaYP9GaUSbuaZgpq7fwKBgQDzeRhgnQiEVhmkVXbVQj7z+trmzjniRfDF
+      s0+hB12S5gU9PqxoyZVrQBcM+89CvfhR36TTvm0twJXUedTauV/Gn/1gorjoOlI3
+      g5EQ6mE1V2+bMKM7KZa4Nj47HEcmuL9y/er5AIZXkrF6oYJGgqQXRDte5s9i0Pv1
+      Rxmm9xjG3wKBgFdEWQhjZ4CBGK+tp1QI8JYeXCiCbrzyyBL79qs7DlrLTKGuNT41
+      DJnov3Ng87Qb8akwDEYD0KEt2sAa5rBJ0uIGBpHze1UN2pYw6w+f+J7AoA3NEo8m
+      0vLk+6VpjZ2oiuc7RzhhL1KK/haDxFXKoJGNFJh5F59jB313Yotu4jMDAoGANN14
+      U5IFRWbEjpAYC1ok/Sjc2vywSNdS3jp+8cH9qWXUgWXYXbBXh0AVQTZz3FQPVQew
+      bGGOpz6HyejiNNPHXgNjKtZqO9JeA7vHhdq+XKytiQ7YgoIXPcxZWtBbCqdWuosz
+      t/lLMjyh2LS06sZ3Bq5EDekj4prp+moDweMpOBUCgYEAzKwyCoVHmZv37bS6dx0y
+      stasvMSIE7KUSee68DTjo7MZb8OU6LSHQcvVgvJSKdrVEuQC/eS2tzN08QJvVd0w
+      /3YHDl57z/c5ij+hELpzut/pARQym+usV4qPq9d784GLOtXDWZNHgnL03Gz3iPD5
+      wyFEcKcVVzDBLa6d7AGG0Uc=
+      -----END PRIVATE KEY-----
+
+
+    tlsCrt: |-
+      -----BEGIN CERTIFICATE-----
+      MIIEFTCCAv2gAwIBAgIUZaOTC7NkE5lP6In/AIiGliiCQHYwDQYJKoZIhvcNAQEL
+      BQAwgagxCzAJBgNVBAYTAlVTMRMwEQYDVQQIEwpDYWxpZm9ybmlhMRYwFAYDVQQH
+      Ew1TYW4gRnJhbmNpc2NvMRkwFwYDVQQKExBDbG91ZGZsYXJlLCBJbmMuMRswGQYD
+      VQQLExJ3d3cuY2xvdWRmbGFyZS5jb20xNDAyBgNVBAMTK01hbmFnZWQgQ0EgMTgw
+      NDZhNmJlNDU4NDUwZTlkNWExOWYzZTVkN2MyYWMwHhcNMjQxMDI2MDMzMzAwWhcN
+      MzQxMDI0MDMzMzAwWjAiMQswCQYDVQQGEwJVUzETMBEGA1UEAxMKQ2xvdWRmbGFy
+      ZTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAO9rNMNsFEh3FdlSadh+
+      X+jIO28GJpDCMZzfUip3Cpq4JIVh/z62LbISoc/Pfzkmn5F5S6fJ5racztKH+N/I
+      mxIbOY1jkSuUv+f5aVSJj7AGSXO1z9mOSJ9RIHvwtZ2qqG0JoBhyIwRMwh0HcTHB
+      y8wOtRzYwGhij78skQybStVKjFI7oKxg7NHXFtwO11ADXCIq9CUx9z44cJqe00Cn
+      OOSrOyX0TfuTMw3f9DF2QkgfY2OYiaGyphhhz/JMUedHR7dlEQkl0GHod2sh1vpk
+      cZf6eevfaWgWGKkAm4+e1huaWAomNtPUqFtCZHaItC5CHs7TLFRMPJcb6Dsff461
+      jaECAwEAAaOBuzCBuDATBgNVHSUEDDAKBggrBgEFBQcDAjAMBgNVHRMBAf8EAjAA
+      MB0GA1UdDgQWBBQcQAr/9586nW+jxUi88/4LcP290zAfBgNVHSMEGDAWgBS7Q1/+
+      uD9h8KXGDsmwkOmnDCA9gjBTBgNVHR8ETDBKMEigRqBEhkJodHRwOi8vY3JsLmNs
+      b3VkZmxhcmUuY29tLzQ0MGY5ODZhLTAxNjQtNDkyZi1iODVhLWI3YThhMzNkZTkz
+      NC5jcmwwDQYJKoZIhvcNAQELBQADggEBAH/iGMPJiWbyQ1qO0IwBH3Uw5Zm2PKIb
+      GSblF6u5zuIhv/dl3NzTffgmZT+sy/CiUS8io3nEsBfXv4cNVYXjggLumvQClp12
+      9tqo7pSH21axwWJqq2AT0Bqhne+4tLLFLi1Y2zGZgT52GfIhtxcyBJIborZsDYm5
+      9tFn4fW8PuBwABLs4C/TtgTiyIOr6+z2vuKLS6N9TJePQNIuZStCB8Yx+gl1vTqx
+      2zQgAt+ncl7iCmxU+7N5S/1xl8PT5yceaLUS7N4sRJ+lSCH5nV1rHFE/O82rwHUq
+      L8uN13LRdCYNc+R0HlcphX6Y83Br808yHztcvue1R36AC00Ud4V1OHM=
+      -----END CERTIFICATE-----
+

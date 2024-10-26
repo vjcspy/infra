@@ -123,9 +123,6 @@ tolerations: [ ]
 
 affinity: { }
 
-# From Harness secrets
-#tlsCrt: <+secrets.getValue("dinhkhoile_ssl_crt")>
-#tlsKey: <+secrets.getValue("dinhkhoile_ssl_key")>
 tlsSecret:
   name: whoami-tls-secret
   data:
