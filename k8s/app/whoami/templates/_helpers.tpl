@@ -63,5 +63,5 @@ Create the name of the service account to use
 
 {{/* Định nghĩa tên đầy đủ của secret với revision */}}
 {{- define "whoami.tlsSecretFullName" -}}
-{{- printf "%s-%d" .Values.tlsSecret.name .Release.Revision | trunc 63 | trimSuffix "-" }}
+{{- .Values.tlsSecret.name | trunc 63 | trimSuffix "-" -}}
 {{- end }}
