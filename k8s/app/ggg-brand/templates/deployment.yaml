@@ -25,7 +25,7 @@ spec:
     spec:
       initContainers:
         # First time after restart cluster always fail
-        - name: check-host-mounted-ebs-volume
+        - name: init-container-check-host-mounted-ebs-volume
           image: busybox
           command: [ 'sh', '-c', 'for i in $(seq 1 5); do echo "Checking attempt $i..."; if [ -f /host_ebs_volume/DONT_DELETE ]; then echo "File found, exiting successfully."; exit 0; fi; echo "File not found, retrying..."; sleep 10; done; echo "File not found after 5 attempts, exiting with error."; exit 1' ]
           volumeMounts:
