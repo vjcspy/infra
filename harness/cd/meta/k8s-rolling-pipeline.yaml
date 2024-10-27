@@ -90,18 +90,28 @@ pipeline:
                   name: Prepare Source Code
                   identifier: Prepare_Source_Code
                   steps:
-                    - step:
-                        type: GitClone
-                        name: GitClone_1
-                        identifier: GitClone_1
-                        spec:
-                          connectorRef: vjcspygitconnector
-                          repoName: meta
-                          cloneDirectory: <+pipeline.stages.Configuration.spec.execution.steps.Resolve_Configuration.output.outputVariables.sourceCodePath>
-                          build:
-                            type: branch
+                    - parallel:
+                        - step:
+                            type: GitClone
+                            name: GitClone_1
+                            identifier: GitClone_1
                             spec:
-                              branch: <+pipeline.stages.Configuration.spec.execution.steps.Resolve_Configuration.output.outputVariables.gitBranch>
+                              connectorRef: vjcspygitconnector
+                              repoName: meta
+                              cloneDirectory: <+pipeline.stages.Configuration.spec.execution.steps.Resolve_Configuration.output.outputVariables.sourceCodePath>
+                              build:
+                                type: branch
+                                spec:
+                                  branch: <+pipeline.stages.Configuration.spec.execution.steps.Resolve_Configuration.output.outputVariables.gitBranch>
+                        - step:
+                            type: Run
+                            name: Check Source
+                            identifier: Check_Source
+                            spec:
+                              connectorRef: account.harnessImage
+                              image: busybox
+                              shell: Bash
+                              command: ls -la <+pipeline.stages.Configuration.spec.execution.steps.Resolve_Configuration.output.outputVariables.sourceCodePath>
                   stepGroupInfra:
                     type: KubernetesDirect
                     spec:
