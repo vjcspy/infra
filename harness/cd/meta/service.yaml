@@ -26,11 +26,4 @@ service:
               skipResourceVersioning: false
               enableDeclarativeRollback: false
               helmVersion: V3
-      variables:
-        - name: meta_project_name
-          type: String
-          default: stock
-          description: Yêu cầu phải có branch projects/PROJECT_NAME
-          required: true
-          value: <+input>.default(stock).allowedValues(stock,binance)
   gitOpsEnabled: false
