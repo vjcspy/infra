@@ -1,7 +1,8 @@
 environment:
   name: k8s-single-env
   identifier: k8ssingleenv
+  description: Single ENV for K8s Helm Chart Application
+  tags: {}
+  type: Production
   orgIdentifier: default
   projectIdentifier: default_project
-  type: Production
-  description: Single ENV
