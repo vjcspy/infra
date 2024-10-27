@@ -10,19 +10,22 @@
 
 #### Resolve Configuration
 
-- project: lấy từ service variable `<+serviceVariables.meta_project_name>`
+- `project`: lấy từ **pipeline** variable `<+pipeline.variables.meta_project_name>`
+- `namespace` 
 
-- namespace
+```tex
+<+pipeline.stages.Configuration.spec.execution.steps.Resolve_Configuration.output.outputVariables.namespace>
+```
 
-- gitBranch
+- `gitBranch`
 
-```shell
+```tex
 <+pipeline.stages.Configuration.spec.execution.steps.Resolve_Configuration.output.outputVariables.gitBranch>
 ```
 
-- sourceCodePath
+- `sourceCodePath`: lưu ý source code path là trong container nên sẽ có định dạng /meta/PROJECT_NAME
 
-```shell
+```tex
 <+pipeline.stages.Configuration.spec.execution.steps.Resolve_Configuration.output.outputVariables.sourceCodePath>
 ```
 
