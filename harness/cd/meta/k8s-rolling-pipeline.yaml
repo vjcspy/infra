@@ -42,4 +42,10 @@ pipeline:
                       key: configuration
                       scope: Pipeline
                   timeout: 2m
+          environment:
+            environmentRef: k8ssingleenv
+            deployToAll: false
+            infrastructureDefinitions:
+              - identifier: k8shelmchartinfra
         tags: {}
+        timeout: 2m
