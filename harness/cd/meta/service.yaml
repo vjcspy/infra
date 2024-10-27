@@ -29,7 +29,8 @@ service:
       variables:
         - name: meta_project_name
           type: String
+          default: stock
           description: Yêu cầu phải có branch projects/PROJECT_NAME
           required: true
-          value: <+input>.allowedValues(stock,binance)
+          value: <+input>.default(stock).allowedValues(stock,binance)
   gitOpsEnabled: false
