@@ -26,19 +26,30 @@ pipeline:
                     source:
                       type: Inline
                       spec:
-                        script: |
+                        script: |-
                           #!/bin/bash
 
                           # Lấy giá trị của biến đầu vào từ pipeline
                           project_name=<+serviceVariables.meta_project_name>
 
-                          # Kiểm tra nếu project_name là null hoặc rỗng
-                          if [ -z "$project_name" ]; then
-                            echo "Error: project_name không được để trống!"
-                            exit 1  # Thoát với mã lỗi 1 để fail step này
+                          # Kiểm tra các trường hợp project_name không hợp lệ
+                          if [ -z "${project_name}" ] || [ "${project_name}" = "null" ] || [ "${project_name}" = "<+serviceVariables.meta_project_name>" ]; then
+                              echo "Error: project_name không hợp lệ!"
+                              echo "Giá trị hiện tại: '${project_name}'"
+                              echo "project_name không được để trống, null hoặc chưa được thay thế biến!"
+                              exit 1  # Thoát với mã lỗi 1 để fail step
                           fi
 
-                          # In ra giá trị của project_name nếu không phải null
+                          # Loại bỏ khoảng trắng đầu và cuối nếu có
+                          project_name=$(echo "${project_name}" | xargs)
+
+                          # Kiểm tra lại sau khi đã trim
+                          if [ -z "${project_name}" ]; then
+                              echo "Error: project_name chỉ chứa khoảng trắng!"
+                              exit 1
+                          fi
+
+                          # In ra giá trị của project_name nếu hợp lệ
                           echo "Project Name: ${project_name}"
 
                           # Tạo namespace dựa trên project_name
