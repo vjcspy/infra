@@ -11,13 +11,26 @@
 #### Resolve Configuration
 
 - project: lấy từ service variable `<+serviceVariables.meta_project_name>`
+
 - namespace
+
+- gitBranch
+
+```shell
+<+pipeline.stages.Configuration.spec.execution.steps.Resolve_Configuration.output.outputVariables.gitBranch>
+```
+
+- sourceCodePath
+
+```shell
+<+pipeline.stages.Configuration.spec.execution.steps.Resolve_Configuration.output.outputVariables.sourceCodePath>
+```
+
+
 
 ### Pull code
 
-#### Input
-
-- name: string (dựa vào tên name để lấy ra được tên của brand project/NAME, ngoại trừ `stock` sẽ là lấy branch master luôn )
+Sử dụng built-in git clone của Harness
 
 ### Build code
 

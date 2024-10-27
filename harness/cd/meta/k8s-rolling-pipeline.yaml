@@ -4,7 +4,7 @@ pipeline:
   projectIdentifier: default_project
   orgIdentifier: default
   description: Pipeline to deploy meta application
-  tags: {}
+  tags: { }
   stages:
     - stage:
         name: Configuration
@@ -20,7 +20,7 @@ pipeline:
                   identifier: Resolve_Configuration
                   spec:
                     shell: Bash
-                    executionTarget: {}
+                    executionTarget: { }
                     delegateSelectors:
                       - helm-delegate
                     source:
@@ -56,7 +56,7 @@ pipeline:
                           namespace="meta-${project_name}"
                           sourceCodePath="/meta/${project_name}"
                           gitBranch="projects/${project_name}"
-                    environmentVariables: []
+                        environmentVariables: [ ]
                     outputVariables:
                       - name: namespace
                         type: String
@@ -76,7 +76,7 @@ pipeline:
             deployToAll: false
             infrastructureDefinitions:
               - identifier: k8shelmchartinfra
-        tags: {}
+        tags: { }
         timeout: 2m
     - stage:
         name: SourceCode
@@ -99,43 +99,94 @@ pipeline:
                           image: alpine/git
                           shell: Sh
                           command: |
-                            # Configure Git credentials
-                            git config --global user.name "Your Name"
-                            git config --global user.email "youremail@example.com"
+                            #!/bin/sh
+                            set -e  # Exit on error
 
-                            # Kiểm tra thư mục source code
-                            if [ -d "<+pipeline.output.configuration.sourceCodePath>/.git" ]; then
-                              echo "Thư mục đã tồn tại repo Git. Thực hiện git pull với rebase."
-                              cd <+pipeline.output.configuration.sourceCodePath>
-                              git checkout "<+pipeline.output.configuration.gitBranch>"
-                              git pull --rebase origin "<+pipeline.output.configuration.gitBranch>"
-                            else
-                              echo "Thư mục chưa có repo Git. Thực hiện git clone."
-                              git clone https://<+secrets.getValue('git_access_token')>@<+secrets.getValue('git_repo_url')> -b "<+pipeline.output.configuration.gitBranch>" <+pipeline.output.configuration.sourceCodePath>
+                            # Define function to log with timestamp
+                            log() {
+                              echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"
+                            }
+
+                            # Store the source code path in a variable
+                            SOURCE_CODE_PATH="<+pipeline.stages.Configuration.spec.execution.steps.Resolve_Configuration.output.outputVariables.sourceCodePath>"
+                            GIT_BRANCH="<+pipeline.stages.Configuration.spec.execution.steps.Resolve_Configuration.output.outputVariables.gitBranch>"
+
+                            # Validate input parameters
+                            if [ -z "$SOURCE_CODE_PATH" ] || [ -z "$GIT_BRANCH" ]; then
+                              log "Error: Required parameters are missing"
+                              log "SOURCE_CODE_PATH: $SOURCE_CODE_PATH"
+                              log "GIT_BRANCH: $GIT_BRANCH"
+                              exit 1
                             fi
-                  stepGroupInfra:
-                    type: KubernetesDirect
-                    spec:
-                      connectorRef: harnessk8sconnector
-                      namespace: harness-cd
-                      volumes:
-                        - mountPath: /meta
-                          type: HostPath
-                          spec:
-                            path: /mnt/existing_ebs_volume/meta
-                            type: Directory
-                        - mountPath: /root/.ssh
-                          type: HostPath
-                          spec:
-                            path: /home/ec2-user/.ssh
-                            type: Directory
-            rollbackSteps: []
-          serviceDependencies: []
-        tags: {}
+
+                            # Test Git SSH connection
+                            log "Testing Git SSH connection..."
+                            if ! ssh -T git@github.com 2>&1 | grep -q "successfully authenticated"; then
+                              log "Error: Failed to authenticate with GitHub"
+                              exit 1
+                            fi
+
+                            # Function to handle Git operations with error checking
+                            git_operation() {
+                              if ! "$@"; then
+                                log "Error: Git operation failed: $*"
+                                exit 1
+                              fi
+                            }
+
+                            log "Current directory: $(pwd)"
+                            log "Working with source code path: $SOURCE_CODE_PATH"
+
+                            if [ -d "$SOURCE_CODE_PATH/.git" ]; then
+                              log "Git repository already exists. Performing git pull with rebase."
+                              cd "$SOURCE_CODE_PATH"
+
+                              # Fetch all branches
+                              git_operation git fetch origin
+
+                              # Check if branch exists
+                              if ! git rev-parse --verify "origin/$GIT_BRANCH" >/dev/null 2>&1; then
+                                log "Error: Branch $GIT_BRANCH does not exist on remote"
+                                exit 1
+                              fi
+
+                              # Checkout and pull
+                              git_operation git checkout "$GIT_BRANCH"
+                              git_operation git pull --rebase origin "$GIT_BRANCH"
+                            else
+                              log "No Git repository found. Performing fresh clone."
+
+                              # Create parent directory if it doesn't exist
+                              mkdir -p "$(dirname "$SOURCE_CODE_PATH")"
+
+                              # Perform clone
+                              git_operation git clone git@github.com:vjcspy/meta.git -b "$GIT_BRANCH" "$SOURCE_CODE_PATH"
+                            fi
+
+                            log "Git operations completed successfully"
+                      stepGroupInfra:
+                        type: KubernetesDirect
+                        spec:
+                          connectorRef: harnessk8sconnector
+                          namespace: harness-cd
+                          volumes:
+                            - mountPath: /meta
+                              type: HostPath
+                              spec:
+                                path: /mnt/existing_ebs_volume/meta
+                                type: Directory
+                            - mountPath: /root/.ssh
+                              type: HostPath
+                              spec:
+                                path: /home/ec2-user/.ssh
+                                type: Directory
+            rollbackSteps: [ ]
+          serviceDependencies: [ ]
+        tags: { }
   variables:
     - name: meta_project_name
       type: String
       description: Phải có branch projects/NAME
       required: true
-      value: <+input>.default(stock).allowedValues(stock,binance)
+      value: "<+input>.default(stock).allowedValues(stock,binance)"
       default: stock
