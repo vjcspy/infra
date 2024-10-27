@@ -30,7 +30,7 @@ pipeline:
                           #!/bin/bash
 
                           # Lấy giá trị của biến đầu vào từ pipeline
-                          project_name=<+serviceVariables.meta_project_name>
+                          project_name="<+pipeline.variables.meta_project_name>"
 
                           # Kiểm tra các trường hợp project_name không hợp lệ
                           if [ -z "${project_name}" ] || [ "${project_name}" = "null" ] || [ "${project_name}" = "<+serviceVariables.meta_project_name>" ]; then
