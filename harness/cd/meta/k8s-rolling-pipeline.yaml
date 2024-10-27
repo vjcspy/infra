@@ -80,15 +80,6 @@ pipeline:
           deploymentType: Kubernetes
           service:
             serviceRef: meta
-            serviceInputs:
-              serviceDefinition:
-                type: Kubernetes
-                spec:
-                  variables:
-                    - name: meta_project_name
-                      type: String
-                      default: stock
-                      value: <+input>.default(stock).allowedValues(stock,binance)
           environment:
             environmentRef: k8ssingleenv
             deployToAll: false
