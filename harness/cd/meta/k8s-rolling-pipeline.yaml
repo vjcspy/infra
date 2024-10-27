@@ -4,7 +4,7 @@ pipeline:
   projectIdentifier: default_project
   orgIdentifier: default
   description: Pipeline to deploy meta application
-  tags: { }
+  tags: {}
   stages:
     - stage:
         name: Configuration
@@ -20,7 +20,7 @@ pipeline:
                   identifier: Resolve_Configuration
                   spec:
                     shell: Bash
-                    executionTarget: { }
+                    executionTarget: {}
                     delegateSelectors:
                       - helm-delegate
                     source:
@@ -56,7 +56,7 @@ pipeline:
                           namespace="meta-${project_name}"
                           sourceCodePath="/meta/${project_name}"
                           gitBranch="projects/${project_name}"
-                        environmentVariables: [ ]
+                        environmentVariables: []
                     outputVariables:
                       - name: namespace
                         type: String
@@ -76,7 +76,7 @@ pipeline:
             deployToAll: false
             infrastructureDefinitions:
               - identifier: k8shelmchartinfra
-        tags: { }
+        tags: {}
         timeout: 2m
     - stage:
         name: SourceCode
@@ -98,7 +98,7 @@ pipeline:
                           connectorRef: account.harnessImage
                           image: alpine/git
                           shell: Sh
-                          command: |
+                          command: |-
                             #!/bin/sh
                             set -e  # Exit on error
 
@@ -180,13 +180,13 @@ pipeline:
                               spec:
                                 path: /home/ec2-user/.ssh
                                 type: Directory
-            rollbackSteps: [ ]
-          serviceDependencies: [ ]
-        tags: { }
+            rollbackSteps: []
+          serviceDependencies: []
+        tags: {}
   variables:
     - name: meta_project_name
       type: String
       description: Phải có branch projects/NAME
       required: true
-      value: "<+input>.default(stock).allowedValues(stock,binance)"
+      value: <+input>.default(stock).allowedValues(stock,binance)
       default: stock
