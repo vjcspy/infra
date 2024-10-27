@@ -224,6 +224,8 @@ pipeline:
                 
                             # Install dependencies
                             log "Installing dependencies with pnpm..."
+                            pwd
+                            ls -la
                             pnpm install --frozen-lockfile
                 
                             # Build the application
