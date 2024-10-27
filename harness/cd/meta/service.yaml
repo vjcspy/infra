@@ -4,3 +4,26 @@ service:
   orgIdentifier: default
   projectIdentifier: default_project
   description: Meta service for meta nodejs project
+  serviceDefinition:
+    type: Kubernetes
+    spec:
+      manifests:
+        - manifest:
+            identifier: meta
+            type: HelmChart
+            spec:
+              store:
+                type: Github
+                spec:
+                  connectorRef: vjcspygitconnector
+                  gitFetchType: Branch
+                  folderPath: /k8s/app/meta
+                  repoName: infra
+                  branch: main
+              subChartPath: ""
+              valuesPaths:
+                - k8s/app/meta/values.yaml
+              skipResourceVersioning: false
+              enableDeclarativeRollback: false
+              helmVersion: V3
+  gitOpsEnabled: false
