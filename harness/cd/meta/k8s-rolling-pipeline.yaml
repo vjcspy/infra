@@ -90,28 +90,29 @@ pipeline:
                   name: Prepare Source Code
                   identifier: Prepare_Source_Code
                   steps:
-                    - parallel:
-                        - step:
-                            type: GitClone
-                            name: GitClone_1
-                            identifier: GitClone_1
-                            spec:
-                              connectorRef: vjcspygitconnector
-                              repoName: meta
-                              cloneDirectory: <+pipeline.stages.Configuration.spec.execution.steps.Resolve_Configuration.output.outputVariables.sourceCodePath>
-                              build:
-                                type: branch
-                                spec:
-                                  branch: <+pipeline.stages.Configuration.spec.execution.steps.Resolve_Configuration.output.outputVariables.gitBranch>
-                        - step:
-                            type: Run
-                            name: Check Source
-                            identifier: Check_Source
-                            spec:
-                              connectorRef: account.harnessImage
-                              image: busybox
-                              shell: Bash
-                              command: ls -la <+pipeline.stages.Configuration.spec.execution.steps.Resolve_Configuration.output.outputVariables.sourceCodePath>
+                    - step:
+                        type: Run
+                        name: Git Clone Source
+                        identifier: Git_Clone_Source
+                        spec:
+                          connectorRef: account.harnessImage
+                          image: alpine/git
+                          shell: Sh
+                          command: |
+                            # Configure Git credentials
+                            git config --global user.name "Your Name"
+                            git config --global user.email "youremail@example.com"
+
+                            # Kiểm tra thư mục source code
+                            if [ -d "<+pipeline.output.configuration.sourceCodePath>/.git" ]; then
+                              echo "Thư mục đã tồn tại repo Git. Thực hiện git pull với rebase."
+                              cd <+pipeline.output.configuration.sourceCodePath>
+                              git checkout "<+pipeline.output.configuration.gitBranch>"
+                              git pull --rebase origin "<+pipeline.output.configuration.gitBranch>"
+                            else
+                              echo "Thư mục chưa có repo Git. Thực hiện git clone."
+                              git clone https://<+secrets.getValue('git_access_token')>@<+secrets.getValue('git_repo_url')> -b "<+pipeline.output.configuration.gitBranch>" <+pipeline.output.configuration.sourceCodePath>
+                            fi
                   stepGroupInfra:
                     type: KubernetesDirect
                     spec:
@@ -122,6 +123,11 @@ pipeline:
                           type: HostPath
                           spec:
                             path: /mnt/existing_ebs_volume/meta
+                            type: Directory
+                        - mountPath: /root/.ssh
+                          type: HostPath
+                          spec:
+                            path: /home/ec2-user/.ssh
                             type: Directory
             rollbackSteps: []
           serviceDependencies: []
