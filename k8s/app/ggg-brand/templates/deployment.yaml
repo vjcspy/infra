@@ -31,7 +31,6 @@ spec:
           volumeMounts:
             - name: host-volume
               mountPath: /host_ebs_volume
-              subPath:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}

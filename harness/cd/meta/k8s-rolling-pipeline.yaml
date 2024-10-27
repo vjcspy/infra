@@ -271,13 +271,8 @@ pipeline:
       description: Có deploy Frontend hay không?
       required: true
       value: <+input>.default(false).allowedValues(true,false)
-    - name: api_request_instance
+    - name: num_of_instance
       type: Number
       description: Số lượng api request instance
-      required: true
-      value: <+input>.default(2)
-    - name: api_job_instance
-      type: Number
-      description: Số lượng api job instance
       required: true
       value: <+input>.default(2)
