@@ -26,4 +26,10 @@ service:
               skipResourceVersioning: false
               enableDeclarativeRollback: false
               helmVersion: V3
+      variables:
+        - name: meta_project_name
+          type: String
+          description: Yêu cầu phải có branch projects/PROJECT_NAME
+          required: true
+          value: ""
   gitOpsEnabled: false
