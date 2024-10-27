@@ -31,5 +31,5 @@ service:
           type: String
           description: Yêu cầu phải có branch projects/PROJECT_NAME
           required: true
-          value: ""
+          value: <+input>.allowedValues(stock,binance)
   gitOpsEnabled: false
