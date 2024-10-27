@@ -1,0 +1,7 @@
+environment:
+  name: k8s-single-env
+  identifier: k8ssingleenv
+  orgIdentifier: default
+  projectIdentifier: default_project
+  type: Production
+  description: Single ENV
