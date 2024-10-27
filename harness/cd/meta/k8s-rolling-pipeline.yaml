@@ -112,3 +112,9 @@ pipeline:
                 type: StageRollback
         when:
           pipelineStatus: Success
+  variables:
+    - name: meta_project_name
+      type: String
+      description: Phải có branch projects/NAME
+      required: true
+      value: <+input>
