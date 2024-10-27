@@ -1,0 +1,6 @@
+service:
+  name: meta
+  identifier: meta
+  orgIdentifier: default
+  projectIdentifier: default_project
+  description: Meta service for meta nodejs project
