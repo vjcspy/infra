@@ -164,22 +164,22 @@ pipeline:
                             fi
 
                             log "Git operations completed successfully"
-                      stepGroupInfra:
-                        type: KubernetesDirect
-                        spec:
-                          connectorRef: harnessk8sconnector
-                          namespace: harness-cd
-                          volumes:
-                            - mountPath: /meta
-                              type: HostPath
-                              spec:
-                                path: /mnt/existing_ebs_volume/meta
-                                type: Directory
-                            - mountPath: /root/.ssh
-                              type: HostPath
-                              spec:
-                                path: /home/ec2-user/.ssh
-                                type: Directory
+            stepGroupInfra:
+              type: KubernetesDirect
+              spec:
+                connectorRef: harnessk8sconnector
+                namespace: harness-cd
+                volumes:
+                  - mountPath: /meta
+                    type: HostPath
+                    spec:
+                      path: /mnt/existing_ebs_volume/meta
+                      type: Directory
+                  - mountPath: /root/.ssh
+                    type: HostPath
+                    spec:
+                      path: /home/ec2-user/.ssh
+                      type: Directory
             rollbackSteps: []
           serviceDependencies: []
         tags: {}
