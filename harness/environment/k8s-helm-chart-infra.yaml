@@ -1,0 +1,17 @@
+infrastructureDefinition:
+  name: k8s-helm-chart-infra
+  identifier: k8shelmchartinfra
+  description: |-
+    Một số đặc điểm của infra này:
+    - Namespace sẽ dựa vào project
+  orgIdentifier: default
+  projectIdentifier: default_project
+  environmentRef: k8ssingleenv
+  deploymentType: Kubernetes
+  type: KubernetesDirect
+  spec:
+    connectorRef: harnessk8sconnector
+    namespace: <+pipeline.stages.Configuration.spec.execution.steps.Resolve_Configuration.output.outputVariables.project>
+    releaseName: release-<+INFRA_KEY_SHORT_ID>
+  allowSimultaneousDeployments: false
+  scopedServices: []
