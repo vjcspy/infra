@@ -180,6 +180,25 @@ pipeline:
                           spec:
                             path: /home/ec2-user/.ssh
                             type: Directory
+              - stepGroup:
+                  name: Build Code
+                  identifier: Build_Code
+                  steps:
+                    - step:
+                        type: Run
+                        name: Build
+                        identifier: Build
+                        spec:
+                          connectorRef: account.harnessImage
+                          image: busybox
+                          shell: Sh
+                          command: ls
+                        description: pnpm run build
+                  stepGroupInfra:
+                    type: KubernetesDirect
+                    spec:
+                      connectorRef: harnessk8sconnector
+                      namespace: harness-cd
             rollbackSteps: []
           serviceDependencies: []
         tags: {}
