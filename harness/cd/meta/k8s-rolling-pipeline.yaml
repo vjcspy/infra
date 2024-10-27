@@ -117,4 +117,5 @@ pipeline:
       type: String
       description: Phải có branch projects/NAME
       required: true
-      value: <+input>
+      value: <+input>.default(stock).allowedValues(stock,binance)
+      default: stock
