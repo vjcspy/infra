@@ -1,4 +1,6 @@
 #!/bin/bash
+echo "___________________ Starting mounting EBS Volume Script ___________________"
+# file sudo vim /usr/local/bin/mount-ebs.sh
 set -e # Dừng script nếu có lỗi xảy ra
 
 # Cấu hình AWS Credentials - Thay đổi giá trị cho phù hợp
@@ -20,7 +22,7 @@ INSTANCE_ID=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.2
 echo "Instance ID: $INSTANCE_ID"
 
 # Kiểm tra trạng thái của volume và instance đang gắn
-VOLUME_ID="vol-03bb59d3251b98526"
+VOLUME_ID="vol-04cea9805ecdfbe52"
 REGION="ap-southeast-1"
 
 # Lấy thông tin đính kèm của volume
@@ -69,6 +71,12 @@ if [ "$need_to_attach" = true ]; then
     sleep 5
   done
   echo "Volume đã được gắn thành công."
+fi
+
+# Check if the file /mnt/existing_ebs_volume/DONT_DELETE exists
+if [ -f /mnt/existing_ebs_volume/DONT_DELETE ]; then
+  echo "The file /mnt/existing_ebs_volume/DONT_DELETE exists. Exiting script."
+  exit 0
 fi
 
 # Tạo thư mục mount nếu chưa tồn tại
