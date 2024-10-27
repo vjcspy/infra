@@ -26,7 +26,9 @@ pipeline:
                     source:
                       type: Inline
                       spec:
-                        script: |-
+                        script: |
+                          #!/bin/bash
+
                           # Lấy giá trị của biến đầu vào từ pipeline
                           project_name=<+serviceVariables.meta_project_name>
 
