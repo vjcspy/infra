@@ -190,15 +190,60 @@ pipeline:
                         identifier: Build
                         spec:
                           connectorRef: account.harnessImage
-                          image: busybox
+                          image: node:20-alpine
                           shell: Sh
-                          command: ls
-                        description: pnpm run build
+                          command: |-
+                            #!/bin/sh
+                            set -e  # Exit on error
+                
+                            # Define function to log with timestamp
+                            log() {
+                              echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"
+                            }
+                
+                            SOURCE_CODE_PATH="<+pipeline.stages.Configuration.spec.execution.steps.Resolve_Configuration.output.outputVariables.sourceCodePath>"
+                
+                            # Validate source code path
+                            if [ -z "$SOURCE_CODE_PATH" ]; then
+                              log "Error: SOURCE_CODE_PATH is missing"
+                              exit 1
+                            fi
+                
+                            # Change to source code directory
+                            log "Changing to source code directory: $SOURCE_CODE_PATH"
+                            cd "$SOURCE_CODE_PATH"
+                
+                            # Install pnpm globally
+                            log "Installing pnpm..."
+                            npm install -g pnpm@latest
+                
+                            # Verify installations
+                            log "Node version: $(node -v)"
+                            log "NPM version: $(npm -v)"
+                            log "PNPM version: $(pnpm -v)"
+                
+                            # Install dependencies
+                            log "Installing dependencies with pnpm..."
+                            pnpm install --frozen-lockfile
+                
+                            # Build the application
+                            log "Building the application..."
+                            pnpm run build
+                
+                            log "Build completed successfully"
+                        description: Install dependencies and build application with pnpm
+                        timeout: 10m  # Increased timeout for build process
                   stepGroupInfra:
                     type: KubernetesDirect
                     spec:
                       connectorRef: harnessk8sconnector
                       namespace: harness-cd
+                      volumes:
+                        - mountPath: /meta
+                          type: HostPath
+                          spec:
+                            path: /mnt/existing_ebs_volume/meta
+                            type: Directory
             rollbackSteps: []
           serviceDependencies: []
         tags: {}
