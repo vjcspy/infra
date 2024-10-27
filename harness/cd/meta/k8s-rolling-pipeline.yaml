@@ -96,7 +96,7 @@ pipeline:
                         identifier: Git_Clone_Source
                         spec:
                           connectorRef: account.harnessImage
-                          image: alpine/git
+                          image: alpine/git:2.45.2
                           shell: Sh
                           command: |-
                             #!/bin/sh
