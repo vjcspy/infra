@@ -26,7 +26,7 @@ pipeline:
                     source:
                       type: Inline
                       spec:
-                        script: |-
+                        script: |
                           #!/bin/bash
 
                           # Lấy giá trị của biến đầu vào từ pipeline
@@ -52,16 +52,21 @@ pipeline:
                           # In ra giá trị của project_name nếu hợp lệ
                           echo "Project Name: ${project_name}"
 
-                          # Tạo namespace dựa trên project_name
+                          # Build output variable
                           namespace="meta-${project_name}"
                           sourceCodePath="/meta/${project_name}"
                           gitBranch="projects/${project_name}"
-                          echo "Namespace: ${namespace}"
                     environmentVariables: []
                     outputVariables:
                       - name: namespace
                         type: String
                         value: namespace
+                      - name: sourceCodePath
+                        type: String
+                        value: sourceCodePath
+                      - name: gitBranch
+                        type: String
+                        value: gitBranch
                     outputAlias:
                       key: configuration
                       scope: Pipeline
@@ -97,8 +102,6 @@ pipeline:
                             type: branch
                             spec:
                               branch: <+pipeline.stages.Configuration.spec.execution.steps.Resolve_Configuration.output.outputVariables.gitBranch>
-                  sharedPaths:
-                    - /meta
                   stepGroupInfra:
                     type: KubernetesDirect
                     spec:
