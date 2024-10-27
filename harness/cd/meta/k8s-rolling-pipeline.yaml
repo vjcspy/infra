@@ -27,12 +27,21 @@ pipeline:
                       type: Inline
                       spec:
                         script: |-
-                          #!/bin/bash
-
                           # Lấy giá trị của biến đầu vào từ pipeline
-                          project=<+serviceVariables.meta_project_name>
-                          echo "Project Name: ${project}"
-                          namespace="meta-${project}"
+                          project_name=<+serviceVariables.meta_project_name>
+
+                          # Kiểm tra nếu project_name là null hoặc rỗng
+                          if [ -z "$project_name" ]; then
+                            echo "Error: project_name không được để trống!"
+                            exit 1  # Thoát với mã lỗi 1 để fail step này
+                          fi
+
+                          # In ra giá trị của project_name nếu không phải null
+                          echo "Project Name: ${project_name}"
+
+                          # Tạo namespace dựa trên project_name
+                          namespace="meta-${project_name}"
+                          echo "Namespace: ${namespace}"
                     environmentVariables: []
                     outputVariables:
                       - name: namespace
@@ -97,3 +106,5 @@ pipeline:
                 - AllErrors
               action:
                 type: StageRollback
+        when:
+          pipelineStatus: Success
