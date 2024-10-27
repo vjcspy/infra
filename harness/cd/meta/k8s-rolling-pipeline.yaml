@@ -54,6 +54,8 @@ pipeline:
 
                           # Tạo namespace dựa trên project_name
                           namespace="meta-${project_name}"
+                          sourceCodePath="/meta/${project_name}"
+                          gitBranch="projects/${project_name}"
                           echo "Namespace: ${namespace}"
                     environmentVariables: []
                     outputVariables:
@@ -71,6 +73,46 @@ pipeline:
               - identifier: k8shelmchartinfra
         tags: {}
         timeout: 2m
+    - stage:
+        name: SourceCode
+        identifier: SourceCode
+        description: ""
+        type: Custom
+        spec:
+          execution:
+            steps:
+              - stepGroup:
+                  name: Prepare Source Code
+                  identifier: Prepare_Source_Code
+                  steps:
+                    - step:
+                        type: GitClone
+                        name: GitClone_1
+                        identifier: GitClone_1
+                        spec:
+                          connectorRef: vjcspygitconnector
+                          repoName: meta
+                          cloneDirectory: <+pipeline.stages.Configuration.spec.execution.steps.Resolve_Configuration.output.outputVariables.sourceCodePath>
+                          build:
+                            type: branch
+                            spec:
+                              branch: <+pipeline.stages.Configuration.spec.execution.steps.Resolve_Configuration.output.outputVariables.gitBranch>
+                  sharedPaths:
+                    - /meta
+                  stepGroupInfra:
+                    type: KubernetesDirect
+                    spec:
+                      connectorRef: harnessk8sconnector
+                      namespace: harness-cd
+                      volumes:
+                        - mountPath: /meta
+                          type: HostPath
+                          spec:
+                            path: /mnt/existing_ebs_volume/meta
+                            type: Directory
+            rollbackSteps: []
+          serviceDependencies: []
+        tags: {}
     - stage:
         name: Deploy
         identifier: Deploy
