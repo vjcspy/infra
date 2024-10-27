@@ -1,0 +1,45 @@
+pipeline:
+  name: meta-pipeline
+  identifier: metapipeline
+  projectIdentifier: default_project
+  orgIdentifier: default
+  description: Pipeline to deploy meta application
+  tags: {}
+  stages:
+    - stage:
+        name: Configuration
+        identifier: Configuration
+        description: Prepare configuration for pipeline
+        type: Custom
+        spec:
+          execution:
+            steps:
+              - step:
+                  type: ShellScript
+                  name: Resolve Configuration
+                  identifier: Resolve_Configuration
+                  spec:
+                    shell: Bash
+                    executionTarget: {}
+                    delegateSelectors:
+                      - helm-delegate
+                    source:
+                      type: Inline
+                      spec:
+                        script: |-
+                          #!/bin/bash
+
+                          # Lấy giá trị của biến đầu vào từ pipeline
+                          project=<+serviceVariables.meta_project_name>
+                          echo "Project Name: ${project}"
+                          namespace="meta-${project}"
+                    environmentVariables: []
+                    outputVariables:
+                      - name: namespace
+                        type: String
+                        value: namespace
+                    outputAlias:
+                      key: configuration
+                      scope: Pipeline
+                  timeout: 2m
+        tags: {}
