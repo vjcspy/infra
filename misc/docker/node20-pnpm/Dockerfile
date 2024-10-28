@@ -2,7 +2,9 @@
 FROM node:20-alpine
 
 # Cài đặt pnpm thông qua corepack (built-in với Node.js)
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN npm install -g pnpm@latest
+# Kiểm tra phiên bản pnpm để xác nhận
+RUN pnpm --version
 
 # Tạo non-root user
 RUN addgroup --system --gid 1001 nodejs && \

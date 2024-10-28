@@ -195,7 +195,7 @@ pipeline:
                         identifier: Build
                         spec:
                           connectorRef: account.harnessImage
-                          image: vjcspy/node:20-pnpm
+                          image: vjcspy/node:20-pnpm-1
                           shell: Sh
                           command: |-
                             #!/bin/sh

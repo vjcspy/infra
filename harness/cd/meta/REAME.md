@@ -51,3 +51,9 @@ Sử dụng built-in git clone của Harness
 
 - api: true/false (Có deploy api container không?)
 - frontend: true/fase (Có deploy frontend nextjs không?)
+
+
+
+## Quy ước
+
+- domain: sẽ lấy theo tên project `PROJECT_NAME.dinhkhoile.com`
