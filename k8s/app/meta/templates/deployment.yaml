@@ -4,6 +4,8 @@ metadata:
   name: {{ include "meta.fullname" . }}
   labels:
     {{- include "meta.labels" . | nindent 4 }}
+  annotations:
+    redeployTimestamp: "{{ now | unixEpoch }}"
 spec:
   {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
