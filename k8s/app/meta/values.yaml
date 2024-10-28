@@ -60,20 +60,45 @@ service:
 
 # This block is for setting up the ingress for more information can be found here: https://kubernetes.io/docs/concepts/services-networking/ingress/
 ingress:
-  enabled: false
-  className: ""
-  annotations: { }
-  # kubernetes.io/ingress.class: nginx
-  # kubernetes.io/tls-acme: "true"
+  enabled: true
+  className: "nginx"
+  annotations:
+    # Chỉ định Ingress class
+    kubernetes.io/ingress-class: nginx
+
+    # Enable SSL redirect
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+
+    # Cấu hình SSL
+    nginx.ingress.kubernetes.io/ssl-protocols: "TLSv1 TLSv1.1 TLSv1.2"
+
+    # Cấu hình proxy headers
+    nginx.ingress.kubernetes.io/proxy-set-headers: |
+      X-Real-IP: $remote_addr
+      X-Forwarded-For: $proxy_add_x_forwarded_for
+      X-Nginx-Proxy: "true"
+
+    # Cấu hình Security Headers
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      more_set_headers "Content-Security-Policy: script-src 'self' 'unsafe-inline' 'unsafe-eval' admin.magedemo.co.uk cdnjs.cloudflare.com www.bedkingdom.co.uk www.googletagmanager.com connect.facebook.net www.googleadservices.com www.google-analytics.com googleads.g.doubleclick.net onesignal.com tpc.googlesyndication.com;";
+
+    # Cấu hình GZIP
+    nginx.ingress.kubernetes.io/enable-gzip: "true"
+    nginx.ingress.kubernetes.io/gzip-types: "text/plain text/css text/js text/xml text/javascript application/javascript application/x-javascript application/json application/xml application/xml+rss image/svg+xml"
+    nginx.ingress.kubernetes.io/gzip-min-length: "1100"
+    nginx.ingress.kubernetes.io/gzip-comp-level: "6"
+
+    # Cấu hình proxy buffer
+    nginx.ingress.kubernetes.io/proxy-buffers-number: "8"
+    nginx.ingress.kubernetes.io/proxy-buffer-size: "8k"
   hosts:
-    - host: chart-example.local
+    - host: <+pipeline.variables.meta_project_name>.dinhkhoile.com
       paths:
         - path: /
-          pathType: ImplementationSpecific
-  tls: [ ]
-  #  - secretName: chart-example-tls
-  #    hosts:
-  #      - chart-example.local
+          pathType: Prefix
+  tls:
+    - hosts:
+        - <+pipeline.variables.meta_project_name>.dinhkhoile.com
 
 resources:
   # We usually recommend not to specify default resources and to leave this as a conscious
@@ -135,3 +160,62 @@ apiContainer:
       echo "Starting application..."
       cd /app
       pnpm --filter @stock/apps-api start:prod
+
+tlsSecret:
+  name: meta-tls-secret
+  data:
+    tlsKey: |-
+      -----BEGIN PRIVATE KEY-----
+      MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCrQRaeKUWVr5Nh
+      rEKk9lbdGeSZ5vXv+gpkXZQK6nAf5VxwbZCGb/kuC4LgCwSx89Eqg6GziEowZkoe
+      g3CCK/PF65SB2TbT/doYe0kHEb3MNkquE8hnHxlJHUOxMR+bS4HvFW14WKqVi0Gb
+      P0SmvOQQIKteE868WikTG4zNf90Y3tXgm2o5tDbQmwMnD7V+v06rWtYG+xByEAeG
+      IvOqjaE4E+Cp/JdanJFXOCMO96z0zfnRamdSSCDdccgbfR4wQbnfroT7h/hLF8f2
+      i6V6cZxSS8/A3mne7eNLY0LA7Ss0EZ/Rc84BKLdtq/HyNsCzr992IGslQQ8gGLms
+      HZe1h6TxAgMBAAECggEABT+Px63UiY7JjbVzjujo6//RxSOCVMC1KL2DQ+uKn2Lz
+      neibrzpiA3Fb881epIH9fmfYO39rz6HTjRhtM6NmG4IPCW+HL2trj53Cn45MLTnv
+      jg1s540jpMgaRZqaQSj+R3NA3o6avrhsx1Wtac3m5YrMxFZc0EypOYIkrZJo4Rd7
+      /PANNbw5Z644s6MDjjvzKxpJoZg2qjXd917JJuUaEjw+c/6u24BgM+XCo5mvAkPa
+      ETKg0HT4MOJa//5umWxvsxrZSg2crofogPg7bsMAfzDY0LiKWkOEeDR7blznYUDV
+      JGG4X6zWd+9vAqV7CtU1utzXvm5GqUNO7PRF53dDaQKBgQDcrlz2QdIWykGCkZMM
+      odRe1khxNymD5UsVL09ILY/CDtpwxNXjQNPrgNJ6uKTez4pEefqFpPOcToPfW/cA
+      1eXt19WJmBlPYUoLLaZywubE9s5HJg38mO3Dih68egM/gdLOsqpBkJRaEWBT7Tdv
+      funCwbp7eNLdRYxPA61pyMRtCQKBgQDGqaH0YsSH7aCXuxj+FNtAFWGqeplM5JCJ
+      pGnB85KHAV+3D+8k4VC+qFR6QFPCBwKhCtnAlFlLb/Hxu2qn/DKUXLWLn3qcd7bz
+      Ck5JQyxsZ1kkigzZk5O4e7Tqx0m4GNh5SHEsyy1lJg1OcRtKxZs9dU0StNXEKykr
+      aMBe0XLaqQKBgGA9dnM6z0l7GUi8/dlDdh+J6fvd57AKvkzV3giHPiuOWLtXTEQY
+      UJNjEefNQLGe5xjn7VZ9UnR3VVGChN0La4PnXcvs1hTlQ+pOFUn1L7j0PY+PzAe+
+      FeryAGeH+oSmtG3KQy/mwpvo+g5/5G4udfmmjRIt5h/zpbYLz4PTt74pAoGAarU/
+      GsfajLCk7BtBR2jog7l4ZlvH8DdtM6GudNFiSUYBpZDXgVXNSzubdLcMxlGBpgLw
+      B7Mna4/Lw25J0cVzXaGWmlKlR1o+WLmWZ1+/gtLYXPoSAOR2GkfIW7uD63DdBfhV
+      YhwYXBZeW14BrN4Ljq1tIrkjgWU1je2MNuIF8VECgYB8oGdm/EU1e/wqMiXmnnIb
+      UCed+MGDZZEloZ2Hkft9qJfsWFUzNvOxF2MHimse6TGQujRQOsq23FUp2D0+2x2w
+      YDgL9PtITswlQB7/E3VziBoHTZ73IYHMk1pSw/nMl/0eyvFd7vWvkGBin7JFEzTC
+      7Wq/a/OCi3qEcqJJ9XFITw==
+      -----END PRIVATE KEY-----
+
+    tlsCrt: |-
+      -----BEGIN CERTIFICATE-----
+      MIIEFTCCAv2gAwIBAgIUZpnMwwMZh9Y+DMIf7tTZLyLjFRwwDQYJKoZIhvcNAQEL
+      BQAwgagxCzAJBgNVBAYTAlVTMRMwEQYDVQQIEwpDYWxpZm9ybmlhMRYwFAYDVQQH
+      Ew1TYW4gRnJhbmNpc2NvMRkwFwYDVQQKExBDbG91ZGZsYXJlLCBJbmMuMRswGQYD
+      VQQLExJ3d3cuY2xvdWRmbGFyZS5jb20xNDAyBgNVBAMTK01hbmFnZWQgQ0EgODE3
+      ZTMzZjdlZjk1NTk3MWRmYTZmYmYxZGRlOTBlZTkwHhcNMjQxMDIwMTM0MTAwWhcN
+      MzQxMDE4MTM0MTAwWjAiMQswCQYDVQQGEwJVUzETMBEGA1UEAxMKQ2xvdWRmbGFy
+      ZTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAKtBFp4pRZWvk2GsQqT2
+      Vt0Z5Jnm9e/6CmRdlArqcB/lXHBtkIZv+S4LguALBLHz0SqDobOISjBmSh6DcIIr
+      88XrlIHZNtP92hh7SQcRvcw2Sq4TyGcfGUkdQ7ExH5tLge8VbXhYqpWLQZs/RKa8
+      5BAgq14TzrxaKRMbjM1/3Rje1eCbajm0NtCbAycPtX6/Tqta1gb7EHIQB4Yi86qN
+      oTgT4Kn8l1qckVc4Iw73rPTN+dFqZ1JIIN1xyBt9HjBBud+uhPuH+EsXx/aLpXpx
+      nFJLz8Dead7t40tjQsDtKzQRn9FzzgEot22r8fI2wLOv33YgayVBDyAYuawdl7WH
+      pPECAwEAAaOBuzCBuDATBgNVHSUEDDAKBggrBgEFBQcDAjAMBgNVHRMBAf8EAjAA
+      MB0GA1UdDgQWBBRBj5b5gYe9GMSYSbZq4ou5cgzMrDAfBgNVHSMEGDAWgBR254up
+      GpoAw1njvCWM6/T2Bry5JjBTBgNVHR8ETDBKMEigRqBEhkJodHRwOi8vY3JsLmNs
+      b3VkZmxhcmUuY29tLzg4NmEwNWJkLTY0MDgtNDU5ZC05NTlmLTk0M2M4YjM2N2Y0
+      Yi5jcmwwDQYJKoZIhvcNAQELBQADggEBAK06SPzGtOMtXpY92VH6SCRipOQhMlaz
+      ieTyr8XOu6cxTU9ocIz/Z1Uz4C+kOSfPMp8DzDxtLqVJkH5okI0UZ8hXbCkD8MKU
+      X5FrnAUDr9AaGK9pW/Af6zgcj/oQ1wN2xyKOGALy+jMmKbOE/GhzhUHnVrVsjYvv
+      3CsNWY58RcDiKoGMIG8MqaHtgAmZHKOB+qGPzuAKDATUjHr+6Bf5Rh4TNBbv2uO6
+      5njAR4PmjA4sIOmhkJFvM8X7PpqcG+2D8UxqLzlpo8BDDgP/MEfvs8xZgwZbkVUY
+      Ob5yHEKuEmldDjV/vkbBSkZ9sjTXsBdO1tjQzdkXo5468q1BMJ4T5lc=
+      -----END CERTIFICATE-----
