@@ -190,7 +190,7 @@ pipeline:
                         identifier: Build
                         spec:
                           connectorRef: account.harnessImage
-                          image: node:20-alpine
+                          image: vjcspy/node:20-pnpm
                           shell: Sh
                           command: |-
                             #!/bin/sh
@@ -212,10 +212,6 @@ pipeline:
                             # Change to source code directory
                             log "Changing to source code directory: $SOURCE_CODE_PATH"
                             cd "$SOURCE_CODE_PATH"
-
-                            # Install pnpm globally
-                            log "Installing pnpm..."
-                            npm install -g pnpm@latest
 
                             # Verify installations
                             log "Node version: $(node -v)"
