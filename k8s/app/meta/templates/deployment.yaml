@@ -95,6 +95,8 @@ spec:
               value: "true"
             - name: QUEUE_CONSUMER_ENABLE
               value: "true"
+            - name: APP_PORT
+              value: "3001"
           workingDir: {{ .Values.apiContainer.apiWorkingDir }}
 
       {{- with .Values.volumes }}
