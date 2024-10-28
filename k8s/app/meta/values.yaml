@@ -78,10 +78,6 @@ ingress:
       X-Forwarded-For: $proxy_add_x_forwarded_for
       X-Nginx-Proxy: "true"
 
-    # Cấu hình Security Headers
-    nginx.ingress.kubernetes.io/configuration-snippet: |
-      more_set_headers "Content-Security-Policy: script-src 'self' 'unsafe-inline' 'unsafe-eval' admin.magedemo.co.uk cdnjs.cloudflare.com www.bedkingdom.co.uk www.googletagmanager.com connect.facebook.net www.googleadservices.com www.google-analytics.com googleads.g.doubleclick.net onesignal.com tpc.googlesyndication.com;";
-
     # Cấu hình GZIP
     nginx.ingress.kubernetes.io/enable-gzip: "true"
     nginx.ingress.kubernetes.io/gzip-types: "text/plain text/css text/js text/xml text/javascript application/javascript application/x-javascript application/json application/xml application/xml+rss image/svg+xml"
