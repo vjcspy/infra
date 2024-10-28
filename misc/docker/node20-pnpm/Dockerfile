@@ -17,9 +17,6 @@ RUN chown nodejsuser:nodejs /app
 # Chuyển sang non-root user
 USER nodejsuser
 
-# Set production environment
-ENV NODE_ENV=production
-
 # Expose port mặc định
 EXPOSE 3000
 
