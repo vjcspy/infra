@@ -47,6 +47,7 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           command: {{ .Values.apiContainer.command }}
+          args: {{ .Values.apiContainer.args | toJson }}
           ports:
             - name: http
               containerPort: {{ .Values.service.port }}
@@ -78,6 +79,7 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           command: {{ .Values.apiContainer.command }}
+          args: {{ .Values.apiContainer.args | toJson }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           {{- with .Values.volumeMounts }}
