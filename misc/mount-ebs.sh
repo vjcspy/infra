@@ -48,7 +48,7 @@ elif [ "$volume_status" == "in-use" ] && [ "$attached_instance_id" != "None" ] &
   # Chờ để volume chuyển sang trạng thái 'available'
   echo "Đợi volume trở về trạng thái 'available'..."
   while true; do
-    volume_status=$(aws.ec2.describe-volumes --volume-ids $VOLUME_ID --region $REGION --query "Volumes[0].State" --output text)
+    volume_status=$(aws ec2 describe-volumes --volume-ids $VOLUME_ID --region $REGION --query "Volumes[0].State" --output text)
     if [ "$volume_status" == "available" ]; then
       break
     fi
