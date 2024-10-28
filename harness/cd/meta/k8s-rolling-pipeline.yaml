@@ -152,7 +152,7 @@ pipeline:
 
                               # Checkout and pull
                               git_operation git checkout "$GIT_BRANCH"
-                              git_operation git pull --rebase origin "$GIT_BRANCH"
+                              git_operation git pull --rebase --autostash origin "$GIT_BRANCH"
                             else
                               log "No Git repository found. Performing fresh clone."
 

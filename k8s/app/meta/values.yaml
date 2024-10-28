@@ -155,7 +155,7 @@ apiContainer:
     - |
       echo "Starting application..."
       cd /app
-      pnpm --filter @stock/apps-api start:prod
+      pnpm start:prod
 
 tlsSecret:
   name: meta-tls-secret
