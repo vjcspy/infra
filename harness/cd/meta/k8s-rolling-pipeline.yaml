@@ -164,6 +164,10 @@ pipeline:
                             fi
 
                             log "Git operations completed successfully"
+                          resources:
+                            limits:
+                              memory: 2000Mi
+                              cpu: 500m
                   stepGroupInfra:
                     type: KubernetesDirect
                     spec:
@@ -180,6 +184,7 @@ pipeline:
                           spec:
                             path: /home/ec2-user/.ssh
                             type: Directory
+                      initTimeout: 5m
               - stepGroup:
                   name: Build Code
                   identifier: Build_Code
@@ -232,10 +237,9 @@ pipeline:
                           privileged: false
                           resources:
                             limits:
-                              memory: 4000Mi
-                              cpu: 1000m
+                              memory: 3000Mi
+                              cpu: 500m
                         description: Install dependencies and build application with pnpm
-                        timeout: 10m
                   stepGroupInfra:
                     type: KubernetesDirect
                     spec:
@@ -247,6 +251,7 @@ pipeline:
                           spec:
                             path: /mnt/existing_ebs_volume/meta
                             type: Directory
+                      initTimeout: 10m
             rollbackSteps: []
           serviceDependencies: []
         tags: {}
