@@ -134,4 +134,4 @@ affinity: { }
 
 apiContainer:
   apiWorkingDir: /app/projects/<+pipeline.variables.meta_project_name>/apps/api
-  command: ["npm", "run", "start:prod"]
+  command: ["sh", "-c", "npm run start:prod"]
