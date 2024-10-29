@@ -4,6 +4,8 @@ metadata:
   name: {{ include "ggg-api.fullname" . }}
   labels:
     {{- include "ggg-api.labels" . | nindent 4 }}
+  annotations:
+    redeployTimestamp: "{{ now | unixEpoch }}"
 spec:
   {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
