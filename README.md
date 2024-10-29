@@ -8,7 +8,8 @@
 
 Starter application to test connection/integration between Harness CD with K8s Cluster
 
-Run Harness CLI to bring up service, environment, pipeline...
+- Run Harness CLI to bring up service, environment, pipeline...
+- Run Harness CD to deploy app to K8s Cluster
 
 ### ggg-brand
 

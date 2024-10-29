@@ -62,7 +62,7 @@ ingress:
   className: "nginx"
   annotations:
     kubernetes.io/ingress.class: nginx
-    kubernetes.io/tls-acme: "true"
+    nginx.ingress.kubernetes.io/ssl-verify: "false"
   hosts:
     # TODO: get from pipeline
     - host: whoami.dinhkhoile.com
