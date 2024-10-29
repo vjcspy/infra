@@ -20,7 +20,7 @@ spec:
         {{- range .hosts }}
         - {{ . | quote }}
         {{- end }}
-      secretName: {{ .secretName }}
+      secretName: {{ include "ggg-api.tlsSecretFullName" $ }}
     {{- end }}
   {{- end }}
   rules:

@@ -7,14 +7,14 @@ replicaCount: 1
 
 # This sets the container image more information can be found here: https://kubernetes.io/docs/concepts/containers/images/
 image:
-  repository: nginx
+  repository: vjcspy/node
   # This sets the pull policy for images.
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   tag: ""
 
 # This is for the secretes for pulling an image from a private repository more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
-imagePullSecrets: []
+imagePullSecrets: [ ]
 # This is to override the chart name.
 nameOverride: ""
 fullnameOverride: ""
@@ -26,74 +26,91 @@ serviceAccount:
   # Automatically mount a ServiceAccount's API credentials?
   automount: true
   # Annotations to add to the service account
-  annotations: {}
+  annotations: { }
   # The name of the service account to use.
   # If not set and create is true, a name is generated using the fullname template
   name: ""
 
 # This is for setting Kubernetes Annotations to a Pod.
 # For more information checkout: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/ 
-podAnnotations: {}
+podAnnotations: { }
 # This is for setting Kubernetes Labels to a Pod.
 # For more information checkout: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
-podLabels: {}
+podLabels: { }
 
-podSecurityContext: {}
-  # fsGroup: 2000
+podSecurityContext:
+  fsGroup: 1001
 
-securityContext: {}
-  # capabilities:
-  #   drop:
-  #   - ALL
-  # readOnlyRootFilesystem: true
-  # runAsNonRoot: true
-  # runAsUser: 1000
+securityContext:
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 1001
 
 # This is for setting up a service more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/
 service:
   # This sets the service type more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types
   type: ClusterIP
   # This sets the ports more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/#field-spec-ports
-  port: 80
+  port: 2006
 
 # This block is for setting up the ingress for more information can be found here: https://kubernetes.io/docs/concepts/services-networking/ingress/
 ingress:
-  enabled: false
-  className: ""
-  annotations: {}
-    # kubernetes.io/ingress.class: nginx
-    # kubernetes.io/tls-acme: "true"
+  enabled: true
+  className: "nginx"
+  annotations:
+    # Chỉ định Ingress class
+    kubernetes.io/ingress-class: nginx
+
+    # Enable SSL redirect
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+
+    # Cấu hình SSL
+    nginx.ingress.kubernetes.io/ssl-protocols: "TLSv1 TLSv1.1 TLSv1.2"
+
+    # Cấu hình proxy headers
+    nginx.ingress.kubernetes.io/proxy-set-headers: |
+      X-Real-IP: $remote_addr
+      X-Forwarded-For: $proxy_add_x_forwarded_for
+      X-Nginx-Proxy: "true"
+
+    # Cấu hình GZIP
+    nginx.ingress.kubernetes.io/enable-gzip: "true"
+    nginx.ingress.kubernetes.io/gzip-types: "text/plain text/css text/js text/xml text/javascript application/javascript application/x-javascript application/json application/xml application/xml+rss image/svg+xml"
+    nginx.ingress.kubernetes.io/gzip-min-length: "1100"
+    nginx.ingress.kubernetes.io/gzip-comp-level: "6"
+
+    # Cấu hình proxy buffer
+    nginx.ingress.kubernetes.io/proxy-buffers-number: "8"
+    nginx.ingress.kubernetes.io/proxy-buffer-size: "8k"
   hosts:
-    - host: chart-example.local
+    - host: external.ggg.systems
       paths:
         - path: /
-          pathType: ImplementationSpecific
-  tls: []
-  #  - secretName: chart-example-tls
-  #    hosts:
-  #      - chart-example.local
+          pathType: Prefix
+  tls:
+    - hosts:
+        - external.ggg.systems
 
-resources: {}
-  # We usually recommend not to specify default resources and to leave this as a conscious
-  # choice for the user. This also increases chances charts run on environments with little
-  # resources, such as Minikube. If you do want to specify resources, uncomment the following
-  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
-  # limits:
-  #   cpu: 100m
-  #   memory: 128Mi
-  # requests:
-  #   cpu: 100m
-  #   memory: 128Mi
+resources:
+  limits:
+    cpu: 500m
+    memory: 1000Mi
+  requests:
+    cpu: 200m
+    memory: 512Mi
 
 # This is to setup the liveness and readiness probes more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
 livenessProbe:
   httpGet:
-    path: /
-    port: http
+    path: /ping
+    port: 2006
 readinessProbe:
   httpGet:
-    path: /
-    port: http
+    path: /ping
+    port: 2006
 
 #This section is for setting up autoscaling more information can be found here: https://kubernetes.io/docs/concepts/workloads/autoscaling/
 autoscaling:
@@ -104,20 +121,95 @@ autoscaling:
   # targetMemoryUtilizationPercentage: 80
 
 # Additional volumes on the output Deployment definition.
-volumes: []
-# - name: foo
-#   secret:
-#     secretName: mysecret
-#     optional: false
+volumes:
+  - name: host-volume
+    hostPath:
+      path: /mnt/existing_ebs_volume
+      type: Directory
 
 # Additional volumeMounts on the output Deployment definition.
-volumeMounts: []
-# - name: foo
-#   mountPath: "/etc/foo"
-#   readOnly: true
+volumeMounts:
+  - name: host-volume
+    mountPath: /app
+    subPath: ggg_mkt/ggg-api
 
-nodeSelector: {}
+nodeSelector: { }
 
-tolerations: []
+tolerations: [ ]
 
-affinity: {}
+affinity: { }
+
+tlsSecret:
+  name: ggg-systems-tls-secret
+  data:
+    tlsKey: |-
+      -----BEGIN PRIVATE KEY-----
+      MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDPSEVZDm/3Uv7r
+      GBjXPYclyNVr4X3go71bKgIWZpk/7S6qAzf0U6nT1+LFGPqoF4YCqSfqawpGVp2q
+      oNbK1Ectp3pjoBf0e7hMFxYIGzwn8r8JGlW+RWe6L6+AzIW9l3XROBwtKGDl9HOr
+      d5gzud2uO366bG9Kr7nyO+AaVJJtLKz7+xFISMyWegroi1672oZB9T0ByIMEonj9
+      sOFT6fwZapIau7b/qPQudCWve82ZP+RtENAYGUJUmhGw8KWiJO0qb/smgGLk07H8
+      gvjxVUlDmDK8euLUnVHZlrgIldXJAVFvwAT3s89LBVkFELw0qfhkDJgirigHoakQ
+      XgKTfh59AgMBAAECggEAC000NMEYAzrj+cL4VcH9zKZY1pc2kwkycZZGg1yoNedT
+      cEMZKannHE0MyPTN89zGen4pFjusVX3y/kLjOy9cSyWyw1xO+g5F0+Y9VgdQHhh6
+      6H7mVme32luvvLzJ/PaVXqkpxh+Juvf7V4m/g3B6oP2O8RCo98BBie7QTvc1/ZxE
+      /XhuYw2w5orKda8kUL9LpioWtp48oVehASJLrxwU8qYXiGBZ1D2KoqwbrAPob8oa
+      TOk8550NcyBhNbxIlElYYYAs42wsTzX0Bqftmc2YSKMisKCe5Kef59ht4q6WVy/Y
+      QlnhAgts8+5nZ9w6Mz0ATeAHaKHcxE2wg7K5Q2mJSQKBgQD9WgZ0opsON02MZC06
+      RcNVJFH1VXyi8OquBbKo7+K4n+Pz2tcg/QGNtMiUfc4o1KvQl+FAPnYwJiW52YNS
+      a4rWV9k4WNNrsUwasYELULrHJMtR68a+AbnDChq+DU6t/38lJYDXEI3VtLfAAexi
+      wA0cU4bSeg6jDaJ+6Jm02aj0VQKBgQDRcvaJ4LB8v2CUMOVVa2z5c6D112S8VtRM
+      zbzb0PYMD1RY5qbCx+72jYim8mlRLoAeSq2mUi4gXzhV5h1Lb1lUUlfUgp/thROw
+      03lEkWtFZ1zuA77MoPzqUbncIlNZ4dFzSuZMO0M0pkWfAurjFcc3PV2KuGtDRIJS
+      MbVMDOrpiQKBgDEvL/+mrbl1zQ1LSWh9sK0vzuV1AixT3wuHuaaIY5h6GfP2cTtL
+      QujyxtnlDofoua5WPfmN5r30OfC5pH/0ttBj35zLycendOHdwfKjao9MulgeEMhE
+      Z37Q0F5DERpAdruMa1XVNePeIKoa9Xw6UpFEOfFUltDazcgbefOdKeq9AoGBAI4a
+      8vyvLu8kpXFGD4M6JLDG6/GAl39VZitJ95Yom5epGvBKZeCH6DDt7EZg+GW1KAXl
+      YxYScetSz5UwULXqsXANgjvT+JAdlzOE96U3CNIJBDsU3XJW0+JjWrfpriWwmfwg
+      WEpmdv2Uxm3Re+5gy05GW14QK+5y3/zGbxxPM18JAoGAXMiS4FwSjINlagrPbJ08
+      Jf0P3ZGirNuw+jnlmhXpHf/Mo/LzRQA4ANWYaV3iQ5/PiUCJKnz5FSqXq285lG6y
+      AiNYHHzE0xOm6jBBp5dZVzTCPWzJSV7qmaCBwdsgDfq9TZV9+Qp9h43+yooGCdov
+      73oKAEb0iZJQX9T/ot/7EDA=
+      -----END PRIVATE KEY-----
+
+
+
+    tlsCrt: |-
+      -----BEGIN CERTIFICATE-----
+      MIIEojCCA4qgAwIBAgIUelKJr8JGEdeHWEFfWmkfA2xgsC8wDQYJKoZIhvcNAQEL
+      BQAwgYsxCzAJBgNVBAYTAlVTMRkwFwYDVQQKExBDbG91ZEZsYXJlLCBJbmMuMTQw
+      MgYDVQQLEytDbG91ZEZsYXJlIE9yaWdpbiBTU0wgQ2VydGlmaWNhdGUgQXV0aG9y
+      aXR5MRYwFAYDVQQHEw1TYW4gRnJhbmNpc2NvMRMwEQYDVQQIEwpDYWxpZm9ybmlh
+      MB4XDTI0MTAyNjA5NDgwMFoXDTM5MTAyMzA5NDgwMFowYjEZMBcGA1UEChMQQ2xv
+      dWRGbGFyZSwgSW5jLjEdMBsGA1UECxMUQ2xvdWRGbGFyZSBPcmlnaW4gQ0ExJjAk
+      BgNVBAMTHUNsb3VkRmxhcmUgT3JpZ2luIENlcnRpZmljYXRlMIIBIjANBgkqhkiG
+      9w0BAQEFAAOCAQ8AMIIBCgKCAQEAz0hFWQ5v91L+6xgY1z2HJcjVa+F94KO9WyoC
+      FmaZP+0uqgM39FOp09fixRj6qBeGAqkn6msKRladqqDWytRHLad6Y6AX9Hu4TBcW
+      CBs8J/K/CRpVvkVnui+vgMyFvZd10TgcLShg5fRzq3eYM7ndrjt+umxvSq+58jvg
+      GlSSbSys+/sRSEjMlnoK6Iteu9qGQfU9AciDBKJ4/bDhU+n8GWqSGru2/6j0LnQl
+      r3vNmT/kbRDQGBlCVJoRsPCloiTtKm/7JoBi5NOx/IL48VVJQ5gyvHri1J1R2Za4
+      CJXVyQFRb8AE97PPSwVZBRC8NKn4ZAyYIq4oB6GpEF4Ck34efQIDAQABo4IBJDCC
+      ASAwDgYDVR0PAQH/BAQDAgWgMB0GA1UdJQQWMBQGCCsGAQUFBwMCBggrBgEFBQcD
+      ATAMBgNVHRMBAf8EAjAAMB0GA1UdDgQWBBSyEmen4w/bCYvP+zyFtXDuFjggjjAf
+      BgNVHSMEGDAWgBQk6FNXXXw0QIep65TbuuEWePwppDBABggrBgEFBQcBAQQ0MDIw
+      MAYIKwYBBQUHMAGGJGh0dHA6Ly9vY3NwLmNsb3VkZmxhcmUuY29tL29yaWdpbl9j
+      YTAlBgNVHREEHjAcgg0qLmdnZy5zeXN0ZW1zggtnZ2cuc3lzdGVtczA4BgNVHR8E
+      MTAvMC2gK6AphidodHRwOi8vY3JsLmNsb3VkZmxhcmUuY29tL29yaWdpbl9jYS5j
+      cmwwDQYJKoZIhvcNAQELBQADggEBAB7vdqcW4W6oKpjvntcBVb4p63eDaEdNhirH
+      fEnX65S1NuOpoaJ0y72ihBdyaJmB8CxVDV+7ahIy/eAYwGckGh4G7dnmvEyGvuAJ
+      uokdp1eqzorI0Mx4keK5Mi2uxvKijaHj28I+gSmawIAagk4E1cX8JdJADkrlXTCt
+      11JFl7L+mKxhaRac8k9JHnChTlEozZe9fcSwCXU0NncfNc821bUZh79ZK5/auYR/
+      aZxUW/gXrxKs83yJgd49DLQOIbWC405fd2yvexx/RlxA7mbyGlpkYMNDXACzpndQ
+      ZPKNHLlmCz44tjuqq2vfBk1R4xJ8D31dpvRSUuHoKN1AQg6pRVg=
+      -----END CERTIFICATE-----
+
+
+apiContainer:
+  apiWorkingDir: /app
+  command: [ "/bin/sh" ]
+  args:
+    - "-c"
+    - |
+      echo "Starting application..."
+      cd /app/packages/http
+      node build/main/server.js
