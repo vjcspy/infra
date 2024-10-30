@@ -80,7 +80,11 @@ ingress:
     - host: brand-pcms.ggg.systems
       paths:
         - path: /
-          pathType: ImplementationSpecific
+          pathType: Prefix
+    - host: gogi.com.vn
+      paths:
+        - path: /
+          pathType: Prefix
   tls:
     - hosts:
         - brand-pcms.ggg.systems
