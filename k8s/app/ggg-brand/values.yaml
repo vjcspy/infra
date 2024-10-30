@@ -148,12 +148,9 @@ ingress:
       paths:
         - path: /
           pathType: Prefix
-  tls:
-    - hosts:
-        - brand-pcms.ggg.systems
 
 resources:
-  Limits:
+  limits:
     cpu: 1000m
     memory: 2500Mi
   requests:
