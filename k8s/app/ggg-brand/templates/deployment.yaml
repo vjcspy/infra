@@ -74,6 +74,10 @@ spec:
               mountPath: /opt/docker/etc/ssl
               subPath: ggg_mkt/config/ssl
               readOnly: true
+            - name: host-volume
+              mountPath: /opt/docker/robots
+              subPath: ggg_mkt/ggg-nextjs/packages/web/public/robots
+              readOnly: true
         - name: mysql
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
