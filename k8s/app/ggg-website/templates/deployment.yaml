@@ -30,20 +30,38 @@ spec:
       serviceAccountName: {{ include "ggg-website.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      initContainers:
+        # First time after restart cluster always fail
+        - name: init-container-check-host-mounted-ebs-volume
+          image: busybox
+          command: [ 'sh', '-c', 'for i in $(seq 1 5); do echo "Checking attempt $i..."; if [ -f /host_ebs_volume/DONT_DELETE ]; then echo "File found, exiting successfully."; exit 0; fi; echo "File not found, retrying..."; sleep 10; done; echo "File not found after 5 attempts, exiting with error."; exit 1' ]
+          volumeMounts:
+            - name: host-volume
+              mountPath: /host_ebs_volume
       containers:
         - name: {{ .Chart.Name }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          workingDir: {{ .Values.apiContainer.apiWorkingDir }}
+          command: {{ .Values.apiContainer.command }}
+          args: {{ .Values.apiContainer.args | toJson }}
+          env:
+            - name: ENVIRONMENT
+              value: production
+            - name: NODE_ENV
+              value: production
+            - name: PORT
+              value: "3008"
           ports:
             - name: http
               containerPort: {{ .Values.service.port }}
               protocol: TCP
           livenessProbe:
             {{- toYaml .Values.livenessProbe | nindent 12 }}
-          readinessProbe:
-            {{- toYaml .Values.readinessProbe | nindent 12 }}
+{{/*          readinessProbe:*/}}
+{{/*            {{- toYaml .Values.readinessProbe | nindent 12 }}*/}}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           {{- with .Values.volumeMounts }}
