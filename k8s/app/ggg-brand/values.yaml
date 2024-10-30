@@ -80,6 +80,74 @@ ingress:
       paths:
         - path: /
           pathType: Prefix
+    - host: 37street.com.vn
+      paths:
+        - path: /
+          pathType: Prefix
+    - host: ashima.com.vn
+      paths:
+        - path: /
+          pathType: Prefix
+    - host: chixmax.com.vn
+      paths:
+        - path: /
+          pathType: Prefix
+    - host: cloudpot.com.vn
+      paths:
+        - path: /
+          pathType: Prefix
+    - host: crystaljade.com.vn
+      paths:
+        - path: /
+          pathType: Prefix
+    - host: daruma.com.vn
+      paths:
+        - path: /
+          pathType: Prefix
+    - host: gogisteak.com.vn
+      paths:
+        - path: /
+          pathType: Prefix
+    - host: hangcuon.com.vn
+      paths:
+        - path: /
+          pathType: Prefix
+    - host: hutong.com.vn
+      paths:
+        - path: /
+          pathType: Prefix
+    - host: isushi.com.vn
+      paths:
+        - path: /
+          pathType: Prefix
+    - host: isushi.com.vn
+      paths:
+        - path: /
+          pathType: Prefix
+    - host: kichi.com.vn
+      paths:
+        - path: /
+          pathType: Prefix
+    - host: kpub.com.vn
+      paths:
+        - path: /
+          pathType: Prefix
+    - host: manwah.com.vn
+      paths:
+        - path: /
+          pathType: Prefix
+    - host: shogun.com.vn
+      paths:
+        - path: /
+          pathType: Prefix
+    - host: sumoyakiniku.com.vn
+      paths:
+        - path: /
+          pathType: Prefix
+    - host: woomastervn.com
+      paths:
+        - path: /
+          pathType: Prefix
   tls:
     - hosts:
         - brand-pcms.ggg.systems
