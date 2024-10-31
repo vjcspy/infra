@@ -73,6 +73,10 @@ spec:
               value: "false"
             - name: QUEUE_CONSUMER_ENABLE
               value: "false"
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
           workingDir: {{ .Values.apiContainer.apiWorkingDir }}
 
         - name: job
@@ -99,6 +103,10 @@ spec:
               value: "true"
             - name: APP_PORT
               value: "3001"
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
           workingDir: {{ .Values.apiContainer.apiWorkingDir }}
 
       {{- with .Values.volumes }}
