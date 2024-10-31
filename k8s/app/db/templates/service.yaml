@@ -11,6 +11,7 @@ spec:
       targetPort: postgres
       protocol: TCP
       name: postgres
+      nodePort: 32261
     - name: amqp
       port: 5672
       targetPort: amqp
