@@ -85,6 +85,9 @@ if [ ! -d "$MOUNT_POINT" ]; then
   mkdir -p $MOUNT_POINT
 fi
 
+echo "Wait 15s before mount volume..."
+sleep 15
+
 # Mount volume (giả định định dạng là ext4, điều chỉnh nếu cần)
 echo "Đang mount volume..."
 mount /dev/sdb "$MOUNT_POINT" || {
