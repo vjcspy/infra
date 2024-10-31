@@ -56,6 +56,14 @@ spec:
             - "postgres"
             - "-c"
             - "max_connections=1000"
+          env:
+            - name: POSTGRES_USER
+              value: root
+            - name: POSTGRES_PASSWORD
+              value: root
+            # Thêm biến môi trường này để sử dụng trong health check
+            - name: POSTGRES_DB
+              value: postgres
           livenessProbe:
             exec:
               command:
