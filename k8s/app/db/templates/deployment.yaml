@@ -43,7 +43,7 @@ spec:
               mountPath: /host_ebs_volume
 
       containers:
-        - name: {{ .Chart.Name }}
+        - name: postgres
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
@@ -99,6 +99,56 @@ spec:
             - name: host-volume
               mountPath: /var/dump
               subPath: docker_data/postgres/dump
+
+        - name: rabbitmq
+          image: rabbitmq:3.13-management-alpine
+          ports:
+            - name: amqp
+              containerPort: 5672
+            - name: management
+              containerPort: 15672
+          env:
+            - name: RABBITMQ_DEFAULT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "rabbit.secretName" . }}
+                  key: RABBITMQ_DEFAULT_USER
+            - name: RABBITMQ_DEFAULT_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secret
+                  key: RABBITMQ_DEFAULT_PASS
+          volumeMounts:
+            - name: host-volume
+              mountPath: /var/lib/rabbitmq/mnesia
+              subPath: docker_data/rabbitmq/mnesia
+          # Liveness probe - kiểm tra RabbitMQ process
+          livenessProbe:
+            exec:
+              command:
+                - rabbitmq-diagnostics
+                - status
+            initialDelaySeconds: 60
+            periodSeconds: 60
+            timeoutSeconds: 15
+            failureThreshold: 3
+          # Readiness probe - kiểm tra khả năng accept connections
+          readinessProbe:
+            exec:
+              command:
+                - rabbitmq-diagnostics
+                - check_port_connectivity
+            initialDelaySeconds: 20
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "512Mi"
+            limits:
+              cpu: "1000m"
+              memory: "2Gi"
       {{- with .Values.volumes }}
       volumes:
         {{- toYaml . | nindent 8 }}

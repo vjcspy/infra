@@ -46,7 +46,7 @@ securityContext: { }
   #   drop:
   #   - ALL
   # readOnlyRootFilesystem: true
-  # runAsNonRoot: true
+# runAsNonRoot: true
 # runAsUser: 1000
 
 # This is for setting up a service more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/
@@ -58,16 +58,14 @@ service:
 
 # This block is for setting up the ingress for more information can be found here: https://kubernetes.io/docs/concepts/services-networking/ingress/
 ingress:
-  enabled: false
-  className: ""
-  annotations: { }
-    # kubernetes.io/ingress.class: nginx
-  # kubernetes.io/tls-acme: "true"
+  enabled: true
+  annotations:
+    kubernetes.io/ingress.class: nginx
   hosts:
-    - host: chart-example.local
+    - host: rabbitmq.dinhkhoile.com
       paths:
         - path: /
-          pathType: ImplementationSpecific
+          pathType: Prefix
   tls: [ ]
   #  - secretName: chart-example-tls
   #    hosts:
@@ -101,3 +99,7 @@ nodeSelector: { }
 tolerations: [ ]
 
 affinity: { }
+
+secrets:
+  rabbit:
+    name: rabbitmq-secret

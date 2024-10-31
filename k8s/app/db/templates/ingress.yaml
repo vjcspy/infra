@@ -37,7 +37,7 @@ spec:
               service:
                 name: {{ include "db.fullname" $ }}
                 port:
-                  number: {{ $.Values.service.port }}
+                  number: 15672
           {{- end }}
     {{- end }}
 {{- end }}

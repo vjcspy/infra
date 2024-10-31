@@ -11,5 +11,11 @@ spec:
       targetPort: postgres
       protocol: TCP
       name: postgres
+    - name: amqp
+      port: 5672
+      targetPort: amqp
+    - name: management
+      port: 15672
+      targetPort: management
   selector:
     {{- include "db.selectorLabels" . | nindent 4 }}
