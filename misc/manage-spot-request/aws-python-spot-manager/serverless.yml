@@ -8,7 +8,7 @@ provider:
   region: ap-southeast-1
   role: arn:aws:iam::196761233825:role/lambda-ec2-spot-scheduler-role
   environment:
-    SPOT_FLEET_REQUEST_ID: sfr-c2de82f2-a5e9-4680-88c7-db050e11fe13
+    SPOT_FLEET_REQUEST_ID: sfr-4a53b3c1-ae8e-45e9-a81d-d081507fce08
     ALLOCATION_ID: eipalloc-0f53833ea8ff2874c
 
 functions:
