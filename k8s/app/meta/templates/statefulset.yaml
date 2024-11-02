@@ -1,32 +1,22 @@
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
-  name: {{ include "meta.fullname" . }}
+  name: {{ include "meta.fullname" . }}-job
   labels:
     {{- include "meta.labels" . | nindent 4 }}
-    app.kubernetes.io/component: api
-  annotations:
-    redeployTimestamp: "{{ now | unixEpoch }}"
+    app.kubernetes.io/component: job
 spec:
-  {{- if not .Values.autoscaling.enabled }}
-  replicas: {{ .Values.replicaCount }}
-  {{- end }}
+  serviceName: {{ include "meta.fullname" . }}-job
+  replicas: {{ .Values.jobReplicaCount }}
   selector:
     matchLabels:
       {{- include "meta.selectorLabels" . | nindent 6 }}
-      app.kubernetes.io/component: api
+      app.kubernetes.io/component: job
   template:
     metadata:
-      {{- with .Values.podAnnotations }}
-      annotations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
       labels:
         {{- include "meta.labels" . | nindent 8 }}
-        {{- with .Values.podLabels }}
-        {{- toYaml . | nindent 8 }}
-        {{- end }}
-        app.kubernetes.io/component: api
+        app.kubernetes.io/component: job
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
@@ -37,6 +27,17 @@ spec:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
 
       initContainers:
+        - name: set-pod-ordinal
+          image: busybox
+          command:
+            - sh
+            - -c
+            - |
+              HOSTNAME=$(hostname)
+              ORDINAL=$(echo $HOSTNAME | rev | cut -d'-' -f1 | rev)
+              # Lưu ordinal vào annotations của pod
+              kubectl annotate pod $HOSTNAME pod-ordinal=$ORDINAL --overwrite=true
+
         # First time after restart cluster always fail
         - name: init-container-check-host-mounted-ebs-volume
           image: busybox
@@ -46,21 +47,13 @@ spec:
               mountPath: /host_ebs_volume
 
       containers:
-        - name: api
+        - name: job
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           command: {{ .Values.apiContainer.command }}
           args: {{ .Values.apiContainer.args | toJson }}
-          ports:
-            - name: http
-              containerPort: {{ .Values.service.port }}
-              protocol: TCP
-          livenessProbe:
-            {{- toYaml .Values.livenessProbe | nindent 12 }}
-          readinessProbe:
-            {{- toYaml .Values.readinessProbe | nindent 12 }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           {{- with .Values.volumeMounts }}
@@ -69,18 +62,32 @@ spec:
           {{- end }}
           env:
             - name: APP_NAME
-              value: request
+              value: job
             - name: NODE_ENV
               value: production
             - name: CRON_ENABLE
-              value: "false"
+              value: "true"
             - name: QUEUE_CONSUMER_ENABLE
-              value: "false"
+              value: "true"
+            - name: APP_PORT
+              value: "3001"
             - name: POD_NAME
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
+            - name: POD_ORDINAL
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.annotations['pod-ordinal']
           workingDir: {{ .Values.apiContainer.apiWorkingDir }}
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 3001
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 3001
 
       {{- with .Values.volumes }}
       volumes:
