@@ -28,7 +28,7 @@ spec:
 
       initContainers:
         - name: set-pod-ordinal
-          image: busybox
+          image: bitnami/kubectl:1.29
           command:
             - sh
             - -c
