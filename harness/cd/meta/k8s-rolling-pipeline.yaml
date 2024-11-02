@@ -168,6 +168,7 @@ pipeline:
                             limits:
                               memory: 2000Mi
                               cpu: 500m
+                        timeout: 10m
                   stepGroupInfra:
                     type: KubernetesDirect
                     spec:
@@ -189,7 +190,7 @@ pipeline:
                           spec:
                             path: /home/ec2-user/.ssh/id_rsa.pub
                             type: File
-                      initTimeout: 5m
+                      initTimeout: 10m
               - stepGroup:
                   name: Build Code
                   identifier: Build_Code
@@ -245,6 +246,7 @@ pipeline:
                               memory: 3000Mi
                               cpu: 500m
                         description: Install dependencies and build application with pnpm
+                        timeout: 10m
                   stepGroupInfra:
                     type: KubernetesDirect
                     spec:
@@ -256,7 +258,7 @@ pipeline:
                           spec:
                             path: /mnt/existing_ebs_volume/meta
                             type: Directory
-                      initTimeout: 10m
+                      initTimeout: 20m
             rollbackSteps: []
           serviceDependencies: []
         tags: {}
