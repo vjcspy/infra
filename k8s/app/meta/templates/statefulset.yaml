@@ -27,16 +27,16 @@ spec:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
 
       initContainers:
-        - name: set-pod-ordinal
-          image: bitnami/kubectl:1.29
-          command:
-            - sh
-            - -c
-            - |
-              HOSTNAME=$(hostname)
-              ORDINAL=$(echo $HOSTNAME | rev | cut -d'-' -f1 | rev)
-              # Lưu ordinal vào annotations của pod
-              kubectl annotate pod $HOSTNAME pod-ordinal=$ORDINAL --overwrite=true
+{{/*        - name: set-pod-ordinal*/}}
+{{/*          image: bitnami/kubectl:1.29*/}}
+{{/*          command:*/}}
+{{/*            - sh*/}}
+{{/*            - -c*/}}
+{{/*            - |*/}}
+{{/*              HOSTNAME=$(hostname)*/}}
+{{/*              ORDINAL=$(echo $HOSTNAME | rev | cut -d'-' -f1 | rev)*/}}
+{{/*              # Lưu ordinal vào annotations của pod*/}}
+{{/*              kubectl annotate pod $HOSTNAME pod-ordinal=$ORDINAL --overwrite=true*/}}
 
         # First time after restart cluster always fail
         - name: init-container-check-host-mounted-ebs-volume
@@ -76,9 +76,7 @@ spec:
                 fieldRef:
                   fieldPath: metadata.name
             - name: POD_ORDINAL
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.annotations['pod-ordinal']
+              value: "$(POD_NAME##*-)"
           workingDir: {{ .Values.apiContainer.apiWorkingDir }}
           livenessProbe:
             httpGet:
