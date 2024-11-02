@@ -8,17 +8,17 @@ provider:
   region: ap-southeast-1
   role: arn:aws:iam::196761233825:role/lambda-ec2-spot-scheduler-role
   environment:
-    SPOT_FLEET_REQUEST_ID: sfr-4a53b3c1-ae8e-45e9-a81d-d081507fce08
+    SPOT_FLEET_REQUEST_ID: sfr-196ed13e-f198-425b-b418-5d181f141f12
     ALLOCATION_ID: eipalloc-0f53833ea8ff2874c
 
 functions:
-  modifySpotRequestOn:
-    handler: handler.lambda_handler
-    environment:
-      NEW_TARGET_CAPACITY: 1
-    events:
-      - schedule:
-          rate: cron(0 5 * * ? *)
+#  modifySpotRequestOn:
+#    handler: handler.lambda_handler
+#    environment:
+#      NEW_TARGET_CAPACITY: 1
+#    events:
+#      - schedule:
+#          rate: cron(0 5 * * ? *)
 
 #  modifySpotRequestOff:
 #    handler: handler.lambda_handler
@@ -31,4 +31,4 @@ functions:
   checkSpotInstance:
     handler: assign_eip.check_spot_instance
     events:
-      - schedule: rate(15 minutes)
+      - schedule: rate(5 minutes)
