@@ -4,7 +4,7 @@ pipeline:
   projectIdentifier: default_project
   orgIdentifier: default
   description: Pipeline to deploy meta application
-  tags: {}
+  tags: { }
   stages:
     - stage:
         name: Configuration
@@ -20,7 +20,7 @@ pipeline:
                   identifier: Resolve_Configuration
                   spec:
                     shell: Bash
-                    executionTarget: {}
+                    executionTarget: { }
                     delegateSelectors:
                       - helm-delegate
                     source:
@@ -56,7 +56,7 @@ pipeline:
                           namespace="meta-${project_name}"
                           sourceCodePath="/meta/${project_name}"
                           gitBranch="projects/${project_name}"
-                        environmentVariables: []
+                        environmentVariables: [ ]
                     outputVariables:
                       - name: namespace
                         type: String
@@ -76,7 +76,7 @@ pipeline:
             deployToAll: false
             infrastructureDefinitions:
               - identifier: k8shelmchartinfra
-        tags: {}
+        tags: { }
         timeout: 2m
     - stage:
         name: SourceCode
@@ -128,6 +128,7 @@ pipeline:
                               log "Error: SSH connection failed with exit code $SSH_EXIT_CODE"
                               exit 1
                             fi
+                            log "Connect github successfully"
 
                             # Function to handle Git operations with error checking
                             git_operation() {
@@ -255,9 +256,9 @@ pipeline:
                             path: /mnt/existing_ebs_volume/meta
                             type: Directory
                       initTimeout: 10m
-            rollbackSteps: []
-          serviceDependencies: []
-        tags: {}
+            rollbackSteps: [ ]
+          serviceDependencies: [ ]
+        tags: { }
     - stage:
         name: Deploy
         identifier: Deploy
@@ -290,7 +291,7 @@ pipeline:
                   timeout: 10m
                   spec:
                     pruningEnabled: false
-        tags: {}
+        tags: { }
         failureStrategies:
           - onFailure:
               errors:
