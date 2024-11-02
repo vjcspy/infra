@@ -142,7 +142,7 @@ pipeline:
                                 exit 1
                                 ;;
                             esac
-
+                            sleep 5000
                             # Function to handle Git operations with error checking
                             git_operation() {
                               if ! "$@"; then
