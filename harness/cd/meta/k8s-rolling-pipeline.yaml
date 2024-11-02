@@ -119,10 +119,13 @@ pipeline:
                               exit 1
                             fi
 
-                            # Test Git SSH connection
+                            # Test Git SSH connection and show full response
                             log "Testing Git SSH connection..."
-                            if ! ssh -T git@github.com 2>&1 | grep -q "successfully authenticated"; then
-                              log "Error: Failed to authenticate with GitHub"
+                            SSH_RESPONSE=$(ssh -T git@github.com 2>&1)
+                            SSH_EXIT_CODE=$?
+                            log "SSH Connection Response: $SSH_RESPONSE"
+                            if [ $SSH_EXIT_CODE -ne 1 ]; then
+                              log "Error: SSH connection failed with exit code $SSH_EXIT_CODE"
                               exit 1
                             fi
 
