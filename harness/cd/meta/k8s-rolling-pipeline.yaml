@@ -121,6 +121,7 @@ pipeline:
 
                             # Test Git SSH connection and show full response
                             log "Testing Git SSH connection..."
+                            sleep 5000
                             SSH_RESPONSE=$(timeout 10 ssh -T -o BatchMode=yes -o ConnectTimeout=5 git@github.com 2>&1)
                             SSH_EXIT_CODE=$?
                             log "SSH Connection Response: $SSH_RESPONSE"
@@ -142,7 +143,7 @@ pipeline:
                                 exit 1
                                 ;;
                             esac
-                            sleep 5000
+                            
                             # Function to handle Git operations with error checking
                             git_operation() {
                               if ! "$@"; then
