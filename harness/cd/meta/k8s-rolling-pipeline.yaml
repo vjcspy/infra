@@ -118,10 +118,10 @@ pipeline:
                               log "GIT_BRANCH: $GIT_BRANCH"
                               exit 1
                             fi
-                            sleep 5000
+                            
                             # Test Git SSH connection
                             log "Testing Git SSH connection..."
-                            if ! ssh -T git@github.com 2>&1 | grep -q "successfully authenticated"; then
+                            if ! ssh -T -o StrictHostKeyChecking=no git@github.com 2>&1 | grep -q "successfully authenticated"; then
                               log "Error: Failed to authenticate with GitHub"
                               exit 1
                             fi
