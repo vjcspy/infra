@@ -196,11 +196,16 @@ pipeline:
                           spec:
                             path: /mnt/existing_ebs_volume/meta
                             type: Directory
-                        - mountPath: /root/.ssh
+                        - mountPath: /root/.ssh/id_rsa
                           type: HostPath
                           spec:
-                            path: /home/ec2-user/.ssh
-                            type: Directory
+                            path: /home/ec2-user/.ssh/id_rsa
+                            type: File
+                        - mountPath: /root/.ssh/id_rsa.pub
+                          type: HostPath
+                          spec:
+                            path: /home/ec2-user/.ssh/id_rsa.pub
+                            type: File
                       initTimeout: 5m
               - stepGroup:
                   name: Build Code
