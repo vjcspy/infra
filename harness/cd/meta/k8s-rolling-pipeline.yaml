@@ -121,14 +121,27 @@ pipeline:
 
                             # Test Git SSH connection and show full response
                             log "Testing Git SSH connection..."
-                            SSH_RESPONSE=$(ssh -T git@github.com 2>&1)
+                            SSH_RESPONSE=$(timeout 10 ssh -T -o BatchMode=yes -o ConnectTimeout=5 git@github.com 2>&1)
                             SSH_EXIT_CODE=$?
                             log "SSH Connection Response: $SSH_RESPONSE"
-                            if [ $SSH_EXIT_CODE -ne 1 ]; then
-                              log "Error: SSH connection failed with exit code $SSH_EXIT_CODE"
-                              exit 1
-                            fi
-                            log "Connect github successfully"
+                            # Check the exit code
+                            case $SSH_EXIT_CODE in
+                              1)
+                                log "Connect github successfully"
+                                ;;
+                              124)
+                                log "Error: SSH connection timed out after 10 seconds"
+                                exit 1
+                                ;;
+                              255)
+                                log "Error: SSH connection failed - $SSH_RESPONSE"
+                                exit 1
+                                ;;
+                              *)
+                                log "Error: SSH connection failed with exit code $SSH_EXIT_CODE - $SSH_RESPONSE"
+                                exit 1
+                                ;;
+                            esac
 
                             # Function to handle Git operations with error checking
                             git_operation() {
