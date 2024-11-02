@@ -76,7 +76,9 @@ spec:
                 fieldRef:
                   fieldPath: metadata.name
             - name: POD_ORDINAL
-              value: "$(POD_NAME##*-)"
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.labels['apps.kubernetes.io/pod-index']
           workingDir: {{ .Values.apiContainer.apiWorkingDir }}
           livenessProbe:
             httpGet:
