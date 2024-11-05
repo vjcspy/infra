@@ -105,12 +105,23 @@ volumes:
     hostPath:
       path: /mnt/existing_ebs_volume
       type: Directory
-
+  - name: npm-cache
+    emptyDir: { }
+  - name: yarn-cache
+    emptyDir: { }
+  - name: tmp
+    emptyDir: { }
 # Additional volumeMounts on the output Deployment definition.
 volumeMounts:
   - name: host-volume
     mountPath: /app
     subPath: ggg_mkt/ggg-nextjs
+  - name: npm-cache
+    mountPath: /home/nodejsuser/.npm
+  - name: yarn-cache
+    mountPath: /home/nodejsuser/.cache/yarn
+  - name: tmp
+    mountPath: /tmp
 
 nodeSelector: { }
 
