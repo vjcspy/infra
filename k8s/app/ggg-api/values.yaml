@@ -130,6 +130,8 @@ volumes:
     emptyDir: { }
   - name: yarn-cache
     emptyDir: { }
+  - name: tmp
+    emptyDir: { }
 
 # Additional volumeMounts on the output Deployment definition.
 volumeMounts:
@@ -140,6 +142,8 @@ volumeMounts:
     mountPath: /home/nodejsuser/.npm
   - name: yarn-cache
     mountPath: /home/nodejsuser/.cache/yarn
+  - name: tmp
+    mountPath: /tmp
 
 nodeSelector: { }
 
