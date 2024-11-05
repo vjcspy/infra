@@ -1,9 +1,6 @@
 # Sử dụng Node.js phiên bản 20 Alpine
 FROM node:16-alpine
 
-# Cài đặt Yarn
-#RUN npm install -g yarn@latest
-
 # Kiểm tra phiên bản Yarn
 RUN yarn --version
 
@@ -13,10 +10,19 @@ RUN addgroup --system --gid 1001 nodejs && \
 
 # Thiết lập thư mục làm việc và gán quyền sở hữu
 WORKDIR /app
-RUN chown nodejsuser:nodejs /app
+RUN chown 1001:1001 /app
+
+# Permission for build
+RUN mkdir -p /home/nodejsuser/.npm && \
+    mkdir -p /home/nodejsuser/.cache/yarn && \
+    chown -R 1001:1001 /home/nodejsuser/.npm && \
+    chown -R 1001:1001 /home/nodejsuser/.cache
+
+# Nếu cần thiết, có thể thêm quyền ghi cho /tmp
+RUN chmod 777 /tmp
 
 # Chuyển sang người dùng non-root
-USER nodejsuser
+USER 1001
 
 # Expose cổng ứng dụng
 EXPOSE 3000
