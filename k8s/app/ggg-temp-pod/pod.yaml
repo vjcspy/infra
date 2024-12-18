@@ -15,5 +15,5 @@ spec:
   volumes:
     - name: ebs-volume
       hostPath:
-        path: /mnt/existing_ebs_volume
+        path: /mnt/existing_ebs_volume/ggg_mkt
   restartPolicy: Never  # Đảm bảo pod chỉ chạy một lần
