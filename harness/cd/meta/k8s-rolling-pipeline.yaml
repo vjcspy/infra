@@ -322,7 +322,7 @@ pipeline:
       type: Number
       description: Số lượng api request instance
       required: true
-      value: <+input>.default(2)
+      value: <+input>.default(4)
     - name: num_of_job
       type: Number
       description: Số lượng api request instance
