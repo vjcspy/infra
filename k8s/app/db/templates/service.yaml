@@ -15,8 +15,12 @@ spec:
     - name: amqp
       port: 5672
       targetPort: amqp
+      protocol: TCP
+      nodePort: 32262
     - name: management
       port: 15672
       targetPort: management
+      protocol: TCP
+      nodePort: 32263
   selector:
     {{- include "db.selectorLabels" . | nindent 4 }}
