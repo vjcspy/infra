@@ -1,6 +1,6 @@
 services:
   splunk-server:
-    image: vjcspy/splunk-server:0.1
+    image: vjcspy/splunk-server:0.4
     container_name: splunk-server
     ports:
       - "8088:8088" # Splunk management port
