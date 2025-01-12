@@ -5,9 +5,7 @@ metadata:
   labels:
     {{- include "splunk-server.labels" . | nindent 4 }}
 spec:
-  {{- if not .Values.autoscaling.enabled }}
-  replicas: {{ .Values.replicaCount }}
-  {{- end }}
+  replicas: 1
   selector:
     matchLabels:
       {{- include "splunk-server.selectorLabels" . | nindent 6 }}
@@ -37,8 +35,11 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
-            - name: http
-              containerPort: {{ .Values.service.port }}
+            - name: web
+              containerPort: {{ .Values.service.web }}
+              protocol: TCP
+            - name: hec
+              containerPort: {{ .Values.service.hecPort }}
               protocol: TCP
           livenessProbe:
             {{- toYaml .Values.livenessProbe | nindent 12 }}

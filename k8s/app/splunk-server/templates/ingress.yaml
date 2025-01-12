@@ -20,7 +20,7 @@ spec:
         {{- range .hosts }}
         - {{ . | quote }}
         {{- end }}
-      secretName: {{ .secretName }}
+      secretName: {{ include "splunk-server.tlsSecretFullName" $ }}
     {{- end }}
   {{- end }}
   rules:
@@ -37,7 +37,7 @@ spec:
               service:
                 name: {{ include "splunk-server.fullname" $ }}
                 port:
-                  number: {{ $.Values.service.port }}
+                  number: {{ $.Values.service.web }}
           {{- end }}
     {{- end }}
 {{- end }}

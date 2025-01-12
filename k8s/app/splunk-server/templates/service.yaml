@@ -7,9 +7,13 @@ metadata:
 spec:
   type: {{ .Values.service.type }}
   ports:
-    - port: {{ .Values.service.port }}
-      targetPort: http
+    - port: {{ .Values.service.web }}
+      targetPort: web
       protocol: TCP
-      name: http
+      name: web
+    - port: {{ .Values.service.hecPort }}
+      targetPort: hec
+      protocol: TCP
+      name: hec
   selector:
     {{- include "splunk-server.selectorLabels" . | nindent 4 }}
