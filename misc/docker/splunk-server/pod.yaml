@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: splunk-server
+  namespace: temporary-testing
+spec:
+  containers:
+    - name: splunk-server
+      image: vjcspy/splunk-server:0.1
+      ports:
+        - containerPort: 8088
+          name: management
+        - containerPort: 8000
+          name: web-interface
+      env:
+        - name: SPLUNK_START_ARGS
+          value: "--accept-license"
+      volumeMounts:
+        - name: splunk-data
+          mountPath: /app/splunk
+      command: ["tail"]
+      args: ["-f", "/dev/null"]
+  volumes:
+    - name: splunk-data
+      hostPath:
+        path: /mnt/existing_ebs_volume/splunk-server/splunk94
+        type: DirectoryOrCreate
