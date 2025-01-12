@@ -1,6 +1,6 @@
 services:
   splunk-server:
-    image: vjcspy/splunk-server:latest
+    image: vjcspy/splunk-server:0.1
     container_name: splunk-server
     ports:
       - "8088:8088" # Splunk management port
@@ -9,4 +9,4 @@ services:
       SPLUNK_START_ARGS: "--accept-license"
     volumes:
       - /mnt/existing_ebs_volume/splunk-server/splunk94:/app/splunk
-    # command: tail -f /dev/null
+    command: tail -f /dev/null
