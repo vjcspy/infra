@@ -3,11 +3,10 @@ services:
     image: vjcspy/splunk-server:latest
     container_name: splunk-server
     ports:
-      - "8089:8089" # Splunk management port
+      - "8088:8088" # Splunk management port
       - "8000:8000" # Splunk web interface port
     environment:
       SPLUNK_START_ARGS: "--accept-license"
     volumes:
-      - ./splunk-data/splunk:/app/splunk
-      - ./splunk-data/start.sh:/app/start.sh
+      - /mnt/existing_ebs_volume/splunk-server/splunk94:/app/splunk
     # command: tail -f /dev/null
