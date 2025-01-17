@@ -148,6 +148,10 @@ ingress:
       paths:
         - path: /
           pathType: Prefix
+    - host: lachcalachcach.com.vn
+      paths:
+        - path: /
+          pathType: Prefix
 
 resources:
   limits:
