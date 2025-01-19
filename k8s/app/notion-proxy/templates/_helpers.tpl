@@ -60,8 +60,3 @@ Create the name of the service account to use
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
 {{- end }}
-
-{{/* Định nghĩa tên đầy đủ của secret với revision */}}
-{{- define "notion-proxy.tlsSecretFullName" -}}
-{{- .Values.tlsSecret.name | trunc 63 | trimSuffix "-" -}}
-{{- end }}
