@@ -1,0 +1,64 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-proxy-config
+data:
+  nginx.conf: |
+    server {
+      listen 443 ssl http2;
+      listen [::]:443 ssl http2;
+      server_name learn-english.dinhkhoile.com;
+
+      # Certificate
+      ssl_certificate /etc/nginx/ssl/tls.crt;
+      ssl_certificate_key /etc/nginx/ssl/tls.key;
+      ssl_stapling on;
+      ssl_stapling_verify on;
+
+      # Longer resolver timeout
+      resolver_timeout 30s;
+
+      # Hide unwanted headers
+      proxy_hide_header Content-Security-Policy;
+      proxy_hide_header Expect-CT;
+
+      location / {
+        proxy_pass https://www.notion.so;
+        proxy_set_header Host www.notion.so;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # SSL settings for upstream
+        proxy_ssl_server_name on;
+        proxy_ssl_protocols TLSv1.2 TLSv1.3;
+        proxy_ssl_ciphers HIGH:!aNULL:!MD5;
+        proxy_ssl_verify off;
+
+        # prevents 502 bad gateway error
+        proxy_buffers 8 32k;
+        proxy_buffer_size 64k;
+        proxy_set_header Accept-Encoding "";
+
+        sub_filter 'www.notion.so' 'learn-english.dinhkhoile.com';
+        sub_filter_last_modified on;
+        sub_filter_types *;
+        sub_filter_once off;
+
+        # Replace cookie domain
+        proxy_cookie_domain www.notion.so learn-english.dinhkhoile.com;
+
+        # Rewrite common redirects
+        proxy_redirect ~*https??://www.notion.so(.*)$ https://learn-english.dinhkhoile.com$1;
+
+        # Caching images
+        set $use_proxy_cache off;
+        if ($uri ~* ^/image) {
+          set $use_proxy_cache main_disk;
+        }
+        proxy_cache $use_proxy_cache;
+        proxy_cache_valid 200 304 1M;
+        proxy_cache_valid 301 302 15m;
+        proxy_cache_valid any 1m;
+      }
+    }

@@ -1,4 +1,4 @@
-# Default values for ggg-brand.
+# Default values for notion-proxy.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
@@ -7,7 +7,7 @@ replicaCount: 1
 
 # This sets the container image more information can be found here: https://kubernetes.io/docs/concepts/containers/images/
 image:
-  repository: vjcspy/ebs-docker-php-nginx
+  repository: nginx
   # This sets the pull policy for images.
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
@@ -42,9 +42,9 @@ podSecurityContext: { }
 # fsGroup: 2000
 
 securityContext: { }
-# capabilities:
-#   drop:
-#   - ALL
+  # capabilities:
+  #   drop:
+  #   - ALL
 # readOnlyRootFilesystem: true
 # runAsNonRoot: true
 # runAsUser: 1000
@@ -62,104 +62,27 @@ ingress:
   className: "nginx"
   annotations:
     kubernetes.io/ingress.class: nginx
-    nginx.ingress.kubernetes.io/ssl-passthrough: "true"
-    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
-    # fix magento buffer header
-    nginx.ingress.kubernetes.io/proxy-buffer-size: "128k"
-    nginx.ingress.kubernetes.io/proxy-buffers-number: "4"
-    nginx.ingress.kubernetes.io/proxy-buffers-size: "256k"
-    nginx.ingress.kubernetes.io/proxy-busy-buffers-size: "256k"
-    nginx.ingress.kubernetes.io/proxy-body-size: "100M"
-    nginx.ingress.kubernetes.io/proxy-large-client-header-buffers: "4 256k"
   hosts:
-    - host: brand-pcms.ggg.systems
+    - host: learn-english.dinhkhoile.com
       paths:
         - path: /
-          pathType: Prefix
-    - host: gogi.com.vn
-      paths:
-        - path: /
-          pathType: Prefix
-    - host: 37street.com.vn
-      paths:
-        - path: /
-          pathType: Prefix
-    - host: ashima.com.vn
-      paths:
-        - path: /
-          pathType: Prefix
-    - host: chixmax.com.vn
-      paths:
-        - path: /
-          pathType: Prefix
-    - host: cloudpot.com.vn
-      paths:
-        - path: /
-          pathType: Prefix
-    - host: crystaljade.com.vn
-      paths:
-        - path: /
-          pathType: Prefix
-    - host: daruma.com.vn
-      paths:
-        - path: /
-          pathType: Prefix
-    - host: gogisteak.com.vn
-      paths:
-        - path: /
-          pathType: Prefix
-    - host: hangcuon.com.vn
-      paths:
-        - path: /
-          pathType: Prefix
-    - host: hutong.com.vn
-      paths:
-        - path: /
-          pathType: Prefix
-    - host: isushi.com.vn
-      paths:
-        - path: /
-          pathType: Prefix
-    - host: isushi.com.vn
-      paths:
-        - path: /
-          pathType: Prefix
-    - host: kichi.com.vn
-      paths:
-        - path: /
-          pathType: Prefix
-    - host: kpub.com.vn
-      paths:
-        - path: /
-          pathType: Prefix
-    - host: manwah.com.vn
-      paths:
-        - path: /
-          pathType: Prefix
-    - host: shogun.com.vn
-      paths:
-        - path: /
-          pathType: Prefix
-    - host: sumoyakiniku.com.vn
-      paths:
-        - path: /
-          pathType: Prefix
-    - host: woomastervn.com
-      paths:
-        - path: /
-          pathType: Prefix
-    - host: lachcalachcach.com.vn
-      paths:
-        - path: /
-          pathType: Prefix
+          pathType: ImplementationSpecific
+  tls: [ ]
+  #  - secretName: chart-example-tls
+  #    hosts:
+  #      - chart-example.local
 
-resources:
-  limits:
-    cpu: 1000m
-    memory: 2500Mi
-  requests:
-    cpu: 250m
-    memory: 500Mi
+resources: { }
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+# requests:
+#   cpu: 100m
+#   memory: 128Mi
 
 # This is to setup the liveness and readiness probes more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
 livenessProbe:
@@ -181,16 +104,19 @@ autoscaling:
 
 # Additional volumes on the output Deployment definition.
 volumes:
-  - name: host-volume
-    hostPath:
-      path: /mnt/existing_ebs_volume
-      type: Directory
+  - name: nginx-config
+    configMap:
+      name: nginx-proxy-config
+  - name: ssl-certs
+    secret:
+      secretName: nginx-ssl-secret
 
 # Additional volumeMounts on the output Deployment definition.
-volumeMounts: [ ]
-# - name: foo
-#   mountPath: "/etc/foo"
-#   readOnly: true
+volumeMounts:
+  - name: nginx-config
+    mountPath: /etc/nginx/conf.d
+  - name: ssl-certs
+    mountPath: /etc/nginx/ssl
 
 nodeSelector: { }
 
