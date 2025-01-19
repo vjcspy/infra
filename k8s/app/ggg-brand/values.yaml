@@ -152,6 +152,10 @@ ingress:
       paths:
         - path: /
           pathType: Prefix
+    - host: learn-english.dinhkhoile.com
+      paths:
+        - path: /
+          pathType: Prefix
 
 resources:
   limits:
