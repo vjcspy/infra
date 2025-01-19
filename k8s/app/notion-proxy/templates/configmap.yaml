@@ -7,7 +7,7 @@ data:
     server {
       listen 443 ssl http2;
       listen [::]:443 ssl http2;
-      server_name learn-english.dinhkhoile.com;
+      server_name english.dinhkhoile.com;
 
       # Certificate
       ssl_certificate /etc/nginx/ssl/tls.crt;
@@ -40,16 +40,16 @@ data:
         proxy_buffer_size 64k;
         proxy_set_header Accept-Encoding "";
 
-        sub_filter 'www.notion.so' 'learn-english.dinhkhoile.com';
+        sub_filter 'www.notion.so' 'english.dinhkhoile.com';
         sub_filter_last_modified on;
         sub_filter_types *;
         sub_filter_once off;
 
         # Replace cookie domain
-        proxy_cookie_domain www.notion.so learn-english.dinhkhoile.com;
+        proxy_cookie_domain www.notion.so english.dinhkhoile.com;
 
         # Rewrite common redirects
-        proxy_redirect ~*https??://www.notion.so(.*)$ https://learn-english.dinhkhoile.com$1;
+        proxy_redirect ~*https??://www.notion.so(.*)$ https://english.dinhkhoile.com$1;
 
         # Caching images
         set $use_proxy_cache off;

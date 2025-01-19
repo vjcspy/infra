@@ -63,7 +63,7 @@ ingress:
   annotations:
     kubernetes.io/ingress.class: nginx
   hosts:
-    - host: learn-english.dinhkhoile.com
+    - host: english.dinhkhoile.com
       paths:
         - path: /
           pathType: ImplementationSpecific
