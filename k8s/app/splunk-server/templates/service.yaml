@@ -11,10 +11,24 @@ spec:
       targetPort: web
       protocol: TCP
       name: web
+  selector:
+    {{- include "splunk-server.selectorLabels" . | nindent 4 }}
+---
+
+# Service dành cho hec (NodePort)
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "splunk-server.fullname" . }}-hec
+  labels:
+    {{- include "splunk-server.labels" . | nindent 4 }}
+spec:
+  type: NodePort
+  ports:
     - port: {{ .Values.service.hecPort }}
       targetPort: hec
       protocol: TCP
-      nodePort: 30080
       name: hec
+      nodePort: 30080
   selector:
     {{- include "splunk-server.selectorLabels" . | nindent 4 }}
