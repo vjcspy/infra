@@ -14,6 +14,7 @@ spec:
     - port: {{ .Values.service.hecPort }}
       targetPort: hec
       protocol: TCP
+      nodePort: 30080
       name: hec
   selector:
     {{- include "splunk-server.selectorLabels" . | nindent 4 }}
