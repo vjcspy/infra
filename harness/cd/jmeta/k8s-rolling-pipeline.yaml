@@ -217,13 +217,15 @@ pipeline:
                             log "Changing to source code directory: $SOURCE_CODE_PATH"
                             cd "$SOURCE_CODE_PATH"
 
+                            ./gradlew :projects:quarkus-stock:quarkusBuild -Dquarkus.native.enabled=true -Dquarkus.package.jar.enabled=false
+
                             log "Build completed successfully"
                           privileged: false
                           resources:
                             limits:
-                              memory: 3000Mi
-                              cpu: 500m
-                        description: Install dependencies and build application with pnpm
+                              memory: 4000Mi
+                              cpu: 1000m
+                        description: Install dependencies and build application
                         timeout: 10m
                   stepGroupInfra:
                     type: KubernetesDirect
