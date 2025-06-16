@@ -217,7 +217,13 @@ pipeline:
                             log "Changing to source code directory: $SOURCE_CODE_PATH"
                             cd "$SOURCE_CODE_PATH"
 
-                            ./gradlew :projects:quarkus-stock:quarkusBuild -Dquarkus.native.enabled=true -Dquarkus.package.jar.enabled=false
+                            log "Running build script"
+                            if [ ! -f "./scripts/build.sh" ]; then
+                              log "Error: build.sh script not found in $SOURCE_CODE_PATH/scripts"
+                              exit 1
+                            fi
+                            log "Executing build script"
+                            chmod +x ./scripts/build.sh && ./scripts/build.sh
 
                             log "Build completed successfully"
                           privileged: false
