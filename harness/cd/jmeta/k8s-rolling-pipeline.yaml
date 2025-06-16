@@ -1,0 +1,55 @@
+pipeline:
+  name: jmeta-deployment
+  identifier: jmetadeployment
+  projectIdentifier: default_project
+  orgIdentifier: default
+  tags: {}
+  stages:
+    - stage:
+        name: Configuration
+        identifier: Configuration
+        description: ""
+        type: Custom
+        spec:
+          execution:
+            steps:
+              - step:
+                  type: ShellScript
+                  name: Resolve Configuration
+                  identifier: Resolve_Configuration
+                  spec:
+                    shell: Bash
+                    executionTarget: {}
+                    delegateSelectors:
+                      - helm-delegate
+                    source:
+                      type: Inline
+                      spec:
+                        script: "#!/bin/bash               "
+                    environmentVariables: []
+                    outputVariables:
+                      - name: namespace
+                        type: String
+                        value: namespace
+                      - name: sourceCodePath
+                        type: String
+                        value: sourceCodePath
+                      - name: gitBranch
+                        type: String
+                        value: gitBranch
+                    outputAlias:
+                      key: configuration
+                      scope: Pipeline
+                  timeout: 2m
+        tags: {}
+  variables:
+    - name: project_name
+      type: String
+      description: Phải có branch projects/NAME
+      required: true
+      value: <+input>
+    - name: num_of_instance
+      type: Number
+      description: Số lượng api request instance
+      required: true
+      value: <+input>.default(1)
