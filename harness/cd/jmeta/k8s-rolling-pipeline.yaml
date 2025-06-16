@@ -253,7 +253,7 @@ pipeline:
             infrastructureDefinitions:
               - identifier: k8shelmchartinfra
         tags: {}
-        timeout: 45m
+        timeout: 60m
   variables:
     - name: project_name
       type: String
