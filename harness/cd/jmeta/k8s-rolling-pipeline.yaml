@@ -161,7 +161,7 @@ pipeline:
                             limits:
                               memory: 2000Mi
                               cpu: 500m
-                        timeout: 10m
+                        timeout: 2m
                   stepGroupInfra:
                     type: KubernetesDirect
                     spec:
@@ -230,7 +230,7 @@ pipeline:
                           resources:
                             limits:
                               memory: 4000Mi
-                              cpu: 1000m
+                              cpu: 2000m
                         description: Install dependencies and build application
                         timeout: 10m
                   stepGroupInfra:
@@ -247,7 +247,13 @@ pipeline:
                       initTimeout: 20m
             rollbackSteps: []
           serviceDependencies: []
+          environment:
+            environmentRef: k8ssingleenv
+            deployToAll: false
+            infrastructureDefinitions:
+              - identifier: k8shelmchartinfra
         tags: {}
+        timeout: 20m
   variables:
     - name: project_name
       type: String
