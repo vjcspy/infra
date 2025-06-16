@@ -1,0 +1,5 @@
+service:
+  name: jmeta
+  identifier: jmeta
+  orgIdentifier: default
+  projectIdentifier: default_project
