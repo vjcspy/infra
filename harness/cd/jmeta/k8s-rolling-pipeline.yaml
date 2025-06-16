@@ -3,7 +3,8 @@ pipeline:
   identifier: jmetadeployment
   projectIdentifier: default_project
   orgIdentifier: default
-  tags: {}
+  tags:
+    ai_generated: "true"
   stages:
     - stage:
         name: Configuration
@@ -33,10 +34,10 @@ pipeline:
 
                           # Kiểm tra các trường hợp project_name không hợp lệ
                           if [ -z "${project_name}" ] || [ "${project_name}" = "null" ]; then
-                              echo "Error: project_name không hợp lệ!"
-                              echo "Giá trị hiện tại: '${project_name}'"
-                              echo "project_name không được để trống, null hoặc chưa được thay thế biến!"
-                              exit 1  # Thoát với mã lỗi 1 để fail step
+                            echo "Error: project_name không hợp lệ!"
+                            echo "Giá trị hiện tại: '${project_name}'"
+                            echo "project_name không được để trống, null hoặc chưa được thay thế biến!"
+                            exit 1  # Thoát với mã lỗi 1 để fail step
                           fi
 
                           # Loại bỏ khoảng trắng đầu và cuối nếu có
@@ -44,8 +45,8 @@ pipeline:
 
                           # Kiểm tra lại sau khi đã trim
                           if [ -z "${project_name}" ]; then
-                              echo "Error: project_name chỉ chứa khoảng trắng!"
-                              exit 1
+                            echo "Error: project_name chỉ chứa khoảng trắng!"
+                            exit 1
                           fi
 
                           # In ra giá trị của project_name nếu hợp lệ
@@ -69,7 +70,9 @@ pipeline:
                     outputAlias:
                       key: configuration
                       scope: Pipeline
-                  timeout: 2m
+                  timeout: 10m
+            rollbackSteps: []
+        timeout: 10m
         tags: {}
     - stage:
         name: SourceCode
@@ -271,3 +274,4 @@ pipeline:
   fixedInputsOnRerun: true
   delegateSelectors:
     - helm-delegate
+  description: This pipeline was updated by Harness AI on 2025-06-16 10:18:57 UTC.
