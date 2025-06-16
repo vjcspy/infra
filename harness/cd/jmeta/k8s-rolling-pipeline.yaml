@@ -197,7 +197,7 @@ pipeline:
                         identifier: Build
                         spec:
                           connectorRef: account.harnessImage
-                          image: quay.io/quarkus/ubi9-quarkus-mandrel-builder-image:jdk-21
+                          image: gradle:8.14-jdk21-corretto-al2023
                           shell: Sh
                           command: |-
                             #!/bin/sh
