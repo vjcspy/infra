@@ -232,8 +232,8 @@ pipeline:
                           privileged: false
                           resources:
                             limits:
-                              memory: 6000Mi
-                              cpu: 4000m
+                              memory: 4000Mi
+                              cpu: 3000m
                         description: Install dependencies and build application
                         timeout: 30m
                   stepGroupInfra:
