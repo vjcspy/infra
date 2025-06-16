@@ -256,7 +256,7 @@ pipeline:
             infrastructureDefinitions:
               - identifier: k8shelmchartinfra
         tags: {}
-        timeout: 60m
+        timeout: 45m
   variables:
     - name: project_name
       type: String
@@ -269,7 +269,7 @@ pipeline:
       description: Số lượng api request instance
       required: true
       value: <+input>.default(1)
-  timeout: 45m
+  timeout: 60m
   allowStageExecutions: true
   fixedInputsOnRerun: true
   delegateSelectors:
