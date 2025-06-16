@@ -53,7 +53,7 @@ pipeline:
 
                           # Build output variable
                           namespace="jmeta-${project_name}"
-                          sourceCodePath="/meta/${project_name}"
+                          sourceCodePath="/jmeta/${project_name}"
                           gitBranch="projects/${project_name}"
                     environmentVariables: []
                     outputVariables:
@@ -168,10 +168,10 @@ pipeline:
                       connectorRef: harnessk8sconnector
                       namespace: harness-cd
                       volumes:
-                        - mountPath: /meta
+                        - mountPath: /jmeta
                           type: HostPath
                           spec:
-                            path: /mnt/existing_ebs_volume/meta
+                            path: /mnt/existing_ebs_volume/jmeta
                             type: Directory
                         - mountPath: /root/.ssh/id_rsa
                           type: HostPath
@@ -184,74 +184,74 @@ pipeline:
                             path: /home/ec2-user/.ssh/id_rsa.pub
                             type: File
                       initTimeout: 10m
-              - stepGroup:
-                  name: Build Code
-                  identifier: Build_Code
-                  steps:
-                    - step:
-                        type: Run
-                        name: Build
-                        identifier: Build
-                        spec:
-                          connectorRef: account.harnessImage
-                          image: vjcspy/node:20-pnpm-2
-                          shell: Sh
-                          command: |-
-                            #!/bin/sh
-                            set -e  # Exit on error
+              # - stepGroup:
+              #     name: Build Code
+              #     identifier: Build_Code
+              #     steps:
+              #       - step:
+              #           type: Run
+              #           name: Build
+              #           identifier: Build
+              #           spec:
+              #             connectorRef: account.harnessImage
+              #             image: vjcspy/node:20-pnpm-2
+              #             shell: Sh
+              #             command: |-
+              #               #!/bin/sh
+              #               set -e  # Exit on error
 
-                            # Define function to log with timestamp
-                            log() {
-                              echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"
-                            }
+              #               # Define function to log with timestamp
+              #               log() {
+              #                 echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"
+              #               }
 
-                            SOURCE_CODE_PATH="<+pipeline.stages.Configuration.spec.execution.steps.Resolve_Configuration.output.outputVariables.sourceCodePath>"
+              #               SOURCE_CODE_PATH="<+pipeline.stages.Configuration.spec.execution.steps.Resolve_Configuration.output.outputVariables.sourceCodePath>"
 
-                            # Validate source code path
-                            if [ -z "$SOURCE_CODE_PATH" ]; then
-                              log "Error: SOURCE_CODE_PATH is missing"
-                              exit 1
-                            fi
+              #               # Validate source code path
+              #               if [ -z "$SOURCE_CODE_PATH" ]; then
+              #                 log "Error: SOURCE_CODE_PATH is missing"
+              #                 exit 1
+              #               fi
 
-                            # Change to source code directory
-                            log "Changing to source code directory: $SOURCE_CODE_PATH"
-                            cd "$SOURCE_CODE_PATH"
+              #               # Change to source code directory
+              #               log "Changing to source code directory: $SOURCE_CODE_PATH"
+              #               cd "$SOURCE_CODE_PATH"
 
-                            # Verify installations
-                            log "Node version: $(node -v)"
-                            log "NPM version: $(npm -v)"
-                            log "PNPM version: $(pnpm -v)"
+              #               # Verify installations
+              #               log "Node version: $(node -v)"
+              #               log "NPM version: $(npm -v)"
+              #               log "PNPM version: $(pnpm -v)"
 
-                            # Install dependencies
-                            log "Installing dependencies with pnpm..."
-                            pwd
-                            ls -la
-                            pnpm install --frozen-lockfile
+              #               # Install dependencies
+              #               log "Installing dependencies with pnpm..."
+              #               pwd
+              #               ls -la
+              #               pnpm install --frozen-lockfile
 
-                            # Build the application
-                            log "Building the application..."
-                            pnpm run build
+              #               # Build the application
+              #               log "Building the application..."
+              #               pnpm run build
 
-                            log "Build completed successfully"
-                          privileged: false
-                          resources:
-                            limits:
-                              memory: 3000Mi
-                              cpu: 500m
-                        description: Install dependencies and build application with pnpm
-                        timeout: 10m
-                  stepGroupInfra:
-                    type: KubernetesDirect
-                    spec:
-                      connectorRef: harnessk8sconnector
-                      namespace: harness-cd
-                      volumes:
-                        - mountPath: /meta
-                          type: HostPath
-                          spec:
-                            path: /mnt/existing_ebs_volume/meta
-                            type: Directory
-                      initTimeout: 20m
+              #               log "Build completed successfully"
+              #             privileged: false
+              #             resources:
+              #               limits:
+              #                 memory: 3000Mi
+              #                 cpu: 500m
+              #           description: Install dependencies and build application with pnpm
+              #           timeout: 10m
+              #     stepGroupInfra:
+              #       type: KubernetesDirect
+              #       spec:
+              #         connectorRef: harnessk8sconnector
+              #         namespace: harness-cd
+              #         volumes:
+              #           - mountPath: /meta
+              #             type: HostPath
+              #             spec:
+              #               path: /mnt/existing_ebs_volume/meta
+              #               type: Directory
+              #         initTimeout: 20m
             rollbackSteps: []
           serviceDependencies: []
         tags: {}
