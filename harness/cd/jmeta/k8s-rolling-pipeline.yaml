@@ -258,9 +258,10 @@ pipeline:
   variables:
     - name: project_name
       type: String
+      default: stock
       description: Phải có branch projects/NAME
       required: true
-      value: <+input>
+      value: <+input>.default(stock).allowedValues(stock,binance)
     - name: num_of_instance
       type: Number
       description: Số lượng api request instance
