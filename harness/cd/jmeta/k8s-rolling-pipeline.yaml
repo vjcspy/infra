@@ -217,7 +217,7 @@ pipeline:
                             log "Changing to source code directory: $SOURCE_CODE_PATH"
                             cd "$SOURCE_CODE_PATH"
 
-                            log "Running build script"
+                            log "Check if build script exists"
                             if [ ! -f "./scripts/build.sh" ]; then
                               log "Error: build.sh script not found in $SOURCE_CODE_PATH/scripts"
                               exit 1
@@ -232,7 +232,7 @@ pipeline:
                               memory: 4000Mi
                               cpu: 2000m
                         description: Install dependencies and build application
-                        timeout: 10m
+                        timeout: 30m
                   stepGroupInfra:
                     type: KubernetesDirect
                     spec:
@@ -253,7 +253,7 @@ pipeline:
             infrastructureDefinitions:
               - identifier: k8shelmchartinfra
         tags: {}
-        timeout: 20m
+        timeout: 30m
   variables:
     - name: project_name
       type: String
