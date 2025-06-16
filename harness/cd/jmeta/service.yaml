@@ -3,3 +3,26 @@ service:
   identifier: jmeta
   orgIdentifier: default
   projectIdentifier: default_project
+  serviceDefinition:
+    spec:
+      manifests:
+        - manifest:
+            identifier: Manifest
+            type: HelmChart
+            spec:
+              store:
+                type: Github
+                spec:
+                  connectorRef: vjcspygitconnector
+                  gitFetchType: Branch
+                  folderPath: /k8s/app/jmeta
+                  repoName: infra
+                  branch: main
+              subChartPath: ""
+              valuesPaths:
+                - k8s/app/jmeta/values.yaml
+              skipResourceVersioning: false
+              enableDeclarativeRollback: false
+              helmVersion: V3
+              fetchHelmChartMetadata: false
+    type: Kubernetes
