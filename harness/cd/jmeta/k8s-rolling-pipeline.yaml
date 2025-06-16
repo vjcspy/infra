@@ -266,3 +266,8 @@ pipeline:
       description: Số lượng api request instance
       required: true
       value: <+input>.default(1)
+  timeout: 45m
+  allowStageExecutions: true
+  fixedInputsOnRerun: true
+  delegateSelectors:
+    - helm-delegate
