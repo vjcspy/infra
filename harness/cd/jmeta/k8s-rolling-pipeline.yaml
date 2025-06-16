@@ -233,7 +233,7 @@ pipeline:
                           resources:
                             limits:
                               memory: 6000Mi
-                              cpu: 2000m
+                              cpu: 6000m
                         description: Install dependencies and build application
                         timeout: 30m
                   stepGroupInfra:
