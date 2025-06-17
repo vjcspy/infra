@@ -129,6 +129,8 @@ volumes:
     hostPath:
       path: /mnt/existing_ebs_volume
       type: Directory
+  - name: tmp-volume
+    emptyDir: { }
 
 # Additional volumeMounts on the output Deployment definition.
 volumeMounts:
@@ -137,6 +139,8 @@ volumeMounts:
     mountPath: /deployments
     # subPath: la path con o trong volume mount
     subPath: jmeta/<+pipeline.variables.project_name>/projects/<+pipeline.variables.project_name>/build/quarkus-app
+  - name: tmp-volume
+    mountPath: /tmp
 
 nodeSelector: {}
 
