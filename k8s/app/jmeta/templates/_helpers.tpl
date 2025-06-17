@@ -35,6 +35,7 @@ Common labels
 */}}
 {{- define "jmeta.labels" -}}
 helm.sh/chart: {{ include "jmeta.chart" . }}
+app.kubernetes.io/component: api
 {{ include "jmeta.selectorLabels" . }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
@@ -59,4 +60,9 @@ Create the name of the service account to use
 {{- else }}
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
+{{- end }}
+
+{{/* Định nghĩa tên đầy đủ của secret với revision */}}
+{{- define "jmeta.tlsSecretFullName" -}}
+{{- .Values.tlsSecret.name | trunc 63 | trimSuffix "-" -}}
 {{- end }}
