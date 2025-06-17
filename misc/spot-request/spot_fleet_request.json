@@ -8,7 +8,7 @@
   "Type": "maintain",
   "LaunchSpecifications": [
     {
-      "ImageId": "ami-0c63acad871abe40e",
+      "ImageId": "ami-03bbcd28bd8332760",
       "KeyName": "mt",
       "BlockDeviceMappings": [
         {
@@ -16,7 +16,7 @@
           "Ebs": {
             "DeleteOnTermination": true,
             "Iops": 3000,
-            "SnapshotId": "snap-09e0c22c3b15f68cd",
+            "SnapshotId": "snap-0a61ce723c3fe4fab",
             "VolumeSize": 60,
             "VolumeType": "gp3",
             "Encrypted": false,
@@ -33,7 +33,7 @@
       "InstanceType": "c7i-flex.2xlarge"
     },
     {
-      "ImageId": "ami-0c63acad871abe40e",
+      "ImageId": "ami-03bbcd28bd8332760",
       "KeyName": "mt",
       "BlockDeviceMappings": [
         {
@@ -41,7 +41,7 @@
           "Ebs": {
             "DeleteOnTermination": true,
             "Iops": 3000,
-            "SnapshotId": "snap-09e0c22c3b15f68cd",
+            "SnapshotId": "snap-0a61ce723c3fe4fab",
             "VolumeSize": 60,
             "VolumeType": "gp3",
             "Encrypted": false,
@@ -55,10 +55,10 @@
           "GroupId": "sg-0ee6bd6033c82bbf2"
         }
       ],
-      "InstanceType": "c7i-flex.4xlarge"
+      "InstanceType": "c6a.4xlarge"
     },
     {
-      "ImageId": "ami-0c63acad871abe40e",
+      "ImageId": "ami-03bbcd28bd8332760",
       "KeyName": "mt",
       "BlockDeviceMappings": [
         {
@@ -66,7 +66,7 @@
           "Ebs": {
             "DeleteOnTermination": true,
             "Iops": 3000,
-            "SnapshotId": "snap-09e0c22c3b15f68cd",
+            "SnapshotId": "snap-0a61ce723c3fe4fab",
             "VolumeSize": 60,
             "VolumeType": "gp3",
             "Encrypted": false,
@@ -83,7 +83,7 @@
       "InstanceType": "m7i-flex.2xlarge"
     },
     {
-      "ImageId": "ami-0c63acad871abe40e",
+      "ImageId": "ami-03bbcd28bd8332760",
       "KeyName": "mt",
       "BlockDeviceMappings": [
         {
@@ -91,7 +91,7 @@
           "Ebs": {
             "DeleteOnTermination": true,
             "Iops": 3000,
-            "SnapshotId": "snap-09e0c22c3b15f68cd",
+            "SnapshotId": "snap-0a61ce723c3fe4fab",
             "VolumeSize": 60,
             "VolumeType": "gp3",
             "Encrypted": false,
@@ -108,7 +108,7 @@
       "InstanceType": "c7i.2xlarge"
     },
     {
-      "ImageId": "ami-0c63acad871abe40e",
+      "ImageId": "ami-03bbcd28bd8332760",
       "KeyName": "mt",
       "BlockDeviceMappings": [
         {
@@ -116,7 +116,7 @@
           "Ebs": {
             "DeleteOnTermination": true,
             "Iops": 3000,
-            "SnapshotId": "snap-09e0c22c3b15f68cd",
+            "SnapshotId": "snap-0a61ce723c3fe4fab",
             "VolumeSize": 60,
             "VolumeType": "gp3",
             "Encrypted": false,
