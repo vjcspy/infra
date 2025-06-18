@@ -53,6 +53,12 @@ spec:
               else
                 echo "[Init] Config file not found, skipping."
               fi
+
+              echo "[Init] Listing all files in /host_ebs_volume/jmeta/{{ .Values.projectName }}/projects/{{ .Values.projectName }}/build/quarkus-app"
+              ls -la /host_ebs_volume/jmeta/{{ .Values.projectName }}/projects/{{ .Values.projectName }}/build/quarkus-app
+
+              echo "[Init] Listing all files in /host_ebs_volume/jmeta/{{ .Values.projectName }}/projects/{{ .Values.projectName }}/build/quarkus-app/config"
+              ls -la /host_ebs_volume/jmeta/{{ .Values.projectName }}/projects/{{ .Values.projectName }}/build/quarkus-app/config
           volumeMounts:
             - name: host-volume
               mountPath: /host_ebs_volume
