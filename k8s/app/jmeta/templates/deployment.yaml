@@ -43,22 +43,44 @@ spec:
             - sh
             - -c
             - |
-              echo "[Init] Checking for config file..."
+              set -e  # Exit on any error
+              
+              # Define base paths
+              BASE_PATH="/host_ebs_volume/jmeta/{{ .Values.projectName }}"
+              PROJECT_PATH="$BASE_PATH/projects/{{ .Values.projectName }}"
+              QUARKUS_APP_PATH="$PROJECT_PATH/build/quarkus-app"
+              CONFIG_DIR="$QUARKUS_APP_PATH/config"
+              
               CONFIG_SRC="/host_ebs_volume/credentials/jmeta/{{ .Values.projectName }}/application.properties"
-              CONFIG_DEST="/host_ebs_volume/jmeta/{{ .Values.projectName }}/projects/{{ .Values.projectName }}/build/quarkus-app/config/application.properties"
+              CONFIG_DEST="$CONFIG_DIR/application.properties"
+              
+              echo "[Init] Checking for config file at: $CONFIG_SRC"
+              
               if [ -f "$CONFIG_SRC" ]; then
-                echo "[Init] Config found, copying..."
-                mkdir -p "$(dirname "$CONFIG_DEST")"
+                echo "[Init] Config found, copying to: $CONFIG_DEST"
+                mkdir -p "$CONFIG_DIR"
                 cp "$CONFIG_SRC" "$CONFIG_DEST"
+                echo "[Init] Config copied successfully"
+                
+                # Verify the copy
+                if [ -f "$CONFIG_DEST" ]; then
+                  echo "[Init] Config verification: OK"
+                else
+                  echo "[Init] Config verification: FAILED"
+                  exit 1
+                fi
               else
-                echo "[Init] Config file not found, skipping."
+                echo "[Init] Config file not found, skipping copy operation"
               fi
-
-              echo "[Init] Listing all files in /host_ebs_volume/jmeta/{{ .Values.projectName }}/projects/{{ .Values.projectName }}/build/quarkus-app"
-              ls -la /host_ebs_volume/jmeta/{{ .Values.projectName }}/projects/{{ .Values.projectName }}/build/quarkus-app
-
-              echo "[Init] Listing all files in /host_ebs_volume/jmeta/{{ .Values.projectName }}/projects/{{ .Values.projectName }}/build/quarkus-app/config"
-              ls -la /host_ebs_volume/jmeta/{{ .Values.projectName }}/projects/{{ .Values.projectName }}/build/quarkus-app/config
+              
+              # Always show directory listing for troubleshooting
+              echo "[Init] Listing directories for troubleshooting:"
+              echo "[Init] Contents of $QUARKUS_APP_PATH:"
+              ls -la "$QUARKUS_APP_PATH" 2>/dev/null || echo "Directory not found"
+              echo "[Init] Contents of $CONFIG_DIR:"
+              ls -la "$CONFIG_DIR" 2>/dev/null || echo "Directory not found"
+              
+              echo "[Init] Initialization completed"
           volumeMounts:
             - name: host-volume
               mountPath: /host_ebs_volume
