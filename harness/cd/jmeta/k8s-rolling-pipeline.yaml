@@ -56,6 +56,7 @@ pipeline:
                           namespace="jmeta-${project_name}"
                           sourceCodePath="/jmeta/${project_name}"
                           gitBranch="projects/${project_name}"
+                          buildTime=$(date '+%Y-%m-%d %H:%M:%S')
                     environmentVariables: []
                     outputVariables:
                       - name: namespace
@@ -67,6 +68,9 @@ pipeline:
                       - name: gitBranch
                         type: String
                         value: gitBranch
+                      - name: buildTime
+                        type: String
+                        value: buildTime
                     outputAlias:
                       key: configuration
                       scope: Pipeline

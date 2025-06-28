@@ -45,6 +45,9 @@ podLabels: {}
 podSecurityContext: {}
   # fsGroup: 2000
 
+podEnv:
+  BUILD_TIME: <+pipeline.stages.Configuration.spec.execution.steps.Resolve_Configuration.output.outputVariables.buildTime>
+
 securityContext:
   capabilities:
     drop:
