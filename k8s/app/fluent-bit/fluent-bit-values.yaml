@@ -9,7 +9,7 @@ replicaCount: 1 # Không áp dụng cho DaemonSet, giữ nguyên
 image:
   repository: cr.fluentbit.io/fluent/fluent-bit
   # Sử dụng tag cụ thể để đảm bảo tính ổn định và kiểm soát phiên bản
-  tag: 4.0 # Hoặc phiên bản ổn định mới nhất bạn muốn dùng (ví dụ: 3.0.0-rc2 nếu cần tính năng mới)
+  tag: 4.0.3 # Hoặc phiên bản ổn định mới nhất bạn muốn dùng (ví dụ: 3.0.0-rc2 nếu cần tính năng mới)
   digest:
   pullPolicy: IfNotPresent
 
