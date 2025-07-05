@@ -421,10 +421,10 @@ config:
     [FILTER]
         Name             kubernetes
         Match            kube.jmeta-stock.*
-        Kube_URL         https://kubernetes.default.svc:443
-        Kube_CA_File     /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-        Kube_Token_File  /var/run/secrets/kubernetes.io/serviceaccount/token
-        Kube_Tag_Prefix  kube.var.log.containers.
+        #Kube_URL         https://kubernetes.default.svc:443
+        #Kube_CA_File     /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        #Kube_Token_File  /var/run/secrets/kubernetes.io/serviceaccount/token
+        #Kube_Tag_Prefix  kube.var.log.containers.
         Merge_Log        On       # Tự động parse JSON trong trường 'log' và trộn vào root
         Merge_Log_Key    log      # Trường chứa JSON để merge
         Keep_Log         Off      # Xóa trường 'log' gốc sau khi merge
