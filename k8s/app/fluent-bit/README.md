@@ -14,3 +14,9 @@ helm upgrade --install fluent-bit fluent/fluent-bit \
   --namespace fluent-bit \
   --create-namespace
 ```
+
+## DEBUG
+Show xem config đã nhận từ custom file chưa
+```aiignore
+helm get values fluent-bit -n fluent-bit
+```

@@ -441,9 +441,9 @@ config:
 
   outputs: |
     [OUTPUT]
-    Name   stdout
-    Match kube.jmeta-stock.*
-    Format json_lines # In ra JSON mỗi dòng
+        Name   stdout
+        Match kube.jmeta-stock.*
+        Format json_lines # In ra JSON mỗi dòng
     
     # Output cho Splunk HEC
     [OUTPUT]
