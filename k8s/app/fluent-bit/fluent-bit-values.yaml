@@ -248,6 +248,7 @@ config:
         TLS Off
         TLS.Verify Off
         Retry_Limit False
+        splunk_send_raw on
 
   upstream: {}
 
