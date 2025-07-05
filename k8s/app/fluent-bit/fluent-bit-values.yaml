@@ -244,12 +244,9 @@ config:
         Match kube.jmeta-stock.*
         Host splunk-server.splunk-server.svc.cluster.local
         Port 8088
-        URI /services/collector
-        Header Authorization Bearer 91f4652d-abeb-450b-a9f3-ba3c3c693bfd
+        Splunk_Token 91f4652d-abeb-450b-a9f3-ba3c3c693bfd
         TLS Off
         TLS.Verify Off
-        Event_Format json
-        Splunk_Send_Records On
         Retry_Limit False
 
   upstream: {}
