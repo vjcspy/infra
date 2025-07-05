@@ -442,51 +442,21 @@ config:
   outputs: |
     [OUTPUT]
         Name   stdout
-        Match kube.jmeta-stock.*
-        Format json_lines # In ra JSON mỗi dòng
+        Match  kube.jmeta-stock.*
+        Format json_lines
     
-    # Output cho Splunk HEC
     [OUTPUT]
         Name           splunk
         Match          kube.jmeta-stock.*
-        Host           splunk-server.splunk-server.svc.cluster.local # THAY THẾ BẰNG HOST THẬT CỦA BẠN
+        Host           splunk-server.splunk-server.svc.cluster.local
         Port           8088
         URI            /services/collector
-        # Sử dụng biến môi trường lấy từ Secret
         Header         Authorization Bearer 91f4652d-abeb-450b-a9f3-ba3c3c693bfd
         TLS            Off
-        # Cực kỳ quan trọng: Trong production, bạn cần có chứng chỉ CA và đặt TLS.Verify On
-        # TLS.CA_File    /fluent-bit/etc/splunk-ca.crt # Nếu cần custom CA
-        TLS.Verify     Off # CHỈ DÙNG CHO DEV/TEST. Trong PROD, phải là On và cấu hình chứng chỉ.
-        # Định dạng sự kiện gửi đi. json là tốt nhất cho log cấu trúc.
+        TLS.Verify     Off
         Event_Format   json
-        # Gửi nhiều bản ghi trong một request (hiệu quả hơn)
         Splunk_Send_Records On
-        # Cấu hình retry
-        Retry_Limit    False # Thử lại vô hạn cho đến khi thành công hoặc Fluent Bit bị tắt.
-        # Vô hiệu hóa tính năng buffering in-memory của Splunk output nếu đã bật Storage layer.
-        # Fluent Bit sẽ tự động sử dụng Storage layer nếu nó được cấu hình.
-        # Disk_Mem_Buf_Limit 50MB # Giới hạn bộ nhớ đệm trên đĩa cho output này
-
-    # Output cho OpenSearch
-  #      [OUTPUT]
-  #          Name           opensearch
-  #          Match          kube.*
-  #          Host           your-opensearch-host.example.com # THAY THẾ BẰNG HOST THẬT CỦA BẠN
-  #          Port           9200
-  #          # Index động theo namespace và ngày để quản lý dễ dàng
-  #          Index          kubernetes-logs-${kubernetes['namespace_name']}-${DATE}
-  #          Type           _doc # Cho OpenSearch 1.x / Elasticsearch 7.x+
-  #          TLS            On
-  #          TLS.Verify     Off # CHỈ DÙNG CHO DEV/TEST. Trong PROD, phải là On và cấu hình chứng chỉ.
-  #          # Xác thực bằng user/pass lấy từ biến môi trường
-  #          HTTP_User      ${OPENSEARCH_USER}
-  #          HTTP_Passwd    ${OPENSEARCH_PASSWORD}
-  #          # Nén dữ liệu trước khi gửi để tiết kiệm băng thông
-  #          Gzip           On
-  #          # Cấu hình retry
-  #          Retry_Limit    False
-  #          # Disk_Mem_Buf_Limit 50MB # Giới hạn bộ nhớ đệm trên đĩa cho output này
+        Retry_Limit    False
 
   ## https://docs.fluentbit.io/manual/administration/configuring-fluent-bit/classic-mode/upstream-servers
   ## This configuration is deprecated, please use `extraFiles` instead.
@@ -519,19 +489,6 @@ config:
   # This allows adding more files with arbitrary filenames to /fluent-bit/etc/conf by providing key/value pairs.
   # The key becomes the filename, the value becomes the file content.
   extraFiles: { }
-#     upstream.conf: |
-#       [UPSTREAM]
-#           upstream1
-#
-#       [NODE]
-#           name       node-1
-#           host       127.0.0.1
-#           port       43000
-#     example.conf: |
-#       [OUTPUT]
-#           Name example
-#           Match foo.*
-#           Host bar
 
 # Cấu hình các volume và volumeMounts để Fluent Bit có thể đọc log từ host node
 volumeMounts:
@@ -579,18 +536,6 @@ args:
 # This supports either a structured array or a templatable string
 initContainers: [ ]
 
-# Array mode
-# initContainers:
-#   - name: do-something
-#     image: bitnami/kubectl:1.22
-#     command: ['kubectl', 'version']
-
-# String mode
-# initContainers: |-
-#   - name: do-something
-#     image: bitnami/kubectl:{{ .Capabilities.KubeVersion.Major }}.{{ .Capabilities.KubeVersion.Minor }}
-#     command: ['kubectl', 'version']
-
 logLevel: info
 
 hotReload:
@@ -602,4 +547,3 @@ hotReload:
     pullPolicy: IfNotPresent
   resources: { }
   extraWatchVolumes: [ ]
-
