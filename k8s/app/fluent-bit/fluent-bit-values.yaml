@@ -322,26 +322,26 @@ terminationGracePeriodSeconds: 30
 
 priorityClassName: ""
 
-env:
-  # Ví dụ truyền token Splunk HEC hoặc thông tin xác thực OpenSearch từ Secret
-  # Bạn phải tạo các Secret này trước khi triển khai Helm Chart!
-  # Ví dụ: kubectl create secret generic splunk-hec-token-secret --from-literal=token='YOUR_ACTUAL_SPLUNK_HEC_TOKEN' -n kube-system
-  # Ví dụ: kubectl create secret generic opensearch-creds-secret --from-literal=username='your_user' --from-literal=password='your_password' -n kube-system
-  - name: SPLUNK_HEC_TOKEN # Biến môi trường này sẽ được sử dụng trong config.outputs
-    valueFrom:
-      secretKeyRef:
-        name: splunk-hec-token-secret # Tên Secret chứa token Splunk HEC
-        key: token
-  - name: OPENSEARCH_USER
-    valueFrom:
-      secretKeyRef:
-        name: opensearch-creds-secret
-        key: username
-  - name: OPENSEARCH_PASSWORD
-    valueFrom:
-      secretKeyRef:
-        name: opensearch-creds-secret
-        key: password
+#env:
+#  # Ví dụ truyền token Splunk HEC hoặc thông tin xác thực OpenSearch từ Secret
+#  # Bạn phải tạo các Secret này trước khi triển khai Helm Chart!
+#  # Ví dụ: kubectl create secret generic splunk-hec-token-secret --from-literal=token='YOUR_ACTUAL_SPLUNK_HEC_TOKEN' -n kube-system
+#  # Ví dụ: kubectl create secret generic opensearch-creds-secret --from-literal=username='your_user' --from-literal=password='your_password' -n kube-system
+#  - name: SPLUNK_HEC_TOKEN # Biến môi trường này sẽ được sử dụng trong config.outputs
+#    valueFrom:
+#      secretKeyRef:
+#        name: splunk-hec-token-secret # Tên Secret chứa token Splunk HEC
+#        key: token
+#  - name: OPENSEARCH_USER
+#    valueFrom:
+#      secretKeyRef:
+#        name: opensearch-creds-secret
+#        key: username
+#  - name: OPENSEARCH_PASSWORD
+#    valueFrom:
+#      secretKeyRef:
+#        name: opensearch-creds-secret
+#        key: password
 
 envWithTpl: [ ]
 envFrom: [ ]
