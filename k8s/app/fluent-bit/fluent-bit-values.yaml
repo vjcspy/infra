@@ -1,4 +1,4 @@
-# fluent-bit-values.yaml - Chỉnh sửa cho mục tiêu Log JSON -> Splunk/OpenSearch
+# fluent-bit-values.yaml - Optimized for JSON logs from jmeta-stock
 
 kind: DaemonSet
 
@@ -203,7 +203,7 @@ config:
     [INPUT]
         Name tail
         Path /var/log/containers/*_jmeta-stock_jmeta*.log
-        Parser docker
+        Parser docker_custom
         Tag kube.jmeta-stock.*
         Mem_Buf_Limit 10MB
         Skip_Long_Lines On
@@ -211,19 +211,27 @@ config:
 
   filters: |
     [FILTER]
+        Name parser
+        Match kube.jmeta-stock.*
+        Key_Name log
+        Parser json_application_log
+        Reserve_Data On
+        Preserve_Key Off
+    
+    [FILTER]
         Name kubernetes
         Match kube.jmeta-stock.*
-        Merge_Log On
-        Merge_Log_Key log
+        Merge_Log Off
         Keep_Log Off
-        K8s_V1_CRD Off
         K8S-Logging.Parser Off
         K8S-Logging.Exclude Off
     
     [FILTER]
         Name modify
         Match kube.jmeta-stock.*
-        Rename time kubernetes_time
+        Rename container_runtime_time kubernetes_time
+        Remove stream
+        Remove logtag
 
   outputs: |
     [OUTPUT]
@@ -248,12 +256,12 @@ config:
 
   customParsers: |
     [PARSER]
-        Name docker
+        Name docker_custom
         Format regex
-        Regex ^(?<time>[^ ]+) (?<stream>stdout|stderr) (?<logtag>[^ ]*) (?<log>.*)$
-        Time_Key time
+        Regex ^(?<container_runtime_time>[^ ]+) (?<stream>stdout|stderr) (?<logtag>[^ ]*) (?<log>.*)$
+        Time_Key container_runtime_time
         Time_Format %Y-%m-%dT%H:%M:%S.%L%z
-        Time_Keep Off
+        Time_Keep On
     
     [PARSER]
         Name json_application_log
