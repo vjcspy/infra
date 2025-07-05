@@ -421,27 +421,25 @@ config:
     [FILTER]
         Name             kubernetes
         Match            kube.jmeta-stock.*
-        # Merge_Log On là rất quan trọng để Fluent Bit cố gắng parse trường 'log' (chứa JSON của ứng dụng)
-        # và đưa các trường con của JSON vào cấp độ gốc của bản ghi.
-        Merge_Log        On
-        Keep_Log         Off # Sau khi merge, loại bỏ trường 'log' gốc nếu không cần
-        # K8S-Logging.Parser On và K8S-Logging.Exclude On thường được dùng để xử lý log
-        # từ các container mà không có cấu trúc JSON cụ thể, nhưng với log JSON của bạn
-        # thì Merge_Log On là đủ mạnh. Có thể giữ lại hoặc tắt tùy theo quan sát thực tế.
-        K8S-Logging.Parser Off # Tắt nếu bạn chắc chắn tất cả log đều là JSON chuẩn
-        K8S-Logging.Exclude Off # Tắt
-
-    # Thêm một FILTER parser tùy chỉnh để đảm bảo JSON của bạn được parse đúng cách
-    # Điều này hữu ích nếu Merge_Log của filter Kubernetes không xử lý hết,
-    # hoặc bạn muốn kiểm soát chặt chẽ hơn việc parse JSON.
-    # Tuy nhiên, nếu Merge_Log On hoạt động tốt, bạn có thể không cần filter này.
+        Kube_URL         https://kubernetes.default.svc:443
+        Kube_CA_File     /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        Kube_Token_File  /var/run/secrets/kubernetes.io/serviceaccount/token
+        Kube_Tag_Prefix  kube.var.log.containers.
+        Merge_Log        On       # Tự động parse JSON trong trường 'log' và trộn vào root
+        Merge_Log_Key    log      # Trường chứa JSON để merge
+        Keep_Log         Off      # Xóa trường 'log' gốc sau khi merge
+        K8s_V1_CRD       Off
+        # Quan trọng: Tắt K8S-Logging.Parser và Exclude để tránh xung đột với việc parse JSON của bạn
+        K8S-Logging.Parser Off
+        K8S-Logging.Exclude Off
+    
+    # Bổ sung Filter 'modify' để đổi tên trường 'time' của Kubernetes thành 'kubernetes_time'
+    # để tránh xung đột với trường 'time' trong JSON của ứng dụng,
+    # và đảm bảo trường 'time' từ JSON được giữ lại làm timestamp chính.
     [FILTER]
-        Name   parser
+        Name   modify
         Match  kube.jmeta-stock.*
-        Key_Name log # Áp dụng parser cho trường 'log' đã được trích xuất bởi parser 'docker'
-        Parser my_app_json # Sử dụng parser JSON tùy chỉnh mà chúng ta sẽ định nghĩa
-        Preserve_Key Off # Xóa trường 'log' gốc sau khi parse
-        Hash_For_JSON_Overlapping_Keys On # Xử lý trường hợp trùng tên key sau khi parse JSON
+        Rename time kubernetes_time # Đổi tên trường 'time' gốc từ Kubelet để tránh ghi đè
 
   outputs: |
     [OUTPUT]
@@ -498,28 +496,27 @@ config:
 
   ## https://docs.fluentbit.io/manual/pipeline/parsers
   customParsers: |
-    # Parser mặc định của Docker/CRI.
-    # Fluent Bit sẽ dùng parser này để tách metadata (thời gian, stream, tag) và trường 'log'
-    # từ dòng log thô của containerd/docker.
+    # Parser 'docker' (có sẵn trong Fluent Bit, nhưng định nghĩa lại để rõ ràng)
+    # Parser này tách dòng log thô của container runtime thành các trường:
+    # time (timestamp của container runtime), stream (stdout/stderr), logtag (F/P), và log (nội dung thực tế của ứng dụng).
     [PARSER]
         Name   docker
         Format regex
         Regex  ^(?<time>[^ ]+) (?<stream>stdout|stderr) (?<logtag>[^ ]*) (?<log>.*)$
         Time_Key time
-        Time_Format %Y-%m-%dT%H:%M:%S.%L%z # Định dạng thời gian chuẩn ISO 8601 từ Docker/CRI
-        Time_Keep On # Giữ lại trường thời gian gốc.
-
-    # Parser tùy chỉnh cho log JSON của ứng dụng của bạn.
-    # Điều này sẽ được áp dụng cho nội dung của trường 'log' sau khi filter kubernetes đã xử lý.
+        Time_Format %Y-%m-%dT%H:%M:%S.%L%z # Định dạng thời gian của container runtime
+        Time_Keep Off # TẮT: Không giữ lại trường 'time' này vì chúng ta sẽ dùng trường 'time' của JSON ứng dụng
+    
+    # Parser cho log JSON của ứng dụng của bạn
+    # Parser này được sử dụng NGẦM ĐỊNH bởi Kubernetes Filter với Merge_Log On
+    # nếu nó nhận ra nội dung trong trường 'log' là JSON.
     [PARSER]
-        Name   my_app_json
+        Name   json_application_log # Đặt tên rõ ràng hơn
         Format json
-        # Giả sử JSON của bạn có một trường 'time' hoặc 'timestamp'.
-        # Nếu không có, Fluent Bit sẽ dùng thời gian nhận được log.
-        Time_Key time # Tên trường thời gian trong JSON của bạn (ví dụ: "timestamp", "logTime")
-        Time_Format %Y-%m-%dT%H:%M:%S.%L%z # Định dạng thời gian trong trường đó.
-                                        # Ví dụ: "%Y-%m-%dT%H:%M:%S.%LZ" cho UTC Z, hoặc "%s" cho Unix timestamp
-        Time_Keep On # Giữ lại trường thời gian gốc trong JSON.
+        Time_Key time # Tên trường thời gian trong JSON của bạn là "time"
+        Time_Format %Y-%m-%dT%H:%M:%S.%L%z # Định dạng thời gian trong JSON của bạn (ví dụ: "2025-07-05T10:11:03.874Z")
+                                        # "%Y-%m-%dT%H:%M:%S.%L%z" sẽ xử lý "Z" ở cuối là múi giờ +0000.
+        Time_Keep On # Giữ lại trường "time" từ JSON của ứng dụng.
 
   # This allows adding more files with arbitrary filenames to /fluent-bit/etc/conf by providing key/value pairs.
   # The key becomes the filename, the value becomes the file content.
