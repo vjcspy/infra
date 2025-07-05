@@ -382,7 +382,7 @@ config:
         Health_Check On
         # Bật Storage Layer để đảm bảo độ bền của log (không mất log khi Fluent Bit restart hoặc đích không khả dụng)
         Storage.path /var/log/flb-storage/
-        Storage.sync_rate 0 # Sync mỗi khi có dữ liệu mới
+        Storage.sync_rate 1 # Sync mỗi khi có dữ liệu mới
         Storage.max_chunks_up 128
         Storage.checkpoint On
 
