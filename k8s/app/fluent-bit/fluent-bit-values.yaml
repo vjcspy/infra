@@ -244,7 +244,7 @@ config:
         Match kube.jmeta-stock.*
         Host splunk-server.splunk-server.svc.cluster.local
         Port 8088
-        Splunk_Token 91f4652d-abeb-450b-a9f3-ba3c3c693bfd
+        Splunk_Token cca20de9-28a3-46e8-9d95-94054f79f772
         TLS Off
         TLS.Verify Off
         Retry_Limit False
