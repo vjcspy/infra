@@ -1,6 +1,5 @@
 # fluent-bit-values.yaml - Chỉnh sửa cho mục tiêu Log JSON -> Splunk/OpenSearch
 
-# kind -- DaemonSet or Deployment
 kind: DaemonSet # Giữ nguyên DaemonSet để chạy trên tất cả các node
 
 # replicaCount -- Only applicable if kind=Deployment
@@ -364,7 +363,6 @@ networkPolicy:
 # See Lua script configuration example in README.md
 luaScripts: { }
 
----
 ## Cấu hình Fluent Bit Core (Input, Filter, Output, Parsers)
 ## https://docs.fluentbit.io/manual/administration/configuring-fluent-bit/classic-mode/configuration-file
 config:
