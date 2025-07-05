@@ -1,16 +1,15 @@
-# Default values for fluent-bit.
+# fluent-bit-values.yaml - Chỉnh sửa cho mục tiêu Log JSON -> Splunk/OpenSearch
 
 # kind -- DaemonSet or Deployment
-kind: DaemonSet
+kind: DaemonSet # Giữ nguyên DaemonSet để chạy trên tất cả các node
 
 # replicaCount -- Only applicable if kind=Deployment
-replicaCount: 1
+replicaCount: 1 # Không áp dụng cho DaemonSet, giữ nguyên
 
 image:
   repository: cr.fluentbit.io/fluent/fluent-bit
-  # Overrides the image tag whose default is {{ .Chart.AppVersion }}
-  # Set to "-" to not use the default value
-  tag:
+  # Sử dụng tag cụ thể để đảm bảo tính ổn định và kiểm soát phiên bản
+  tag: 4.0 # Hoặc phiên bản ổn định mới nhất bạn muốn dùng (ví dụ: 3.0.0-rc2 nếu cần tính năng mới)
   digest:
   pullPolicy: IfNotPresent
 
@@ -23,19 +22,19 @@ testFramework:
     tag: latest
     digest:
 
-imagePullSecrets: []
+imagePullSecrets: [ ]
 nameOverride: ""
 fullnameOverride: ""
 
 serviceAccount:
   create: true
-  annotations: {}
-  name:
+  annotations: { }
+  name: fluent-bit # Đặt tên rõ ràng cho ServiceAccount
 
 rbac:
   create: true
-  nodeAccess: false
-  eventsAccess: false
+  nodeAccess: false # Mặc định là false. Để true nếu cần truy cập thông tin node từ API Kubernetes.
+  eventsAccess: false # Mặc định là false. Để true nếu muốn Fluent Bit thu thập log events từ Kubernetes.
 
 # Configure podsecuritypolicy
 # Ref: https://kubernetes.io/docs/concepts/policy/pod-security-policy/
@@ -44,21 +43,20 @@ rbac:
 # We automatically disable PSP if Kubernetes version is 1.25 or higher
 podSecurityPolicy:
   create: false
-  annotations: {}
+  annotations: { }
   runAsUser:
     rule: RunAsAny
   seLinux:
     # This policy assumes the nodes are using AppArmor rather than SELinux.
     rule: RunAsAny
 
-# OpenShift-specific configuration
 openShift:
   enabled: false
   securityContextConstraints:
     # Create SCC for Fluent-bit and allow use it
     create: true
     name: ""
-    annotations: {}
+    annotations: { }
     runAsUser:
       type: RunAsAny
     seLinuxContext:
@@ -66,13 +64,13 @@ openShift:
     # Use existing SCC in cluster, rather then create new one
     existingName: ""
 
-podSecurityContext: {}
+podSecurityContext: { }
 #   fsGroup: 2000
 
-hostNetwork: false
+hostNetwork: false # Giữ nguyên false trừ khi có lý do cụ thể cần Fluent Bit sử dụng network của host.
 dnsPolicy: ClusterFirst
 
-dnsConfig: {}
+dnsConfig: { }
 #   nameservers:
 #     - 1.2.3.4
 #   searches:
@@ -83,13 +81,13 @@ dnsConfig: {}
 #       value: "2"
 #     - name: edns0
 
-hostAliases: []
+hostAliases: [ ]
 #   - ip: "1.2.3.4"
 #     hostnames:
 #     - "foo.local"
 #     - "bar.local"
 
-securityContext: {}
+securityContext: { }
 #   capabilities:
 #     drop:
 #     - ALL
@@ -99,19 +97,19 @@ securityContext: {}
 
 service:
   type: ClusterIP
-  port: 2020
+  port: 2020 # Cổng cho HTTP Server (metrics) của Fluent Bit
   internalTrafficPolicy:
   loadBalancerClass:
-  loadBalancerSourceRanges: []
+  loadBalancerSourceRanges: [ ]
   loadBalancerIP:
-  labels: {}
+  labels: { }
   # nodePort: 30020
   # clusterIP: 172.16.10.1
-  annotations: {}
+  annotations: { }
   #   prometheus.io/path: "/api/v1/metrics/prometheus"
   #   prometheus.io/port: "2020"
   #   prometheus.io/scrape: "true"
-  externalIPs: []
+  externalIPs: [ ]
   # externalIPs:
   #  - 2.2.2.2
 
@@ -144,7 +142,7 @@ serviceMonitor:
 
   ## Bear in mind if you want to collect metrics from a different port
   ## you will need to configure the new ports on the extraPorts property.
-  additionalEndpoints: []
+  additionalEndpoints: [ ]
   # - port: metrics
   #   path: /metrics
   #   interval: 10s
@@ -189,11 +187,11 @@ dashboards:
   enabled: false
   labelKey: grafana_dashboard
   labelValue: 1
-  annotations: {}
+  annotations: { }
   namespace: ""
   deterministicUid: false
 
-lifecycle: {}
+lifecycle: { }
 #   preStop:
 #     exec:
 #       command: ["/bin/sh", "-c", "sleep 20"]
@@ -201,35 +199,43 @@ lifecycle: {}
 livenessProbe:
   httpGet:
     path: /
-    port: http
+    port: http # Đây là cổng của HTTP Server (2020)
+  initialDelaySeconds: 10 # Thêm độ trễ để Fluent Bit có thời gian khởi động
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 5
 
 readinessProbe:
   httpGet:
     path: /api/v1/health
-    port: http
+    port: http # Đây là cổng của HTTP Server (2020)
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 5
 
-resources: {}
-#   limits:
-#     cpu: 100m
-#     memory: 128Mi
-#   requests:
-#     cpu: 100m
-#     memory: 128Mi
+resources:
+  # Cấu hình tài nguyên cho pod Fluent Bit. Điều chỉnh theo số lượng log và kích thước cluster.
+  limits:
+    memory: 200Mi # Ví dụ: 200MB. Cần giám sát và điều chỉnh.
+    cpu: 100m    # Ví dụ: 100 millicpu. Cần giám sát và điều chỉnh.
+  requests:
+    memory: 100Mi # Ví dụ: 100MB.
+    cpu: 50m     # Ví dụ: 50 millicpu.
 
-## only available if kind is Deployment
 ingress:
   enabled: false
   ingressClassName: ""
-  annotations: {}
+  annotations: { }
   #  kubernetes.io/ingress.class: nginx
   #  kubernetes.io/tls-acme: "true"
-  hosts: []
+  hosts: [ ]
   # - host: fluent-bit.example.tld
-  extraHosts: []
+  extraHosts: [ ]
   # - host: fluent-bit-extra.example.tld
   ## specify extraPort number
   #   port: 5170
-  tls: []
+  tls: [ ]
   #  - secretName: fluent-bit-example-tld
   #    hosts:
   #      - fluent-bit.example.tld
@@ -239,20 +245,20 @@ autoscaling:
   vpa:
     enabled: false
 
-    annotations: {}
+    annotations: { }
 
     # List of resources that the vertical pod autoscaler can control. Defaults to cpu and memory
-    controlledResources: []
+    controlledResources: [ ]
 
     # Values that the vertical pod autoscaler can control. Allowed values are RequestsAndLimits and RequestsOnly. Default is RequestsAndLimits.
     controlledValues:
 
     # Define the max allowed resources for the pod
-    maxAllowed: {}
+    maxAllowed: { }
     # cpu: 200m
     # memory: 100Mi
     # Define the min allowed resources for the pod
-    minAllowed: {}
+    minAllowed: { }
     # cpu: 200m
     # memory: 100Mi
 
@@ -267,7 +273,7 @@ autoscaling:
   targetCPUUtilizationPercentage: 75
   #  targetMemoryUtilizationPercentage: 75
   ## see https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale-walkthrough/#autoscaling-on-multiple-metrics-and-custom-metrics
-  customRules: []
+  customRules: [ ]
   #     - type: Pods
   #       pods:
   #         metric:
@@ -276,7 +282,7 @@ autoscaling:
   #           type: AverageValue
   #           averageValue: 1k
   ## see https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/#support-for-configurable-scaling-behavior
-  behavior: {}
+  behavior: { }
 #      scaleDown:
 #        policies:
 #          - type: Pods
@@ -289,94 +295,77 @@ autoscaling:
 ## only available if kind is Deployment
 podDisruptionBudget:
   enabled: false
-  annotations: {}
+  annotations: { }
   maxUnavailable: "30%"
 
-nodeSelector: {}
+nodeSelector: { }
 
-tolerations: []
+tolerations: [ ]
+#tolerations:
+#  # Rất quan trọng để Fluent Bit chạy trên control-plane node trong K3s single-node setup.
+#  - key: node-role.kubernetes.io/control-plane
+#    operator: Exists
+#    effect: NoSchedule
+#  - key: node-role.kubernetes.io/master # Tùy vào cách K3s gắn taint cho master node
+#    operator: Exists
+#    effect: NoSchedule
 
-affinity: {}
+affinity: { }
 
-labels: {}
+labels: { }
+annotations: { }
+podAnnotations: { }
+podLabels: { }
 
-annotations: {}
-
-podAnnotations: {}
-
-podLabels: {}
-
-## How long (in seconds) a pods needs to be stable before progressing the deployment
-##
-minReadySeconds:
-
-## How long (in seconds) a pod may take to exit (useful with lifecycle hooks to ensure lb deregistration is done)
-##
-terminationGracePeriodSeconds:
+minReadySeconds: 0
+terminationGracePeriodSeconds: 30
 
 priorityClassName: ""
 
-env: []
-#  - name: FOO
-#    value: "bar"
+env:
+  # Ví dụ truyền token Splunk HEC hoặc thông tin xác thực OpenSearch từ Secret
+  # Bạn phải tạo các Secret này trước khi triển khai Helm Chart!
+  # Ví dụ: kubectl create secret generic splunk-hec-token-secret --from-literal=token='YOUR_ACTUAL_SPLUNK_HEC_TOKEN' -n kube-system
+  # Ví dụ: kubectl create secret generic opensearch-creds-secret --from-literal=username='your_user' --from-literal=password='your_password' -n kube-system
+  - name: SPLUNK_HEC_TOKEN # Biến môi trường này sẽ được sử dụng trong config.outputs
+    valueFrom:
+      secretKeyRef:
+        name: splunk-hec-token-secret # Tên Secret chứa token Splunk HEC
+        key: token
+  - name: OPENSEARCH_USER
+    valueFrom:
+      secretKeyRef:
+        name: opensearch-creds-secret
+        key: username
+  - name: OPENSEARCH_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: opensearch-creds-secret
+        key: password
 
-# The envWithTpl array below has the same usage as "env", but is using the tpl function to support templatable string.
-# This can be useful when you want to pass dynamic values to the Chart using the helm argument "--set <variable>=<value>"
-# https://helm.sh/docs/howto/charts_tips_and_tricks/#using-the-tpl-function
-envWithTpl: []
-#  - name: FOO_2
-#    value: "{{ .Values.foo2 }}"
-#
-# foo2: bar2
+envWithTpl: [ ]
+envFrom: [ ]
+extraContainers: [ ]
+flush: 1 # Tần suất flush log (giây) - 1s là tốt cho độ trễ thấp
+metricsPort: 2020 # Cổng HTTP server của Fluent Bit
+extraPorts: [ ]
 
-envFrom: []
+extraVolumes: [ ]
+extraVolumeMounts: [ ]
 
-# This supports either a structured array or a templatable string
-extraContainers: []
+updateStrategy: { }
 
-# Array mode
-# extraContainers:
-#   - name: do-something
-#     image: busybox
-#     command: ['do', 'something']
-
-# String mode
-# extraContainers: |-
-#   - name: do-something
-#     image: bitnami/kubectl:{{ .Capabilities.KubeVersion.Major }}.{{ .Capabilities.KubeVersion.Minor }}
-#     command: ['kubectl', 'version']
-
-flush: 1
-
-metricsPort: 2020
-
-extraPorts: []
-#   - port: 5170
-#     containerPort: 5170
-#     protocol: TCP
-#     name: tcp
-#     nodePort: 30517
-
-extraVolumes: []
-
-extraVolumeMounts: []
-
-updateStrategy: {}
-#   type: RollingUpdate
-#   rollingUpdate:
-#     maxUnavailable: 1
-
-# Make use of a pre-defined configmap instead of the one templated here
 existingConfigMap: ""
-
 networkPolicy:
   enabled: false
 #   ingress:
 #     from: []
 
 # See Lua script configuration example in README.md
-luaScripts: {}
+luaScripts: { }
 
+---
+## Cấu hình Fluent Bit Core (Input, Filter, Output, Parsers)
 ## https://docs.fluentbit.io/manual/administration/configuring-fluent-bit/classic-mode/configuration-file
 config:
   service: |
@@ -384,72 +373,151 @@ config:
         Daemon Off
         Flush {{ .Values.flush }}
         Log_Level {{ .Values.logLevel }}
+        # Đảm bảo parsers.conf được tải, và custom_parsers.conf của chúng ta cũng được tải
         Parsers_File /fluent-bit/etc/parsers.conf
         Parsers_File /fluent-bit/etc/conf/custom_parsers.conf
         HTTP_Server On
         HTTP_Listen 0.0.0.0
         HTTP_Port {{ .Values.metricsPort }}
         Health_Check On
+        # Bật Storage Layer để đảm bảo độ bền của log (không mất log khi Fluent Bit restart hoặc đích không khả dụng)
+        Storage.path /var/log/flb-storage/
+        Storage.sync_rate 0 # Sync mỗi khi có dữ liệu mới
+        Storage.max_chunks_up 128
+        Storage.checkpoint On
 
+  ## Pipeline:
+  # 1. Input tail đọc file log /var/log/containers/*.log.
+  # 2.  Input này sử dụng Parser docker để tách dòng log thô thành các trường như time, stream, log.
+  # 3. Bản ghi log được gán Tag kube.*.
+  # 4. Bản ghi log được chuyển đến Filter kubernetes (Match kube.*).
+  #    Filter này thêm metadata Kubernetes và, quan trọng hơn, với Merge_Log On, nó sẽ parse nội dung JSON trong trường log (do ứng dụng của bạn tạo ra) và trộn các trường JSON này vào bản ghi chính.
+  # 5. (Tùy chọn) Bản ghi log được chuyển đến Filter parser (Match kube.*, Key_Name log, Parser my_app_json).
+  #    Filter này sẽ đảm bảo rằng nội dung JSON trong trường log được parse thành các trường riêng biệt theo định nghĩa của my_app_json parser của bạn.
+  # 6. Các bản ghi log đã được xử lý đầy đủ sẽ được chuyển đến Outputs.
   ## https://docs.fluentbit.io/manual/pipeline/inputs
   inputs: |
     [INPUT]
-        Name tail
-        Path /var/log/containers/*.log
-        multiline.parser docker, cri
-        Tag kube.*
-        Mem_Buf_Limit 5MB
-        Skip_Long_Lines On
+        Name             tail
+        # Đường dẫn chuẩn cho log container trên Kubernetes (bao gồm K3s)
+        Path             /var/log/containers/*.log
+        # Parser 'docker' sẽ trích xuất trường 'log' chứa JSON của bạn
+        Parser           docker
+        Tag              kube.*
+        Mem_Buf_Limit    10MB # Tăng buffer size nếu có lượng log lớn
+        Skip_Long_Lines  On
+        DB               /var/log/flb_kube.db # Persistent cursor để tránh đọc lại log cũ khi restart
 
-    [INPUT]
-        Name systemd
-        Tag host.*
-        Systemd_Filter _SYSTEMD_UNIT=kubelet.service
-        Read_From_Tail On
+    # Tắt hoặc xóa input systemd nếu bạn không muốn thu thập log hệ thống của node.
+    # Chỉ tập trung vào log container theo yêu cầu của bạn.
+    # [INPUT]
+    #     Name systemd
+    #     Tag host.*
+    #     Systemd_Filter _SYSTEMD_UNIT=kubelet.service
+    #     Read_From_Tail On
 
-  ## https://docs.fluentbit.io/manual/pipeline/filters
   filters: |
     [FILTER]
-        Name kubernetes
-        Match kube.*
-        Merge_Log On
-        Keep_Log Off
-        K8S-Logging.Parser On
-        K8S-Logging.Exclude On
+        Name             kubernetes
+        Match            kube.*
+        # Merge_Log On là rất quan trọng để Fluent Bit cố gắng parse trường 'log' (chứa JSON của ứng dụng)
+        # và đưa các trường con của JSON vào cấp độ gốc của bản ghi.
+        Merge_Log        On
+        Keep_Log         Off # Sau khi merge, loại bỏ trường 'log' gốc nếu không cần
+        # K8S-Logging.Parser On và K8S-Logging.Exclude On thường được dùng để xử lý log
+        # từ các container mà không có cấu trúc JSON cụ thể, nhưng với log JSON của bạn
+        # thì Merge_Log On là đủ mạnh. Có thể giữ lại hoặc tắt tùy theo quan sát thực tế.
+        K8S-Logging.Parser Off # Tắt nếu bạn chắc chắn tất cả log đều là JSON chuẩn
+        K8S-Logging.Exclude Off # Tắt
 
-  ## https://docs.fluentbit.io/manual/pipeline/outputs
+    # Thêm một FILTER parser tùy chỉnh để đảm bảo JSON của bạn được parse đúng cách
+    # Điều này hữu ích nếu Merge_Log của filter Kubernetes không xử lý hết,
+    # hoặc bạn muốn kiểm soát chặt chẽ hơn việc parse JSON.
+    # Tuy nhiên, nếu Merge_Log On hoạt động tốt, bạn có thể không cần filter này.
+    [FILTER]
+        Name   parser
+        Match  kube.*
+        Key_Name log # Áp dụng parser cho trường 'log' đã được trích xuất bởi parser 'docker'
+        Parser my_app_json # Sử dụng parser JSON tùy chỉnh mà chúng ta sẽ định nghĩa
+        Preserve_Key Off # Xóa trường 'log' gốc sau khi parse
+        Hash_For_JSON_Overlapping_Keys On # Xử lý trường hợp trùng tên key sau khi parse JSON
+
   outputs: |
+    # Output cho Splunk HEC
     [OUTPUT]
-        Name es
-        Match kube.*
-        Host elasticsearch-master
-        Logstash_Format On
-        Retry_Limit False
+        Name           splunk
+        Match          kube.*
+        Host           your-splunk-hec-host.example.com # THAY THẾ BẰNG HOST THẬT CỦA BẠN
+        Port           8088
+        URI            /services/collector
+        # Sử dụng biến môi trường lấy từ Secret
+        Header         Authorization Bearer ${SPLUNK_HEC_TOKEN}
+        TLS            On
+        # Cực kỳ quan trọng: Trong production, bạn cần có chứng chỉ CA và đặt TLS.Verify On
+        # TLS.CA_File    /fluent-bit/etc/splunk-ca.crt # Nếu cần custom CA
+        TLS.Verify     Off # CHỈ DÙNG CHO DEV/TEST. Trong PROD, phải là On và cấu hình chứng chỉ.
+        # Định dạng sự kiện gửi đi. json là tốt nhất cho log cấu trúc.
+        Event_Format   json
+        # Gửi nhiều bản ghi trong một request (hiệu quả hơn)
+        Splunk_Send_Records On
+        # Cấu hình retry
+        Retry_Limit    False # Thử lại vô hạn cho đến khi thành công hoặc Fluent Bit bị tắt.
+        # Vô hiệu hóa tính năng buffering in-memory của Splunk output nếu đã bật Storage layer.
+        # Fluent Bit sẽ tự động sử dụng Storage layer nếu nó được cấu hình.
+        # Disk_Mem_Buf_Limit 50MB # Giới hạn bộ nhớ đệm trên đĩa cho output này
 
+    # Output cho OpenSearch
     [OUTPUT]
-        Name es
-        Match host.*
-        Host elasticsearch-master
-        Logstash_Format On
-        Logstash_Prefix node
-        Retry_Limit False
+        Name           opensearch
+        Match          kube.*
+        Host           your-opensearch-host.example.com # THAY THẾ BẰNG HOST THẬT CỦA BẠN
+        Port           9200
+        # Index động theo namespace và ngày để quản lý dễ dàng
+        Index          kubernetes-logs-${kubernetes['namespace_name']}-${DATE}
+        Type           _doc # Cho OpenSearch 1.x / Elasticsearch 7.x+
+        TLS            On
+        TLS.Verify     Off # CHỈ DÙNG CHO DEV/TEST. Trong PROD, phải là On và cấu hình chứng chỉ.
+        # Xác thực bằng user/pass lấy từ biến môi trường
+        HTTP_User      ${OPENSEARCH_USER}
+        HTTP_Passwd    ${OPENSEARCH_PASSWORD}
+        # Nén dữ liệu trước khi gửi để tiết kiệm băng thông
+        Gzip           On
+        # Cấu hình retry
+        Retry_Limit    False
+        # Disk_Mem_Buf_Limit 50MB # Giới hạn bộ nhớ đệm trên đĩa cho output này
 
   ## https://docs.fluentbit.io/manual/administration/configuring-fluent-bit/classic-mode/upstream-servers
   ## This configuration is deprecated, please use `extraFiles` instead.
-  upstream: {}
+  upstream: { }
 
   ## https://docs.fluentbit.io/manual/pipeline/parsers
   customParsers: |
+    # Parser mặc định của Docker/CRI.
+    # Fluent Bit sẽ dùng parser này để tách metadata (thời gian, stream, tag) và trường 'log'
+    # từ dòng log thô của containerd/docker.
     [PARSER]
-        Name docker_no_time
-        Format json
-        Time_Keep Off
+        Name   docker
+        Format regex
+        Regex  ^(?<time>[^ ]+) (?<stream>stdout|stderr) (?<logtag>[^ ]*) (?<log>.*)$
         Time_Key time
-        Time_Format %Y-%m-%dT%H:%M:%S.%L
+        Time_Format %Y-%m-%dT%H:%M:%S.%L%z # Định dạng thời gian chuẩn ISO 8601 từ Docker/CRI
+        Time_Keep On # Giữ lại trường thời gian gốc.
+
+    # Parser tùy chỉnh cho log JSON của ứng dụng của bạn.
+    # Điều này sẽ được áp dụng cho nội dung của trường 'log' sau khi filter kubernetes đã xử lý.
+    [PARSER]
+        Name   my_app_json
+        Format json
+        # Giả sử JSON của bạn có một trường 'time' hoặc 'timestamp'.
+        # Nếu không có, Fluent Bit sẽ dùng thời gian nhận được log.
+        Time_Key time # Tên trường thời gian trong JSON của bạn (ví dụ: "timestamp", "logTime")
+        Time_Format %Y-%m-%dT%H:%M:%S.%L%z # Định dạng thời gian trong trường đó.
+                                        # Ví dụ: "%Y-%m-%dT%H:%M:%S.%LZ" cho UTC Z, hoặc "%s" cho Unix timestamp
+        Time_Keep On # Giữ lại trường thời gian gốc trong JSON.
 
   # This allows adding more files with arbitrary filenames to /fluent-bit/etc/conf by providing key/value pairs.
   # The key becomes the filename, the value becomes the file content.
-  extraFiles: {}
+  extraFiles: { }
 #     upstream.conf: |
 #       [UPSTREAM]
 #           upstream1
@@ -464,32 +532,41 @@ config:
 #           Match foo.*
 #           Host bar
 
-# The config volume is mounted by default, either to the existingConfigMap value, or the default of "fluent-bit.fullname"
+# Cấu hình các volume và volumeMounts để Fluent Bit có thể đọc log từ host node
 volumeMounts:
   - name: config
-    mountPath: /fluent-bit/etc/conf
+    mountPath: /fluent-bit/etc/conf # Path cho custom config files
 
 daemonSetVolumes:
   - name: varlog
     hostPath:
-      path: /var/log
+      path: /var/log # Standard Kubernetes log path
   - name: varlibdockercontainers
     hostPath:
-      path: /var/lib/docker/containers
+      path: /var/log/containers # For Docker runtime (if used by K3s)
+      type: DirectoryOrCreate
   - name: etcmachineid
     hostPath:
       path: /etc/machine-id
-      type: File
+      type: FileOrCreate # Hoặc File nếu bạn chắc chắn nó tồn tại
+  # Thêm volume cho Storage Layer của Fluent Bit
+  - name: fluent-bit-storage
+    hostPath:
+      path: /var/lib/fluent-bit/storage # Đường dẫn trên host để lưu buffer
+      type: DirectoryOrCreate
 
 daemonSetVolumeMounts:
   - name: varlog
     mountPath: /var/log
   - name: varlibdockercontainers
-    mountPath: /var/lib/docker/containers
+    mountPath: /var/log/containers
     readOnly: true
   - name: etcmachineid
     mountPath: /etc/machine-id
     readOnly: true
+  - name: fluent-bit-storage
+    mountPath: /var/log/flb-storage # Mount Storage path của Fluent Bit vào volume
+    readOnly: false # Phải là writable
 
 command:
   - /fluent-bit/bin/fluent-bit
@@ -499,7 +576,7 @@ args:
   - --config=/fluent-bit/etc/conf/fluent-bit.conf
 
 # This supports either a structured array or a templatable string
-initContainers: []
+initContainers: [ ]
 
 # Array mode
 # initContainers:
@@ -522,6 +599,6 @@ hotReload:
     tag: v0.14.0
     digest:
     pullPolicy: IfNotPresent
-  resources: {}
-  extraWatchVolumes: []
+  resources: { }
+  extraWatchVolumes: [ ]
 
