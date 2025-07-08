@@ -85,13 +85,13 @@ ingress:
     nginx.ingress.kubernetes.io/proxy-buffers-number: "8"
     nginx.ingress.kubernetes.io/proxy-buffer-size: "8k"
   hosts:
-    - host: splunk.dinhkhoile.com
+    - host: splunk.bluestone.systems
       paths:
         - path: /
           pathType: Prefix
   tls:
     - hosts:
-        - splunk.dinhkhoile.com
+        - splunk.bluestone.systems
 
 resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious
