@@ -1,4 +1,4 @@
-# fluent-bit-values.yaml - Optimized for JSON logs from jmeta-stock
+# fluent-bit-values.yaml - Optimized for JSON logs from jmeta-http
 
 kind: DaemonSet
 
@@ -202,9 +202,9 @@ config:
   inputs: |
     [INPUT]
         Name tail
-        Path /var/log/containers/*_jmeta-stock_jmeta*.log
+        Path /var/log/containers/*_jmeta-http_jmeta*.log
         Parser docker_custom
-        Tag kube.jmeta-stock.*
+        Tag kube.jmeta-http.*
         Mem_Buf_Limit 10MB
         Skip_Long_Lines On
         DB /var/log/flb_kube.db
@@ -212,7 +212,7 @@ config:
   filters: |
     [FILTER]
         Name parser
-        Match kube.jmeta-stock.*
+        Match kube.jmeta-http.*
         Key_Name log
         Parser json_application_log
         Reserve_Data On
@@ -220,7 +220,7 @@ config:
     
     [FILTER]
         Name kubernetes
-        Match kube.jmeta-stock.*
+        Match kube.jmeta-http.*
         Merge_Log Off
         Keep_Log Off
         K8S-Logging.Parser Off
@@ -228,7 +228,7 @@ config:
     
     [FILTER]
         Name modify
-        Match kube.jmeta-stock.*
+        Match kube.jmeta-http.*
         Rename container_runtime_time kubernetes_time
         Remove stream
         Remove logtag
@@ -236,12 +236,12 @@ config:
   outputs: |
     [OUTPUT]
         Name stdout
-        Match kube.jmeta-stock.*
+        Match kube.jmeta-http.*
         Format json_lines
     
     [OUTPUT]
         Name splunk
-        Match kube.jmeta-stock.*
+        Match kube.jmeta-http.*
         Host splunk-server.splunk-server.svc.cluster.local
         Port 8088
         Splunk_Token cca20de9-28a3-46e8-9d95-94054f79f772
