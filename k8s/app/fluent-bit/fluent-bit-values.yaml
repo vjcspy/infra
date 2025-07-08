@@ -242,7 +242,7 @@ config:
     [OUTPUT]
         Name splunk
         Match kube.jmeta-http.*
-        Host splunk-server.splunk-server.svc.cluster.local
+        Host splunk-server-hec.splunk-server.svc.cluster.local
         Port 8088
         Splunk_Token cca20de9-28a3-46e8-9d95-94054f79f772
         TLS Off
