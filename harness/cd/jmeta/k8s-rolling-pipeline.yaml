@@ -303,10 +303,9 @@ pipeline:
   variables:
     - name: project_name
       type: String
-      default: http
       description: Phải có branch projects/NAME
       required: true
-      value: <+input>.default(stock).allowedValues(stock,http)
+      value: <+input>.default(http).allowedValues(stock,http)
     - name: num_of_instance
       type: Number
       description: Số lượng api request instance
