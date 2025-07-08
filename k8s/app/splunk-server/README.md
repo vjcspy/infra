@@ -1,3 +1,3 @@
 ```shell
-helm install splunk-server ./splunk-server/ -n my-namespace --create-namespace splunk-server
+helm upgrade --install splunk-server ./splunk-server/ -n splunk-server --create-namespace
 ```
