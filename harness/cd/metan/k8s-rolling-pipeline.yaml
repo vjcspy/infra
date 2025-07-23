@@ -19,12 +19,77 @@ pipeline:
                   identifier: Resolve_Configuration
                   spec:
                     shell: Bash
-                    executionTarget: {}
+                    executionTarget: { }
+                    delegateSelectors:
+                      - helm-delegate
                     source:
                       type: Inline
                       spec:
-                        script: echo "hello"
-                    environmentVariables: []
-                    outputVariables: []
+                        script: |
+                          #!/bin/bash
+
+                          # Lấy giá trị của biến đầu vào từ pipeline
+                          project_name="<+pipeline.variables.project_name>"
+
+                          # Kiểm tra các trường hợp project_name không hợp lệ
+                          if [ -z "${project_name}" ] || [ "${project_name}" = "null" ]; then
+                            echo "Error: project_name không hợp lệ!"
+                            echo "Giá trị hiện tại: '${project_name}'"
+                            echo "project_name không được để trống, null hoặc chưa được thay thế biến!"
+                            exit 1  # Thoát với mã lỗi 1 để fail step
+                          fi
+
+                          # Loại bỏ khoảng trắng đầu và cuối nếu có
+                          project_name=$(echo "${project_name}" | xargs)
+
+                          # Kiểm tra lại sau khi đã trim
+                          if [ -z "${project_name}" ]; then
+                            echo "Error: project_name chỉ chứa khoảng trắng!"
+                            exit 1
+                          fi
+
+                          # In ra giá trị của project_name nếu hợp lệ
+                          echo "Project Name: ${project_name}"
+
+                          # Build output variable
+                          namespace="jmeta-${project_name}"
+                          sourceCodePath="/jmeta/${project_name}"
+                          gitBranch="projects/${project_name}"
+                          buildTime=$(date '+%Y-%m-%d %H:%M:%S')
+                    environmentVariables: [ ]
+                    outputVariables:
+                      - name: namespace
+                        type: String
+                        value: namespace
+                      - name: sourceCodePath
+                        type: String
+                        value: sourceCodePath
+                      - name: gitBranch
+                        type: String
+                        value: gitBranch
+                      - name: buildTime
+                        type: String
+                        value: buildTime
+                    outputAlias:
+                      key: configuration
+                      scope: Pipeline
                   timeout: 10m
+            rollbackSteps: []
+        timeout: 10m
         tags: {}
+  variables:
+    - name: project_name
+      type: String
+      description: Phải có branch projects/NAME
+      required: true
+      value: <+input>.default(http).allowedValues(http)
+    - name: num_of_instance
+      type: Number
+      description: Số lượng api request instance
+      required: true
+      value: <+input>.default(1)
+  timeout: 60m
+  allowStageExecutions: true
+  fixedInputsOnRerun: true
+  delegateSelectors:
+    - helm-delegate
