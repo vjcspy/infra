@@ -250,6 +250,11 @@ pipeline:
                           spec:
                             path: /mnt/existing_ebs_volume/metan
                             type: Directory
+                        - mountPath: /root/.cache/uv
+                          type: HostPath
+                          spec:
+                            path: /mnt/existing_ebs_volume/cached/uv
+                            type: Directory
                       initTimeout: 20m
             rollbackSteps: [ ]
           serviceDependencies: [ ]
