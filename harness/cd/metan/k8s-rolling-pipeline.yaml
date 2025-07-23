@@ -52,8 +52,8 @@ pipeline:
                           echo "Project Name: ${project_name}"
 
                           # Build output variable
-                          namespace="jmeta-${project_name}"
-                          sourceCodePath="/jmeta/${project_name}"
+                          namespace="metan-${project_name}"
+                          sourceCodePath="/metan/${project_name}"
                           gitBranch="projects/${project_name}"
                           buildTime=$(date '+%Y-%m-%d %H:%M:%S')
                     environmentVariables: [ ]
