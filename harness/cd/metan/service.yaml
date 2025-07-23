@@ -1,0 +1,5 @@
+service:
+  name: metan
+  identifier: metan
+  orgIdentifier: default
+  projectIdentifier: default_project
