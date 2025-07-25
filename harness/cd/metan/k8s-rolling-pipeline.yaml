@@ -273,7 +273,7 @@ pipeline:
       value: <+input>.default(cli).allowedValues(cli)
     - name: num_of_instance
       type: Number
-      description: Số lượng api request instance
+      description: Số lượng instance
       required: true
       value: <+input>.default(1)
   timeout: 60m

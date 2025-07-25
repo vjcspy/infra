@@ -4,6 +4,8 @@ metadata:
   name: {{ include "metan.fullname" . }}
   labels:
     {{- include "metan.labels" . | nindent 4 }}
+  annotations:
+    redeployTimestamp: "{{ now | unixEpoch }}"
 spec:
   {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
@@ -32,6 +34,15 @@ spec:
       securityContext:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+
+      initContainers:
+        - name: init-container-check-host-mounted-ebs-volume
+          image: busybox:1.37.0
+          command: [ 'sh', '-c', 'for i in $(seq 1 5); do echo "Checking attempt $i..."; if [ -f /host_ebs_volume/DONT_DELETE ]; then echo "File found, exiting successfully."; exit 0; fi; echo "File not found, retrying..."; sleep 10; done; echo "File not found after 5 attempts, exiting with error."; exit 1' ]
+          volumeMounts:
+            - name: host-volume
+              mountPath: /host_ebs_volume
+
       containers:
         - name: {{ .Chart.Name }}
           {{- with .Values.securityContext }}
@@ -40,10 +51,12 @@ spec:
           {{- end }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          ports:
-            - name: http
-              containerPort: {{ .Values.service.port }}
-              protocol: TCP
+          command: ["uv", "run", "metan", "worker", "start"]
+          env:
+            - name: BUILD_TIME
+              value: {{ .Values.podEnv.BUILD_TIME }}
+            - name: PYTHONPATH
+              value: /app/deps
           {{- with .Values.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
