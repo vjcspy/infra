@@ -52,6 +52,7 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           command: [ "python", "-m", "metan.cli.main", "worker", "start" ]
+          workingDir: /app
           env:
             - name: BUILD_TIME
               value: {{ .Values.podEnv.BUILD_TIME }}
