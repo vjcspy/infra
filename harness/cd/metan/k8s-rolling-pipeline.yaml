@@ -270,7 +270,7 @@ pipeline:
       type: String
       description: Phải có branch projects/NAME
       required: true
-      value: <+input>.default(http).allowedValues(http)
+      value: <+input>.default(cli).allowedValues(cli)
     - name: num_of_instance
       type: Number
       description: Số lượng api request instance
