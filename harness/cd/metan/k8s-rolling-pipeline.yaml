@@ -19,7 +19,7 @@ pipeline:
                   identifier: Resolve_Configuration
                   spec:
                     shell: Bash
-                    executionTarget: { }
+                    executionTarget: {}
                     delegateSelectors:
                       - helm-delegate
                     source:
@@ -56,7 +56,7 @@ pipeline:
                           sourceCodePath="/metan/${project_name}"
                           gitBranch="projects/${project_name}"
                           buildTime=$(date '+%Y-%m-%d %H:%M:%S')
-                    environmentVariables: [ ]
+                    environmentVariables: []
                     outputVariables:
                       - name: namespace
                         type: String
@@ -256,15 +256,54 @@ pipeline:
                             path: /mnt/existing_ebs_volume/cached/uv
                             type: Directory
                       initTimeout: 20m
-            rollbackSteps: [ ]
-          serviceDependencies: [ ]
+            rollbackSteps: []
+          serviceDependencies: []
           environment:
             environmentRef: k8ssingleenv
             deployToAll: false
             infrastructureDefinitions:
               - identifier: k8shelmchartinfra
-        tags: { }
+        tags: {}
         timeout: 45m
+    - stage:
+        name: Deploy
+        identifier: Deploy
+        description: ""
+        type: Deployment
+        spec:
+          deploymentType: Kubernetes
+          service:
+            serviceRef: metan
+          environment:
+            environmentRef: k8ssingleenv
+            deployToAll: false
+            infrastructureDefinitions:
+              - identifier: k8shelmchartinfra
+          execution:
+            steps:
+              - step:
+                  name: Rollout Deployment
+                  identifier: rolloutDeployment
+                  type: K8sRollingDeploy
+                  timeout: 10m
+                  spec:
+                    skipDryRun: false
+                    pruningEnabled: false
+            rollbackSteps:
+              - step:
+                  name: Rollback Rollout Deployment
+                  identifier: rollbackRolloutDeployment
+                  type: K8sRollingRollback
+                  timeout: 10m
+                  spec:
+                    pruningEnabled: false
+        tags: {}
+        failureStrategies:
+          - onFailure:
+              errors:
+                - AllErrors
+              action:
+                type: StageRollback
   variables:
     - name: project_name
       type: String
