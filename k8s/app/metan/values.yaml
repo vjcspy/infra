@@ -118,8 +118,6 @@ volumeMounts:
     mountPath: /app
     # subPath: la path con o trong volume mount
     subPath: metan/<+pipeline.variables.project_name>
-  - name: tmp-volume
-    mountPath: /tmp
 
 nodeSelector: {}
 
