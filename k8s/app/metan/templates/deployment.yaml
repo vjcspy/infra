@@ -61,6 +61,8 @@ spec:
               value: prod
             - name: APP_NAME
               value: METAN
+            - name: LOG_LEVEL
+              value: DEBUG
           {{- with .Values.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
