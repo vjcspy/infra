@@ -56,7 +56,7 @@ spec:
             - name: BUILD_TIME
               value: {{ .Values.podEnv.BUILD_TIME }}
             - name: PYTHONPATH
-              value: /app/deps
+              value: /app/deps:/app
           {{- with .Values.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
