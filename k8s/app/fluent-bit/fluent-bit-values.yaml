@@ -292,7 +292,7 @@ config:
         Match kube.metan-cli.*
         Host splunk-server-hec.splunk-server.svc.cluster.local
         Port 8088
-        Splunk_Token cca20de9-28a3-46e8-9d95-94054f79f772
+        Splunk_Token 174e89d1-db9d-4b54-8347-4c37d0623a0e
         TLS Off
         TLS.Verify Off
         Retry_Limit False
