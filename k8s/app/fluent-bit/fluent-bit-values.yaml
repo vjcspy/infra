@@ -1,4 +1,4 @@
-# fluent-bit-values.yaml - Optimized for JSON logs from jmeta-http
+# fluent-bit-values.yaml - Optimized for JSON logs from jmeta-http and metan-cli
 
 kind: DaemonSet
 
@@ -207,12 +207,29 @@ config:
         Tag kube.jmeta-http.*
         Mem_Buf_Limit 10MB
         Skip_Long_Lines On
-        DB /var/log/flb_kube.db
+        DB /var/log/flb_kube_jmeta.db
+
+    [INPUT]
+        Name tail
+        Path /var/log/containers/*_metan-cli_metan*.log
+        Parser docker_custom
+        Tag kube.metan-cli.*
+        Mem_Buf_Limit 10MB
+        Skip_Long_Lines On
+        DB /var/log/flb_kube_metan.db
 
   filters: |
     [FILTER]
         Name parser
         Match kube.jmeta-http.*
+        Key_Name log
+        Parser json_application_log
+        Reserve_Data On
+        Preserve_Key Off
+
+    [FILTER]
+        Name parser
+        Match kube.metan-cli.*
         Key_Name log
         Parser json_application_log
         Reserve_Data On
@@ -225,10 +242,25 @@ config:
         Keep_Log Off
         K8S-Logging.Parser Off
         K8S-Logging.Exclude Off
+
+    [FILTER]
+        Name kubernetes
+        Match kube.metan-cli.*
+        Merge_Log Off
+        Keep_Log Off
+        K8S-Logging.Parser Off
+        K8S-Logging.Exclude Off
     
     [FILTER]
         Name modify
         Match kube.jmeta-http.*
+        Rename container_runtime_time kubernetes_time
+        Remove stream
+        Remove logtag
+
+    [FILTER]
+        Name modify
+        Match kube.metan-cli.*
         Rename container_runtime_time kubernetes_time
         Remove stream
         Remove logtag
@@ -238,10 +270,26 @@ config:
         Name stdout
         Match kube.jmeta-http.*
         Format json_lines
+
+    [OUTPUT]
+        Name stdout
+        Match kube.metan-cli.*
+        Format json_lines
     
     [OUTPUT]
         Name splunk
         Match kube.jmeta-http.*
+        Host splunk-server-hec.splunk-server.svc.cluster.local
+        Port 8088
+        Splunk_Token cca20de9-28a3-46e8-9d95-94054f79f772
+        TLS Off
+        TLS.Verify Off
+        Retry_Limit False
+        splunk_send_raw off
+
+    [OUTPUT]
+        Name splunk
+        Match kube.metan-cli.*
         Host splunk-server-hec.splunk-server.svc.cluster.local
         Port 8088
         Splunk_Token cca20de9-28a3-46e8-9d95-94054f79f772
