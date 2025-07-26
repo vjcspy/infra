@@ -38,7 +38,7 @@ spec:
       initContainers:
         - name: init-container-check-host-mounted-ebs-volume
           image: busybox:1.37.0
-          command: [ "python", "-m", "metan.cli.main", "worker", "start"]
+          command: [ 'sh', '-c', 'for i in $(seq 1 5); do echo "Checking attempt $i..."; if [ -f /host_ebs_volume/DONT_DELETE ]; then echo "File found, exiting successfully."; exit 0; fi; echo "File not found, retrying..."; sleep 10; done; echo "File not found after 5 attempts, exiting with error."; exit 1' ]
           volumeMounts:
             - name: host-volume
               mountPath: /host_ebs_volume
@@ -51,7 +51,7 @@ spec:
           {{- end }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          command: [ "python", "-m", "celery", "-A", "metan.cli.celery.app:celery_app", "worker", "--concurrency", "1", "--loglevel", "info", "--queues", "metan.default.queue" ]
+          command: [ "python", "-m", "metan.cli.main", "worker", "start"]
           workingDir: /app
           env:
             - name: BUILD_TIME
