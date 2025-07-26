@@ -10,7 +10,7 @@ projectName: <+pipeline.variables.project_name>
 
 # This sets the container image more information can be found here: https://kubernetes.io/docs/concepts/containers/images/
 image:
-  repository: python
+  repository: vjcspy/python
   # This sets the pull policy for images.
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
