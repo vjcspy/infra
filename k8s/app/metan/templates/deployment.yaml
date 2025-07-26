@@ -51,7 +51,7 @@ spec:
           {{- end }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          command: [ "python", "-m", "metan.cli.main", "worker", "start"]
+          command: [ "python", "-m", "celery", "-A", "metan.cli.celery.app:celery_app", "worker", "--concurrency", "1", "--loglevel", "info", "--queues", "metan.default.queue" ]
           workingDir: /app
           env:
             - name: BUILD_TIME
