@@ -62,7 +62,7 @@ ingress:
   annotations:
     kubernetes.io/ingress.class: nginx
   hosts:
-    - host: rabbitmq.dinhkhoile.com
+    - host: rabbitmq.bluestone.systems
       paths:
         - path: /
           pathType: Prefix
