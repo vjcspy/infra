@@ -43,16 +43,16 @@ podAnnotations:
 podLabels: { }
 
 podSecurityContext:
-  runAsUser: 1001
-  runAsGroup: 1001
-  fsGroup: 1001
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
 
 podEnv:
   BUILD_TIME: <+pipeline.stages.Configuration.spec.execution.steps.Resolve_Configuration.output.outputVariables.buildTime>
 
 securityContext:
-  runAsUser: 1001
-  runAsGroup: 1001
+  runAsUser: 1000
+  runAsGroup: 1000
   runAsNonRoot: true
   allowPrivilegeEscalation: false
   capabilities:
