@@ -91,13 +91,13 @@ ingress:
     nginx.ingress.kubernetes.io/proxy-buffers-number: "8"
     nginx.ingress.kubernetes.io/proxy-buffer-size: "8k"
   hosts:
-    - host: <+pipeline.variables.meta_project_name>.dinhkhoile.com
+    - host: <+pipeline.variables.meta_project_name>.bluestone.systems
       paths:
         - path: /
           pathType: Prefix
   tls:
     - hosts:
-        - <+pipeline.variables.meta_project_name>.dinhkhoile.com
+        - <+pipeline.variables.meta_project_name>.bluestone.systems
 
 resources:
   limits:

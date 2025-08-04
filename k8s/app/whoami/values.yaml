@@ -65,14 +65,14 @@ ingress:
     nginx.ingress.kubernetes.io/ssl-verify: "false"
   hosts:
     # TODO: get from pipeline
-    - host: whoami.dinhkhoile.com
+    - host: whoami.bluestone.systems
       paths:
         - path: /
           pathType: ImplementationSpecific
   tls:
     - hosts:
         # TODO: get from pipeline
-        - whoami.dinhkhoile.com
+        - whoami.bluestone.systems
 
 resources:
   # We usually recommend not to specify default resources and to leave this as a conscious
