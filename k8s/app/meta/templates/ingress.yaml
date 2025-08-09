@@ -9,6 +9,7 @@ metadata:
   annotations:
     {{- toYaml . | nindent 4 }}
   {{- end }}
+    cert-manager.io/cluster-issuer: k8s-ca-issuer
 spec:
   {{- with .Values.ingress.className }}
   ingressClassName: {{ . }}
@@ -20,7 +21,7 @@ spec:
         {{- range .hosts }}
         - {{ . | quote }}
         {{- end }}
-      secretName: {{ include "meta.tlsSecretFullName" $ }}
+      secretName: meta-tls-cert-manager-ca-issuer
     {{- end }}
   {{- end }}
   rules:
