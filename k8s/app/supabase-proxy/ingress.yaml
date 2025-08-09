@@ -29,6 +29,7 @@ metadata:
     nginx.ingress.kubernetes.io/proxy-buffer-size: "8k"
     # Nếu cần rewrite, thêm annotations của NGINX phù hợp
 spec:
+  ingressClassName: nginx
   rules:
     - host: db.bluestone.systems    # đổi theo domain của bạn
       http:
