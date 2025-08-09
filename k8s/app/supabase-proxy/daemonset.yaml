@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: node8000-proxy
+spec:
+  selector:
+    matchLabels:
+      app: node8000-proxy
+  template:
+    metadata:
+      labels:
+        app: node8000-proxy
+    spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      containers:
+        - name: socat
+          image: alpine/socat
+          # Lắng nghe trên cổng 18000 của *node*, chuyển tới 127.0.0.1:8000 (trên node)
+          args: ["TCP-LISTEN:18000,fork,reuseaddr","TCP:127.0.0.1:8000"]
+          ports:
+            - containerPort: 18000
+              name: tcp
+          # Tùy chọn: healthcheck
+          livenessProbe:
+            tcpSocket: { port: 18000 }
+            initialDelaySeconds: 3
+            periodSeconds: 10

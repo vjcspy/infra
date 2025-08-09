@@ -1,0 +1,46 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: node8000-ing
+  annotations:
+    # Chỉ định Ingress class
+    kubernetes.io/ingress-class: nginx
+
+    # Enable SSL redirect
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+
+    # Cấu hình SSL
+    nginx.ingress.kubernetes.io/ssl-protocols: "TLSv1 TLSv1.1 TLSv1.2"
+
+    # Cấu hình proxy headers
+    nginx.ingress.kubernetes.io/proxy-set-headers: |
+      X-Real-IP: $remote_addr
+      X-Forwarded-For: $proxy_add_x_forwarded_for
+      X-Nginx-Proxy: "true"
+
+    # Cấu hình GZIP
+    nginx.ingress.kubernetes.io/enable-gzip: "true"
+    nginx.ingress.kubernetes.io/gzip-types: "text/plain text/css text/js text/xml text/javascript application/javascript application/x-javascript application/json application/xml application/xml+rss image/svg+xml"
+    nginx.ingress.kubernetes.io/gzip-min-length: "1100"
+    nginx.ingress.kubernetes.io/gzip-comp-level: "6"
+
+    # Cấu hình proxy buffer
+    nginx.ingress.kubernetes.io/proxy-buffers-number: "8"
+    nginx.ingress.kubernetes.io/proxy-buffer-size: "8k"
+    # Nếu cần rewrite, thêm annotations của NGINX phù hợp
+spec:
+  rules:
+    - host: db.bluestone.systems    # đổi theo domain của bạn
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: node8000
+                port:
+                  number: 8000
+  # Nếu có TLS:
+  # tls:
+  # - hosts: [nodeapp.example.com]
+  #   secretName: nodeapp-tls

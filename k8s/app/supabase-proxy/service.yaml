@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: node8000
+spec:
+  selector:
+    app: node8000-proxy
+  ports:
+    - name: http
+      port: 8000        # cổng mà Service expose trong cluster
+      targetPort: 18000 # cổng proxy đang nghe
+  # Không bắt buộc, nhưng giữ traffic nội bộ
+  internalTrafficPolicy: Local
