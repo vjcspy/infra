@@ -1,7 +1,7 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: node8000-ing
+  name: supabase-proxy-ing
   annotations:
     # Chỉ định Ingress class
     kubernetes.io/ingress-class: nginx
@@ -31,16 +31,16 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: db.bluestone.systems    # đổi theo domain của bạn
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: node8000
-                port:
-                  number: 8000
+  - host: db.bluestone.systems # đổi theo domain của bạn
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: supabase-proxy
+            port:
+              number: 8000
   # Nếu có TLS:
   # tls:
   # - hosts: [nodeapp.example.com]

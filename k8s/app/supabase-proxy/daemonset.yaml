@@ -1,28 +1,39 @@
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  name: node8000-proxy
+  name: supabase-proxy
 spec:
   selector:
     matchLabels:
-      app: node8000-proxy
+      app: supabase-proxy
   template:
     metadata:
       labels:
-        app: node8000-proxy
+        app: supabase-proxy
     spec:
       hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
       containers:
-        - name: socat
-          image: alpine/socat
-          # Lắng nghe trên cổng 18000 của *node*, chuyển tới 127.0.0.1:8000 (trên node)
-          args: ["TCP-LISTEN:18000,fork,reuseaddr","TCP:127.0.0.1:8000"]
-          ports:
-            - containerPort: 18000
-              name: tcp
-          # Tùy chọn: healthcheck
-          livenessProbe:
-            tcpSocket: { port: 18000 }
-            initialDelaySeconds: 3
-            periodSeconds: 10
+      # HTTP proxy: listen on 18000 on the node and forward to 127.0.0.1:8000 (node local)
+      - name: portproxy-8000
+        image: alpine/socat
+        args: [ "TCP-LISTEN:18000,fork,reuseaddr", "TCP:127.0.0.1:8000" ]
+        ports:
+        - containerPort: 18000
+          name: http-8000
+        livenessProbe:
+          tcpSocket: { port: 18000 }
+          initialDelaySeconds: 3
+          periodSeconds: 10
+
+      # PostgreSQL proxy: listen on 15432 on the node and forward to 127.0.0.1:5432 (node local)
+      - name: portproxy-5432
+        image: alpine/socat
+        args: [ "TCP-LISTEN:15432,fork,reuseaddr", "TCP:127.0.0.1:5432" ]
+        ports:
+        - containerPort: 15432
+          name: pg-5432
+        livenessProbe:
+          tcpSocket: { port: 15432 }
+          initialDelaySeconds: 3
+          periodSeconds: 10
