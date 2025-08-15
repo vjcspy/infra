@@ -131,7 +131,7 @@ spec:
           imagePullPolicy: {{ .Values.auth.image.pullPolicy }}
           ports:
             - containerPort: {{ .Values.auth.service.port }}
-              name: http
+              name: auth-port
           env:
 {{ include "supabase.renderServiceEnv" (list . "auth") | indent 12 }}
           {{- with .Values.auth.livenessProbe }}
@@ -150,7 +150,7 @@ spec:
           imagePullPolicy: {{ .Values.rest.image.pullPolicy }}
           ports:
             - containerPort: {{ .Values.rest.service.port }}
-              name: http
+              name: rest-port
           command:
             - postgrest
           env:
@@ -171,7 +171,7 @@ spec:
           imagePullPolicy: {{ .Values.realtime.image.pullPolicy }}
           ports:
             - containerPort: {{ .Values.realtime.service.port }}
-              name: http
+              name: realtime-port
           env:
 {{ include "supabase.renderServiceEnv" (list . "realtime") | indent 12 }}
         {{- end }}
@@ -182,7 +182,7 @@ spec:
           imagePullPolicy: {{ .Values.storage.image.pullPolicy }}
           ports:
             - containerPort: {{ .Values.storage.service.port }}
-              name: http
+              name: storage-port
           env:
 {{ include "supabase.renderServiceEnv" (list . "storage") | indent 12 }}
           volumeMounts:
@@ -204,7 +204,7 @@ spec:
           imagePullPolicy: {{ .Values.imgproxy.image.pullPolicy }}
           ports:
             - containerPort: {{ .Values.imgproxy.service.port }}
-              name: http
+              name: imgproxy-port
           env:
 {{ include "supabase.renderServiceEnv" (list . "imgproxy") | indent 12 }}
           volumeMounts:
@@ -226,7 +226,7 @@ spec:
           imagePullPolicy: {{ .Values.meta.image.pullPolicy }}
           ports:
             - containerPort: {{ .Values.meta.service.port }}
-              name: http
+              name: meta-port
           env:
 {{ include "supabase.renderServiceEnv" (list . "meta") | indent 12 }}
           {{- with .Values.meta.livenessProbe }}
@@ -245,7 +245,7 @@ spec:
           imagePullPolicy: {{ .Values.functions.image.pullPolicy }}
           ports:
             - containerPort: {{ .Values.functions.service.port }}
-              name: http
+              name: functions-port
           {{- if .Values.functions.command }}
           command:
             {{- range .Values.functions.command }}
@@ -278,6 +278,7 @@ spec:
           imagePullPolicy: {{ .Values.analytics.image.pullPolicy }}
           ports:
             - containerPort: {{ .Values.analytics.service.port }}
+              name: analytics-port
           env:
 {{ include "supabase.renderServiceEnv" (list . "analytics") | indent 12 }}
           {{- with .Values.analytics.livenessProbe }}
@@ -302,7 +303,9 @@ spec:
           {{- end }}
           ports:
             - containerPort: {{ .Values.kong.service.ports.http }}
+              name: kong-http
             - containerPort: {{ .Values.kong.service.ports.https }}
+              name: kong-https
           env:
 {{ include "supabase.renderServiceEnv" (list . "kong") | indent 12 }}
           volumeMounts:
@@ -326,7 +329,7 @@ spec:
           imagePullPolicy: {{ .Values.studio.image.pullPolicy }}
           ports:
             - containerPort: {{ .Values.studio.service.port }}
-              name: http
+              name: studio-port
           env:
 {{ include "supabase.renderServiceEnv" (list . "studio") | indent 12 }}
           {{- with .Values.studio.livenessProbe }}

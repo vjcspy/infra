@@ -33,7 +33,7 @@ spec:
     - port: {{ .Values.auth.service.port }}
       targetPort: {{ .Values.auth.service.port }}
       protocol: TCP
-      name: http
+      name: auth-port
   selector:
     app.kubernetes.io/name: supabase
     app.kubernetes.io/instance: {{ .Release.Name }}
@@ -54,7 +54,7 @@ spec:
     - port: {{ .Values.rest.service.port }}
       targetPort: {{ .Values.rest.service.port }}
       protocol: TCP
-      name: http
+      name: rest-port
   selector:
     app.kubernetes.io/name: supabase
     app.kubernetes.io/instance: {{ .Release.Name }}
@@ -75,7 +75,7 @@ spec:
     - port: {{ .Values.realtime.service.port }}
       targetPort: {{ .Values.realtime.service.port }}
       protocol: TCP
-      name: http
+      name: realtime-port
   selector:
     app.kubernetes.io/name: supabase
     app.kubernetes.io/instance: {{ .Release.Name }}
@@ -96,7 +96,7 @@ spec:
     - port: {{ .Values.storage.service.port }}
       targetPort: {{ .Values.storage.service.port }}
       protocol: TCP
-      name: http
+      name: storage-port
   selector:
     app.kubernetes.io/name: supabase
     app.kubernetes.io/instance: {{ .Release.Name }}
@@ -117,7 +117,7 @@ spec:
     - port: {{ .Values.imgproxy.service.port }}
       targetPort: {{ .Values.imgproxy.service.port }}
       protocol: TCP
-      name: http
+      name: imgproxy-port
   selector:
     app.kubernetes.io/name: supabase
     app.kubernetes.io/instance: {{ .Release.Name }}
@@ -138,7 +138,7 @@ spec:
     - port: {{ .Values.meta.service.port }}
       targetPort: {{ .Values.meta.service.port }}
       protocol: TCP
-      name: http
+      name: meta-port
   selector:
     app.kubernetes.io/name: supabase
     app.kubernetes.io/instance: {{ .Release.Name }}
@@ -159,7 +159,7 @@ spec:
     - port: {{ .Values.functions.service.port }}
       targetPort: {{ .Values.functions.service.port }}
       protocol: TCP
-      name: http
+      name: functions-port
   selector:
     app.kubernetes.io/name: supabase
     app.kubernetes.io/instance: {{ .Release.Name }}
@@ -180,7 +180,7 @@ spec:
     - port: {{ .Values.studio.service.port }}
       targetPort: {{ .Values.studio.service.port }}
       protocol: TCP
-      name: http
+      name: studio-port
   selector:
     app.kubernetes.io/name: supabase
     app.kubernetes.io/instance: {{ .Release.Name }}
@@ -201,7 +201,7 @@ spec:
     - port: {{ .Values.analytics.service.port }}
       targetPort: {{ .Values.analytics.service.port }}
       protocol: TCP
-      name: http
+      name: analytics-port
   selector:
     app.kubernetes.io/name: supabase
     app.kubernetes.io/instance: {{ .Release.Name }}
@@ -222,11 +222,11 @@ spec:
     - port: {{ .Values.kong.service.ports.http }}
       targetPort: {{ .Values.kong.service.ports.http }}
       protocol: TCP
-      name: http
+      name: kong-http
     - port: {{ .Values.kong.service.ports.https }}
       targetPort: {{ .Values.kong.service.ports.https }}
       protocol: TCP
-      name: https
+      name: kong-https
   selector:
     app.kubernetes.io/name: supabase
     app.kubernetes.io/instance: {{ .Release.Name }}
