@@ -1,0 +1,62 @@
+{{- if .Values.storage.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: supabase-storage
+  labels:
+    app.kubernetes.io/name: supabase
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: storage
+spec:
+  replicas: {{ .Values.storage.replicaCount | default 1 }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: supabase
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: storage
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: supabase
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: storage
+    spec:
+      serviceAccountName: {{ include "supabase.serviceAccountName" . }}
+      initContainers:
+        - name: init-ebs-check
+          image: busybox:1.37.0
+          command: [ "sh","-c","for i in $(seq 1 5); do echo Checking EBS mount attempt $i; if [ -f /host_ebs_volume/DONT_DELETE ]; then echo OK; exit 0; fi; sleep 10; done; echo FAIL; exit 1" ]
+          volumeMounts:
+            - name: host-ebs-root
+              mountPath: /host_ebs_volume
+      containers:
+        - name: storage
+          image: "{{ .Values.storage.image.repository }}:{{ .Values.storage.image.tag }}"
+          imagePullPolicy: {{ .Values.storage.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.storage.service.port }}
+              name: storage-port
+          env:
+          {{ include "supabase.renderServiceEnv" (list . "storage") | indent 12 }}
+          volumeMounts:
+            - name: supabase-root
+              mountPath: /var/lib/storage
+              subPath: storage
+          {{- with .Values.storage.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.storage.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      volumes:
+        - name: host-ebs-root
+          hostPath:
+            path: /mnt/existing_ebs_volume
+            type: Directory
+        - name: supabase-root
+          hostPath:
+            path: /mnt/existing_ebs_volume/supabase/volumes
+            type: Directory
+{{- end }}

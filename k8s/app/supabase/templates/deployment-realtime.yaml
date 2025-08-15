@@ -1,0 +1,38 @@
+{{- if .Values.realtime.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: supabase-realtime
+  labels:
+    app.kubernetes.io/name: supabase
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: realtime
+spec:
+  replicas: {{ .Values.realtime.replicaCount | default 1 }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: supabase
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: realtime
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: supabase
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: realtime
+    spec:
+      serviceAccountName: {{ include "supabase.serviceAccountName" . }}
+      initContainers:
+      {{- if .Values.realtime.waitForDb }}
+      {{ include "supabase.waitForDb" (include "supabase.dbHost" .) | nindent 6 }}
+      {{- end }}
+      containers:
+        - name: realtime
+          image: "{{ .Values.realtime.image.repository }}:{{ .Values.realtime.image.tag }}"
+          imagePullPolicy: {{ .Values.realtime.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.realtime.service.port }}
+              name: realtime-port
+          env:
+          {{ include "supabase.renderServiceEnv" (list . "realtime") | indent 12 }}
+{{- end }}

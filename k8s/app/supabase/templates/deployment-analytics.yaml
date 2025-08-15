@@ -1,0 +1,46 @@
+{{- if .Values.analytics.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: supabase-analytics
+  labels:
+    app.kubernetes.io/name: supabase
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: analytics
+spec:
+  replicas: {{ .Values.analytics.replicaCount | default 1 }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: supabase
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: analytics
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: supabase
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: analytics
+    spec:
+      serviceAccountName: {{ include "supabase.serviceAccountName" . }}
+      initContainers:
+      {{- if .Values.analytics.waitForDb }}
+      {{ include "supabase.waitForDb" (include "supabase.dbHost" .) | nindent 6 }}
+      {{- end }}
+      containers:
+        - name: analytics
+          image: "{{ .Values.analytics.image.repository }}:{{ .Values.analytics.image.tag }}"
+          imagePullPolicy: {{ .Values.analytics.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.analytics.service.port }}
+              name: analytics-port
+          env:
+          {{ include "supabase.renderServiceEnv" (list . "analytics") | indent 12 }}
+          {{- with .Values.analytics.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.analytics.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+{{- end }}

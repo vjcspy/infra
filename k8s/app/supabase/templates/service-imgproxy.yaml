@@ -1,0 +1,20 @@
+{{- if .Values.imgproxy.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: supabase-imgproxy
+  labels:
+    app.kubernetes.io/name: supabase
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: imgproxy
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: supabase
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: imgproxy
+  ports:
+    - name: http
+      port: {{ .Values.imgproxy.service.port }}
+      targetPort: {{ .Values.imgproxy.service.port }}
+{{- end }}

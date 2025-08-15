@@ -1,0 +1,23 @@
+{{- if .Values.kong.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: supabase-kong
+  labels:
+    app.kubernetes.io/name: supabase
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: kong
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: supabase
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: kong
+  ports:
+    - name: kong-http
+      port: {{ .Values.kong.service.ports.http }}
+      targetPort: {{ .Values.kong.service.ports.http }}
+    - name: kong-https
+      port: {{ .Values.kong.service.ports.https }}
+      targetPort: {{ .Values.kong.service.ports.https }}
+{{- end }}

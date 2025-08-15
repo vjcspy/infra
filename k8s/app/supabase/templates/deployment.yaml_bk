@@ -1,3 +1,5 @@
+{{- /* legacy monolithic deployment guarded off by default */ -}}
+{{- if .Values.legacy.monolithic.enabled }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -378,3 +380,4 @@ spec:
           hostPath:
             path: /mnt/existing_ebs_volume/supabase/volumes
             type: Directory
+{{- end }}

@@ -1,0 +1,20 @@
+{{- if .Values.realtime.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: supabase-realtime
+  labels:
+    app.kubernetes.io/name: supabase
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: realtime
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: supabase
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: realtime
+  ports:
+    - name: http
+      port: {{ .Values.realtime.service.port }}
+      targetPort: {{ .Values.realtime.service.port }}
+{{- end }}

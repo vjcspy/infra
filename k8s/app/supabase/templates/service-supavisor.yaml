@@ -1,0 +1,23 @@
+{{- if .Values.supavisor.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: supabase-supavisor
+  labels:
+    app.kubernetes.io/name: supabase
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: supavisor
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: supabase
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: supavisor
+  ports:
+    - name: postgres-port
+      port: 5432
+      targetPort: 5432
+    - name: pooler-port
+      port: {{ .Values.supavisor.service.port }}
+      targetPort: {{ .Values.supavisor.service.port }}
+{{- end }}

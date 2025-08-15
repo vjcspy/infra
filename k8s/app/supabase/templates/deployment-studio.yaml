@@ -1,0 +1,42 @@
+{{- if .Values.studio.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: supabase-studio
+  labels:
+    app.kubernetes.io/name: supabase
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: studio
+spec:
+  replicas: {{ .Values.studio.replicaCount | default 1 }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: supabase
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: studio
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: supabase
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: studio
+    spec:
+      serviceAccountName: {{ include "supabase.serviceAccountName" . }}
+      containers:
+        - name: studio
+          image: "{{ .Values.studio.image.repository }}:{{ .Values.studio.image.tag }}"
+          imagePullPolicy: {{ .Values.studio.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.studio.service.port }}
+              name: studio-port
+          env:
+          {{ include "supabase.renderServiceEnv" (list . "studio") | indent 12 }}
+          {{- with .Values.studio.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.studio.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+{{- end }}

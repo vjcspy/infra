@@ -1,0 +1,46 @@
+{{- if .Values.debug.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: supabase-debug
+  labels:
+    app.kubernetes.io/name: supabase
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: debug
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: supabase
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: debug
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: supabase
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: debug
+    spec:
+      serviceAccountName: {{ include "supabase.serviceAccountName" . }}
+      containers:
+        - name: debug
+          image: busybox:1.37.0
+          imagePullPolicy: IfNotPresent
+          command: ["sh", "-c", "echo Debug container started; tail -f /dev/null"]
+          stdin: true
+          tty: true
+          volumeMounts:
+            - name: supabase-root
+              mountPath: /mnt/supabase
+            - name: host-ebs-root
+              mountPath: /mnt/ebs
+      volumes:
+        - name: host-ebs-root
+          hostPath:
+            path: /mnt/existing_ebs_volume
+            type: Directory
+        - name: supabase-root
+          hostPath:
+            path: /mnt/existing_ebs_volume/supabase/volumes
+            type: Directory
+{{- end }}

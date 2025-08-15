@@ -1,0 +1,20 @@
+{{- if .Values.studio.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: supabase-studio
+  labels:
+    app.kubernetes.io/name: supabase
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: studio
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: supabase
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: studio
+  ports:
+    - name: http
+      port: {{ .Values.studio.service.port }}
+      targetPort: {{ .Values.studio.service.port }}
+{{- end }}

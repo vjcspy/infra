@@ -1,0 +1,114 @@
+{{- if .Values.postgres.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: supabase-postgres
+  labels:
+    app.kubernetes.io/name: supabase
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: postgres
+spec:
+  replicas: {{ .Values.postgres.replicaCount | default 1 }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: supabase
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: postgres
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: supabase
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: postgres
+    spec:
+      serviceAccountName: {{ include "supabase.serviceAccountName" . }}
+      initContainers:
+        - name: init-ebs-check
+          image: busybox:1.37.0
+          command: [ "sh","-c","for i in $(seq 1 5); do echo Checking EBS mount attempt $i; if [ -f /host_ebs_volume/DONT_DELETE ]; then echo OK; exit 0; fi; sleep 10; done; echo FAIL; exit 1" ]
+          volumeMounts:
+            - name: host-ebs-root
+              mountPath: /host_ebs_volume
+        - name: init-postgres-config
+          image: "{{ .Values.postgres.image.repository }}:{{ .Values.postgres.image.tag }}"
+          imagePullPolicy: {{ .Values.postgres.image.pullPolicy }}
+          command: [
+            "sh",
+            "-c",
+            "set -e; echo \"[init-postgres-config] Preparing /work-config\"; mkdir -p /work-config; if [ -z \"$(ls -A /work-config 2>/dev/null)\" ]; then echo \"[init-postgres-config] Empty /work-config, seeding defaults from /etc/postgresql-custom\"; cp -a /etc/postgresql-custom/. /work-config/; else echo \"[init-postgres-config] /work-config already has content, skipping seed\"; fi; echo \"[init-postgres-config] Final /work-config contents:\"; ls -la /work-config; echo \"[init-postgres-config] Preparing /work-data\"; mkdir -p /work-data; if [ -z \"$(ls -A /work-data 2>/dev/null)\" ]; then echo \"[init-postgres-config] Empty /work-data, seeding defaults from /var/lib/postgresql/data\"; cp -a /var/lib/postgresql/data/. /work-data/ || true; else echo \"[init-postgres-config] /work-data already has content, skipping seed\"; fi; echo \"[init-postgres-config] Final /work-data contents:\"; ls -la /work-data"
+          ]
+          volumeMounts:
+            - name: supabase-root
+              mountPath: /work-config
+              subPath: db/config
+            - name: supabase-root
+              mountPath: /work-data
+              subPath: db/data
+      containers:
+        - name: postgres
+          image: "{{ .Values.postgres.image.repository }}:{{ .Values.postgres.image.tag }}"
+          imagePullPolicy: {{ .Values.postgres.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.postgres.service.port }}
+              name: postgres
+          args:
+            - postgres
+            - "-c"
+            - "config_file=/etc/postgresql/postgresql.conf"
+            - "-c"
+            - "log_min_messages=fatal"
+          env:
+          {{ include "supabase.renderServiceEnv" (list . "postgres") | indent 12 }}
+          volumeMounts:
+            - name: supabase-root
+              mountPath: /docker-entrypoint-initdb.d/migrations/99-realtime.sql
+              subPath: db/realtime.sql
+              readOnly: true
+            - name: supabase-root
+              mountPath: /docker-entrypoint-initdb.d/init-scripts/98-webhooks.sql
+              subPath: db/webhooks.sql
+              readOnly: true
+            - name: supabase-root
+              mountPath: /docker-entrypoint-initdb.d/init-scripts/99-roles.sql
+              subPath: db/roles.sql
+              readOnly: true
+            - name: supabase-root
+              mountPath: /docker-entrypoint-initdb.d/init-scripts/99-jwt.sql
+              subPath: db/jwt.sql
+              readOnly: true
+            - name: supabase-root
+              mountPath: /var/lib/postgresql/data
+              subPath: db/data
+            - name: supabase-root
+              mountPath: /docker-entrypoint-initdb.d/migrations/97-_supabase.sql
+              subPath: db/_supabase.sql
+              readOnly: true
+            - name: supabase-root
+              mountPath: /docker-entrypoint-initdb.d/migrations/99-logs.sql
+              subPath: db/logs.sql
+              readOnly: true
+            - name: supabase-root
+              mountPath: /docker-entrypoint-initdb.d/migrations/99-pooler.sql
+              subPath: db/pooler.sql
+              readOnly: true
+            - name: supabase-root
+              mountPath: /etc/postgresql-custom
+              subPath: db/config
+          {{- with .Values.postgres.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.postgres.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      volumes:
+        - name: host-ebs-root
+          hostPath:
+            path: /mnt/existing_ebs_volume
+            type: Directory
+        - name: supabase-root
+          hostPath:
+            path: /mnt/existing_ebs_volume/supabase/volumes
+            type: Directory
+{{- end }}
