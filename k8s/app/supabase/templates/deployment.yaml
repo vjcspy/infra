@@ -33,8 +33,7 @@ spec:
           ports:
             - containerPort: {{ .Values.postgres.service.port }}
               name: postgres
-          command:
-            - postgres
+          args:
             - "-c"
             - "config_file=/etc/postgresql/postgresql.conf"
             - "-c"
