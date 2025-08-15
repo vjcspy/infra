@@ -33,8 +33,13 @@ spec:
           ports:
             - containerPort: {{ .Values.postgres.service.port }}
               name: postgres
-          command: [ "/bin/sh" ]
-          args: [ "-c", "while true; do sleep 3600; done" ]
+          # Mirror docker-compose: run full command but keep ENTRYPOINT for non-root startup
+          args:
+            - postgres
+            - "-c"
+            - "config_file=/etc/postgresql/postgresql.conf"
+            - "-c"
+            - "log_min_messages=fatal"
           env:
           {{ include "supabase.renderServiceEnv" (list . "postgres") | indent 12 }}
           volumeMounts:
