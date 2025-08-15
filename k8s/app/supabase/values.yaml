@@ -52,7 +52,6 @@ postgres:
     POSTGRES_PORT: 5432
     PGDATABASE: postgres
     POSTGRES_DB: postgres
-    POSTGRES_USER: postgres
     JWT_EXP: 3600
   resources: { }
   livenessProbe:
