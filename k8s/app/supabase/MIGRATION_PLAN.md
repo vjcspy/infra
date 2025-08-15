@@ -11,8 +11,9 @@ This plan describes how we will migrate the official Supabase Docker Compose sta
 - Storage: hostPath mounted from EBS
   - Root: `/mnt/existing_ebs_volume/supabase/volumes`
   - Every pod using hostPath includes an initContainer that verifies the EBS mount (sentinel file `DONT_DELETE`)
-- Configuration: values-only
-  - No Secrets/ConfigMaps. All env/config are defined in `values.yaml` for simplicity
+- Configuration: values-only with secrets for sensitive data
+  - Secrets for: POSTGRES_PASSWORD, JWT_SECRET, ANON_KEY, SERVICE_ROLE_KEY, DASHBOARD_PASSWORD, SECRET_KEY_BASE, VAULT_ENC_KEY
+  - Other env/config are defined in `values.yaml` for simplicity
   - No overrides; keep a clean, readable structure
 - Public exposure
   - Kong (API Gateway): `api.bluestone.systems`
@@ -31,6 +32,23 @@ This plan describes how we will migrate the official Supabase Docker Compose sta
   - Analytics (Logflare)
   - Kong (Gateway)
 - Stability: add `wait-for-db` initContainer where it helps startup reliability
+
+## Kubernetes Secret Creation
+
+Before deploying the Helm chart, create a Kubernetes secret containing sensitive values:
+
+```bash
+kubectl create secret generic supabase-secrets \
+  --from-literal=POSTGRES_PASSWORD="your-super-secret-and-long-postgres-password" \
+  --from-literal=JWT_SECRET="your-super-secret-jwt-token-with-at-least-32-characters-long" \
+  --from-literal=ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE" \
+  --from-literal=SERVICE_ROLE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJzZXJ2aWNlX3JvbGUiLAogICAgImlzcyI6ICJzdXBhYmFzZS1kZW1vIiwKICAgICJpYXQiOiAxNjQxNzY5MjAwLAogICAgImV4cCI6IDE3OTk1MzU2MDAKfQ.DaYlNEoUrrEn2Ig7tqibS-PHK5vgusbcbo7X36XVt4Q" \
+  --from-literal=DASHBOARD_PASSWORD="this_password_is_insecure_and_should_be_updated" \
+  --from-literal=SECRET_KEY_BASE="UpNVntn3cDxHJpq99YMc1T1AQgQpc8kfYTuRgBiYa15BLrx8etQoXz3gZv1/u2oq" \
+  --from-literal=VAULT_ENC_KEY="your-encryption-key-32-chars-min"
+```
+
+The Helm templates will reference these secrets using `valueFrom.secretKeyRef` for the corresponding environment variables.
 
 ## HostPath layout (under /mnt/existing_ebs_volume/supabase/volumes)
 

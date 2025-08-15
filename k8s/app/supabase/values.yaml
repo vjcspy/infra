@@ -38,10 +38,18 @@ postgres:
   service:
     port: 5432
   env:
-    POSTGRES_DB: app
+    # Database configuration
+    POSTGRES_HOST: /var/run/postgresql
+    PGPORT: "5432"
+    POSTGRES_PORT: "5432"
+    PGDATABASE: postgres
+    POSTGRES_DB: postgres
     POSTGRES_USER: postgres
-    POSTGRES_PASSWORD: change-me
-    JWT_EXPIRY: "3600"
+    # Secrets - to be replaced with secret references
+    PGPASSWORD: change-me-from-secret
+    POSTGRES_PASSWORD: change-me-from-secret
+    JWT_SECRET: change-me-from-secret
+    JWT_EXP: "3600"
   hostPath:
     data: /mnt/existing_ebs_volume/supabase/volumes/db/data
     config: /mnt/existing_ebs_volume/supabase/volumes/db/config
@@ -53,21 +61,28 @@ postgres:
     supabaseSql: /mnt/existing_ebs_volume/supabase/volumes/db/_supabase.sql
     logsSql: /mnt/existing_ebs_volume/supabase/volumes/db/logs.sql
     poolerSql: /mnt/existing_ebs_volume/supabase/volumes/db/pooler.sql
+  # Command from docker-compose
+  command:
+    - postgres
+    - "-c"
+    - "config_file=/etc/postgresql/postgresql.conf"
+    - "-c"
+    - "log_min_messages=fatal"  # prevents Realtime polling queries from appearing in logs
   resources: {}
   livenessProbe:
     exec:
-      command: ["sh","-c","pg_isready -U $POSTGRES_USER -d $POSTGRES_DB -h 127.0.0.1 -p 5432"]
+      command: ["pg_isready", "-U", "postgres", "-h", "localhost"]
     initialDelaySeconds: 10
-    periodSeconds: 10
+    periodSeconds: 5
     timeoutSeconds: 5
-    failureThreshold: 6
+    failureThreshold: 10
   readinessProbe:
     exec:
-      command: ["sh","-c","pg_isready -U $POSTGRES_USER -d $POSTGRES_DB -h 127.0.0.1 -p 5432"]
+      command: ["pg_isready", "-U", "postgres", "-h", "localhost"]
     initialDelaySeconds: 5
     periodSeconds: 5
     timeoutSeconds: 5
-    failureThreshold: 6
+    failureThreshold: 10
 
 supavisor:
   enabled: true

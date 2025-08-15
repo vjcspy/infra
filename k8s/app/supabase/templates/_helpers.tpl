@@ -65,8 +65,26 @@ Create the name of the service account to use
 {{- define "supabase.renderEnv" -}}
 {{- $env := . -}}
 {{- range $k, $v := $env }}
-						- name: {{ $k }}
-							value: {{ $v | quote }}
+            - name: {{ $k }}
+              value: {{ $v | quote }}
+{{- end }}
+{{- end }}
+
+{{/* Render environment variables with secret references for sensitive data */}}
+{{- define "supabase.renderEnvWithSecrets" -}}
+{{- $env := . -}}
+{{- $secretKeys := list "POSTGRES_PASSWORD" "PGPASSWORD" "JWT_SECRET" "ANON_KEY" "SERVICE_ROLE_KEY" "DASHBOARD_PASSWORD" "SECRET_KEY_BASE" "VAULT_ENC_KEY" -}}
+{{- range $k, $v := $env }}
+{{- if has $k $secretKeys }}
+            - name: {{ $k }}
+              valueFrom:
+                secretKeyRef:
+                  name: supabase-secrets
+                  key: {{ $k }}
+{{- else }}
+            - name: {{ $k }}
+              value: {{ $v | quote }}
+{{- end }}
 {{- end }}
 {{- end }}
 

@@ -27,28 +27,34 @@ spec:
           imagePullPolicy: {{ .Values.postgres.image.pullPolicy }}
           ports:
             - containerPort: {{ .Values.postgres.service.port }}
+          {{- if .Values.postgres.command }}
+          command:
+            {{- range .Values.postgres.command }}
+            - {{ . | quote }}
+            {{- end }}
+          {{- end }}
           env:
-{{ include "supabase.renderEnv" .Values.postgres.env | indent 12 }}
+{{ include "supabase.renderEnvWithSecrets" .Values.postgres.env | indent 12 }}
           volumeMounts:
             # Realtime migrations
             - name: pg-sql-realtime
               mountPath: /docker-entrypoint-initdb.d/migrations/99-realtime.sql
-{{/*              subPath: 99-realtime.sql*/}}
+              subPath: realtime.sql
               readOnly: true
             # Must be superuser to create event trigger
             - name: pg-sql-webhooks
               mountPath: /docker-entrypoint-initdb.d/init-scripts/98-webhooks.sql
-{{/*              subPath: 98-webhooks.sql*/}}
+              subPath: webhooks.sql
               readOnly: true
             # Must be superuser to alter reserved role
             - name: pg-sql-roles
               mountPath: /docker-entrypoint-initdb.d/init-scripts/99-roles.sql
-              subPath: 99-roles.sql
+              subPath: roles.sql
               readOnly: true
             # Initialize the database settings with JWT_SECRET and JWT_EXP
             - name: pg-sql-jwt
               mountPath: /docker-entrypoint-initdb.d/init-scripts/99-jwt.sql
-{{/*              subPath: 99-jwt.sql*/}}
+              subPath: jwt.sql
               readOnly: true
             # PGDATA directory is persisted between restarts
             - name: pg-data
@@ -56,17 +62,17 @@ spec:
             # Changes required for internal supabase data such as _analytics
             - name: pg-sql-supabase
               mountPath: /docker-entrypoint-initdb.d/migrations/97-_supabase.sql
-{{/*              subPath: 97-_supabase.sql*/}}
+              subPath: _supabase.sql
               readOnly: true
             # Changes required for Analytics support
             - name: pg-sql-logs
               mountPath: /docker-entrypoint-initdb.d/migrations/99-logs.sql
-{{/*              subPath: 99-logs.sql*/}}
+              subPath: logs.sql
               readOnly: true
             # Changes required for Pooler support
             - name: pg-sql-pooler
               mountPath: /docker-entrypoint-initdb.d/migrations/99-pooler.sql
-              subPath: 99-pooler.sql
+              subPath: pooler.sql
               readOnly: true
             # Use named volume to persist pgsodium decryption key between restarts
             - name: pg-config
