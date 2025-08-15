@@ -1,4 +1,3 @@
-{{- if .Values.debug.enabled }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -43,4 +42,3 @@ spec:
           hostPath:
             path: /mnt/existing_ebs_volume/supabase/volumes
             type: Directory
-{{- end }}
