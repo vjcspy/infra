@@ -33,12 +33,12 @@ spec:
           ports:
             - containerPort: {{ .Values.postgres.service.port }}
               name: postgres
-          {{- if .Values.postgres.command }}
           command:
-            {{- range .Values.postgres.command }}
-            - {{ . | quote }}
-            {{- end }}
-          {{- end }}
+            - postgres
+            - "-c"
+            - "config_file=/etc/postgresql/postgresql.conf"
+            - "-c"
+            - "log_min_messages=fatal"
           env:
           {{ include "supabase.renderServiceEnv" (list . "postgres") | indent 12 }}
           volumeMounts:
@@ -102,14 +102,13 @@ spec:
               name: postgres-port
             - containerPort: {{ .Values.supavisor.service.port }}
               name: pooler-port
-          {{- if .Values.supavisor.command }}
           command:
-            {{- range .Values.supavisor.command }}
-            - {{ . | quote }}
-            {{- end }}
-          {{- end }}
+            - /bin/sh
+            - -c
+            - >
+              /app/bin/migrate && /app/bin/supavisor eval "$(cat /etc/pooler/pooler.exs)" && /app/bin/server
           env:
-{{ include "supabase.renderServiceEnv" (list . "supavisor") | indent 12 }}
+          {{ include "supabase.renderServiceEnv" (list . "supavisor") | indent 12 }}
           volumeMounts:
             - name: pooler-config
               mountPath: /etc/pooler/pooler.exs
@@ -133,7 +132,7 @@ spec:
             - containerPort: {{ .Values.auth.service.port }}
               name: auth-port
           env:
-{{ include "supabase.renderServiceEnv" (list . "auth") | indent 12 }}
+          {{ include "supabase.renderServiceEnv" (list . "auth") | indent 12 }}
           {{- with .Values.auth.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
@@ -154,7 +153,7 @@ spec:
           command:
             - postgrest
           env:
-{{ include "supabase.renderServiceEnv" (list . "rest") | indent 12 }}
+          {{ include "supabase.renderServiceEnv" (list . "rest") | indent 12 }}
           {{- with .Values.rest.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
@@ -173,7 +172,7 @@ spec:
             - containerPort: {{ .Values.realtime.service.port }}
               name: realtime-port
           env:
-{{ include "supabase.renderServiceEnv" (list . "realtime") | indent 12 }}
+          {{ include "supabase.renderServiceEnv" (list . "realtime") | indent 12 }}
         {{- end }}
 
         {{- if .Values.storage.enabled }}
@@ -184,7 +183,7 @@ spec:
             - containerPort: {{ .Values.storage.service.port }}
               name: storage-port
           env:
-{{ include "supabase.renderServiceEnv" (list . "storage") | indent 12 }}
+          {{ include "supabase.renderServiceEnv" (list . "storage") | indent 12 }}
           volumeMounts:
             - name: storage-data
               mountPath: /var/lib/storage
@@ -206,7 +205,7 @@ spec:
             - containerPort: {{ .Values.imgproxy.service.port }}
               name: imgproxy-port
           env:
-{{ include "supabase.renderServiceEnv" (list . "imgproxy") | indent 12 }}
+          {{ include "supabase.renderServiceEnv" (list . "imgproxy") | indent 12 }}
           volumeMounts:
             - name: imgproxy-storage
               mountPath: /var/lib/storage
@@ -228,7 +227,7 @@ spec:
             - containerPort: {{ .Values.meta.service.port }}
               name: meta-port
           env:
-{{ include "supabase.renderServiceEnv" (list . "meta") | indent 12 }}
+          {{ include "supabase.renderServiceEnv" (list . "meta") | indent 12 }}
           {{- with .Values.meta.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
@@ -246,19 +245,12 @@ spec:
           ports:
             - containerPort: {{ .Values.functions.service.port }}
               name: functions-port
-          {{- if .Values.functions.command }}
-          command:
-            {{- range .Values.functions.command }}
-            - {{ . | quote }}
-            {{- end }}
-          {{- else }}
           command:
             - start
             - "--main-service"
             - "/home/deno/functions/main"
-          {{- end }}
           env:
-{{ include "supabase.renderServiceEnv" (list . "functions") | indent 12 }}
+          {{ include "supabase.renderServiceEnv" (list . "functions") | indent 12 }}
           volumeMounts:
             - name: functions-code
               mountPath: /home/deno/functions
@@ -280,7 +272,7 @@ spec:
             - containerPort: {{ .Values.analytics.service.port }}
               name: analytics-port
           env:
-{{ include "supabase.renderServiceEnv" (list . "analytics") | indent 12 }}
+          {{ include "supabase.renderServiceEnv" (list . "analytics") | indent 12 }}
           {{- with .Values.analytics.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
@@ -295,19 +287,18 @@ spec:
         - name: kong
           image: "{{ .Values.kong.image.repository }}:{{ .Values.kong.image.tag }}"
           imagePullPolicy: {{ .Values.kong.image.pullPolicy }}
-          {{- if .Values.kong.command }}
           command:
-            {{- range .Values.kong.command }}
-            - {{ . | quote }}
-            {{- end }}
-          {{- end }}
+            - bash
+            - -c
+            - >
+              eval "echo \"$(cat ~/temp.yml)\"" > ~/kong.yml && /docker-entrypoint.sh kong docker-start
           ports:
             - containerPort: {{ .Values.kong.service.ports.http }}
               name: kong-http
             - containerPort: {{ .Values.kong.service.ports.https }}
               name: kong-https
           env:
-{{ include "supabase.renderServiceEnv" (list . "kong") | indent 12 }}
+          {{ include "supabase.renderServiceEnv" (list . "kong") | indent 12 }}
           volumeMounts:
             - name: kong-config
               mountPath: /home/kong/temp.yml
@@ -331,7 +322,7 @@ spec:
             - containerPort: {{ .Values.studio.service.port }}
               name: studio-port
           env:
-{{ include "supabase.renderServiceEnv" (list . "studio") | indent 12 }}
+          {{ include "supabase.renderServiceEnv" (list . "studio") | indent 12 }}
           {{- with .Values.studio.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
