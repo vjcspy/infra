@@ -94,20 +94,53 @@ supavisor:
   service:
     port: 6543
   env:
-    DB_POOL_SIZE: "20"
-    DATABASE_URL: postgres://postgres:change-me@supabase-postgres:5432/app
+    # Main configuration
+    PORT: "4000"
+    POSTGRES_PORT: "5432"
+    POSTGRES_DB: postgres
+    # Secrets - to be replaced with secret references
+    POSTGRES_PASSWORD: change-me-from-secret
+    DATABASE_URL: ecto://supabase_admin:change-me-from-secret@supabase-postgres:5432/_supabase
+    SECRET_KEY_BASE: change-me-from-secret
+    VAULT_ENC_KEY: change-me-from-secret
+    JWT_SECRET: change-me-from-secret
+    API_JWT_SECRET: change-me-from-secret
+    METRICS_JWT_SECRET: change-me-from-secret
+    # Pool configuration from .env
+    POOLER_TENANT_ID: k8s
+    POOLER_DEFAULT_POOL_SIZE: "20"
+    POOLER_MAX_CLIENT_CONN: "100"
+    POOLER_POOL_MODE: transaction
+    DB_POOL_SIZE: "5"
+    # Additional settings
+    CLUSTER_POSTGRES: "true"
+    REGION: local
+    ERL_AFLAGS: -proto_dist inet_tcp
   hostPath:
     configFile: /mnt/existing_ebs_volume/supabase/volumes/pooler/pooler.exs
+  # Command from docker-compose
+  command:
+    - /bin/sh
+    - "-c"
+    - "/app/bin/migrate && /app/bin/supavisor eval \"$(cat /etc/pooler/pooler.exs)\" && /app/bin/server"
   waitForDb: true
   resources: {}
   livenessProbe:
-    tcpSocket: { port: 6543 }
-    initialDelaySeconds: 5
+    httpGet:
+      path: /api/health
+      port: 4000
+    initialDelaySeconds: 15
     periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 5
   readinessProbe:
-    tcpSocket: { port: 6543 }
-    initialDelaySeconds: 3
+    httpGet:
+      path: /api/health
+      port: 4000
+    initialDelaySeconds: 10
     periodSeconds: 5
+    timeoutSeconds: 5
+    failureThreshold: 5
 
 auth:
   enabled: true
@@ -119,20 +152,61 @@ auth:
   service:
     port: 9999
   env:
+    # API Configuration
+    GOTRUE_API_HOST: 0.0.0.0
+    GOTRUE_API_PORT: "9999"
     API_EXTERNAL_URL: https://api.bluestone.systems
+    # Database Configuration
     GOTRUE_DB_DRIVER: postgres
-    GOTRUE_DB_DATABASE_URL: postgres://supabase_auth_admin:change-me@supabase-postgres:5432/app
-    GOTRUE_JWT_SECRET: change-me
+    GOTRUE_DB_DATABASE_URL: postgres://supabase_auth_admin:change-me-from-secret@supabase-postgres:5432/postgres
+    # JWT Configuration
+    GOTRUE_JWT_ADMIN_ROLES: service_role
+    GOTRUE_JWT_AUD: authenticated
+    GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+    GOTRUE_JWT_EXP: "3600"
+    # Secrets - to be replaced with secret references
+    GOTRUE_JWT_SECRET: change-me-from-secret
+    # Site Configuration
+    GOTRUE_SITE_URL: http://localhost:3000
+    GOTRUE_URI_ALLOW_LIST: ""
+    GOTRUE_DISABLE_SIGNUP: "false"
+    # Email Configuration
+    GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
+    GOTRUE_MAILER_AUTOCONFIRM: "false"
+    GOTRUE_SMTP_ADMIN_EMAIL: admin@example.com
+    GOTRUE_SMTP_HOST: supabase-mail
+    GOTRUE_SMTP_PORT: "2500"
+    GOTRUE_SMTP_USER: fake_mail_user
+    GOTRUE_SMTP_PASS: fake_mail_password
+    GOTRUE_SMTP_SENDER_NAME: fake_sender
+    # Phone Configuration
+    GOTRUE_EXTERNAL_PHONE_ENABLED: "true"
+    GOTRUE_SMS_AUTOCONFIRM: "true"
+    # Anonymous Users
+    GOTRUE_EXTERNAL_ANONYMOUS_USERS_ENABLED: "false"
+    # Mailer URL Paths
+    GOTRUE_MAILER_URLPATHS_INVITE: "/auth/v1/verify"
+    GOTRUE_MAILER_URLPATHS_CONFIRMATION: "/auth/v1/verify"
+    GOTRUE_MAILER_URLPATHS_RECOVERY: "/auth/v1/verify"
+    GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE: "/auth/v1/verify"
   waitForDb: true
   resources: {}
   livenessProbe:
-    httpGet: { path: /health, port: 9999 }
+    httpGet:
+      path: /health
+      port: 9999
     initialDelaySeconds: 10
     periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
   readinessProbe:
-    httpGet: { path: /health, port: 9999 }
+    httpGet:
+      path: /health
+      port: 9999
     initialDelaySeconds: 5
     periodSeconds: 5
+    timeoutSeconds: 5
+    failureThreshold: 3
 
 rest:
   enabled: true
@@ -144,18 +218,34 @@ rest:
   service:
     port: 3000
   env:
+    # Database Configuration
+    PGRST_DB_URI: postgres://authenticator:change-me-from-secret@supabase-postgres:5432/postgres
+    PGRST_DB_SCHEMAS: public,storage,graphql_public
+    PGRST_DB_ANON_ROLE: anon
+    PGRST_DB_USE_LEGACY_GUCS: "false"
+    # JWT Configuration
+    PGRST_JWT_SECRET: change-me-from-secret
+    PGRST_APP_SETTINGS_JWT_SECRET: change-me-from-secret
     PGRST_APP_SETTINGS_JWT_EXP: "3600"
-    PGRST_DB_URI: postgres://postgres:change-me@supabase-postgres:5432/app
+  # Command from docker-compose
+  command:
+    - postgrest
   waitForDb: true
   resources: {}
   livenessProbe:
-    tcpSocket: { port: 3000 }
+    tcpSocket:
+      port: 3000
     initialDelaySeconds: 10
     periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
   readinessProbe:
-    tcpSocket: { port: 3000 }
+    tcpSocket:
+      port: 3000
     initialDelaySeconds: 5
     periodSeconds: 5
+    timeoutSeconds: 5
+    failureThreshold: 3
 
 realtime:
   enabled: true
@@ -166,17 +256,54 @@ realtime:
     pullPolicy: IfNotPresent
   service:
     port: 4000
-  env: {}
+  env:
+    # Port Configuration
+    PORT: "4000"
+    # Database Configuration
+    DB_HOST: supabase-postgres
+    DB_PORT: "5432"
+    DB_USER: supabase_admin
+    DB_PASSWORD: change-me-from-secret
+    DB_NAME: postgres
+    DB_AFTER_CONNECT_QUERY: 'SET search_path TO _realtime'
+    DB_ENC_KEY: supabaserealtime
+    # JWT Configuration
+    API_JWT_SECRET: change-me-from-secret
+    # Secret Key
+    SECRET_KEY_BASE: change-me-from-secret
+    # Erlang Configuration
+    ERL_AFLAGS: -proto_dist inet_tcp
+    DNS_NODES: "''"
+    # Resource Limits
+    RLIMIT_NOFILE: "10000"
+    # Application Settings
+    APP_NAME: realtime
+    SEED_SELF_HOST: "true"
+    RUN_JANITOR: "true"
   waitForDb: true
   resources: {}
   livenessProbe:
-    httpGet: { path: /api/health, port: 4000 }
-    initialDelaySeconds: 10
+    httpGet:
+      path: /api/tenants/realtime-dev/health
+      port: 4000
+      httpHeaders:
+        - name: Authorization
+          value: Bearer change-me-from-secret
+    initialDelaySeconds: 15
     periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
   readinessProbe:
-    httpGet: { path: /api/health, port: 4000 }
-    initialDelaySeconds: 5
+    httpGet:
+      path: /api/tenants/realtime-dev/health
+      port: 4000
+      httpHeaders:
+        - name: Authorization
+          value: Bearer change-me-from-secret
+    initialDelaySeconds: 10
     periodSeconds: 5
+    timeoutSeconds: 5
+    failureThreshold: 3
 
 storage:
   enabled: true
@@ -187,19 +314,45 @@ storage:
     pullPolicy: IfNotPresent
   service:
     port: 5000
-  env: {}
+  env:
+    # Keys - to be replaced with secret references
+    ANON_KEY: change-me-from-secret
+    SERVICE_KEY: change-me-from-secret
+    PGRST_JWT_SECRET: change-me-from-secret
+    # Database Configuration
+    DATABASE_URL: postgres://supabase_storage_admin:change-me-from-secret@supabase-postgres:5432/postgres
+    # API Configuration
+    POSTGREST_URL: http://supabase-rest:3000
+    # Storage Configuration
+    FILE_SIZE_LIMIT: "52428800"
+    STORAGE_BACKEND: file
+    FILE_STORAGE_BACKEND_PATH: /var/lib/storage
+    TENANT_ID: stub
+    REGION: stub
+    GLOBAL_S3_BUCKET: stub
+    # Image Transformation
+    ENABLE_IMAGE_TRANSFORMATION: "true"
+    IMGPROXY_URL: http://supabase-imgproxy:5001
   hostPath:
     data: /mnt/existing_ebs_volume/supabase/volumes/storage
   waitForDb: true
   resources: {}
   livenessProbe:
-    httpGet: { path: /health, port: 5000 }
+    httpGet:
+      path: /status
+      port: 5000
     initialDelaySeconds: 10
     periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
   readinessProbe:
-    httpGet: { path: /health, port: 5000 }
+    httpGet:
+      path: /status
+      port: 5000
     initialDelaySeconds: 5
     periodSeconds: 5
+    timeoutSeconds: 5
+    failureThreshold: 3
 
 imgproxy:
   enabled: true
@@ -209,17 +362,34 @@ imgproxy:
     tag: v3.8.0
     pullPolicy: IfNotPresent
   service:
-    port: 8080
-  env: {}
+    port: 5001
+  env:
+    # Bind Configuration
+    IMGPROXY_BIND: ":5001"
+    # Filesystem Configuration
+    IMGPROXY_LOCAL_FILESYSTEM_ROOT: /
+    # Performance Settings
+    IMGPROXY_USE_ETAG: "true"
+    # WebP Detection from .env
+    IMGPROXY_ENABLE_WEBP_DETECTION: "true"
+  # Need access to storage volume
+  hostPath:
+    storage: /mnt/existing_ebs_volume/supabase/volumes/storage
   resources: {}
   livenessProbe:
-    tcpSocket: { port: 8080 }
+    exec:
+      command: ["imgproxy", "health"]
     initialDelaySeconds: 10
     periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
   readinessProbe:
-    tcpSocket: { port: 8080 }
+    exec:
+      command: ["imgproxy", "health"]
     initialDelaySeconds: 5
     periodSeconds: 5
+    timeoutSeconds: 5
+    failureThreshold: 3
 
 meta:
   enabled: true
@@ -230,17 +400,33 @@ meta:
     pullPolicy: IfNotPresent
   service:
     port: 8080
-  env: {}
+  env:
+    # Port Configuration
+    PG_META_PORT: "8080"
+    # Database Configuration
+    PG_META_DB_HOST: supabase-postgres
+    PG_META_DB_PORT: "5432"
+    PG_META_DB_NAME: postgres
+    PG_META_DB_USER: supabase_admin
+    PG_META_DB_PASSWORD: change-me-from-secret
   waitForDb: true
   resources: {}
   livenessProbe:
-    httpGet: { path: /ping, port: 8080 }
+    httpGet:
+      path: /ping
+      port: 8080
     initialDelaySeconds: 10
     periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
   readinessProbe:
-    httpGet: { path: /ping, port: 8080 }
+    httpGet:
+      path: /ping
+      port: 8080
     initialDelaySeconds: 5
     periodSeconds: 5
+    timeoutSeconds: 5
+    failureThreshold: 3
 
 functions:
   enabled: true
@@ -252,18 +438,38 @@ functions:
   service:
     port: 9000
   env:
-    VERIFY_JWT: "true"
+    # JWT Configuration
+    JWT_SECRET: change-me-from-secret
+    # Supabase URLs and Keys
+    SUPABASE_URL: http://supabase-kong:8000
+    SUPABASE_ANON_KEY: change-me-from-secret
+    SUPABASE_SERVICE_ROLE_KEY: change-me-from-secret
+    # Database URL
+    SUPABASE_DB_URL: postgresql://postgres:change-me-from-secret@supabase-postgres:5432/postgres
+    # Verification setting from .env
+    VERIFY_JWT: "false"
   hostPath:
     functions: /mnt/existing_ebs_volume/supabase/volumes/functions
+  # Command from docker-compose
+  command:
+    - start
+    - "--main-service"
+    - "/home/deno/functions/main"
   resources: {}
   livenessProbe:
-    tcpSocket: { port: 9000 }
-    initialDelaySeconds: 10
+    tcpSocket:
+      port: 9000
+    initialDelaySeconds: 15
     periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
   readinessProbe:
-    tcpSocket: { port: 9000 }
-    initialDelaySeconds: 5
+    tcpSocket:
+      port: 9000
+    initialDelaySeconds: 10
     periodSeconds: 5
+    timeoutSeconds: 5
+    failureThreshold: 3
 
 analytics:
   enabled: true
@@ -275,17 +481,47 @@ analytics:
   service:
     port: 4000
   env:
-    LOGFLARE_PUBLIC_ACCESS_TOKEN: change-me
-    LOGFLARE_PRIVATE_ACCESS_TOKEN: change-me
+    # Node Configuration
+    LOGFLARE_NODE_HOST: 127.0.0.1
+    # Database Configuration
+    DB_USERNAME: supabase_admin
+    DB_DATABASE: _supabase
+    DB_HOSTNAME: supabase-postgres
+    DB_PORT: "5432"
+    DB_PASSWORD: change-me-from-secret
+    DB_SCHEMA: _analytics
+    # Access Tokens from .env
+    LOGFLARE_PUBLIC_ACCESS_TOKEN: your-super-secret-and-long-logflare-key-public
+    LOGFLARE_PRIVATE_ACCESS_TOKEN: your-super-secret-and-long-logflare-key-private
+    # Supabase Mode Configuration
+    LOGFLARE_SINGLE_TENANT: "true"
+    LOGFLARE_SUPABASE_MODE: "true"
+    LOGFLARE_MIN_CLUSTER_SIZE: "1"
+    # Postgres Backend Configuration (comment to use Big Query)
+    POSTGRES_BACKEND_URL: postgresql://supabase_admin:change-me-from-secret@supabase-postgres:5432/_supabase
+    POSTGRES_BACKEND_SCHEMA: _analytics
+    LOGFLARE_FEATURE_FLAG_OVERRIDE: multibackend=true
+    # Big Query Configuration (uncomment to use Big Query backend)
+    # GOOGLE_PROJECT_ID: GOOGLE_PROJECT_ID
+    # GOOGLE_PROJECT_NUMBER: GOOGLE_PROJECT_NUMBER
+  waitForDb: true
   resources: {}
   livenessProbe:
-    httpGet: { path: /health, port: 4000 }
-    initialDelaySeconds: 10
+    httpGet:
+      path: /health
+      port: 4000
+    initialDelaySeconds: 15
     periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 10
   readinessProbe:
-    httpGet: { path: /health, port: 4000 }
-    initialDelaySeconds: 5
+    httpGet:
+      path: /health
+      port: 4000
+    initialDelaySeconds: 10
     periodSeconds: 5
+    timeoutSeconds: 5
+    failureThreshold: 10
 
 kong:
   enabled: true
@@ -299,22 +535,43 @@ kong:
       http: 8000
       https: 8443
   env:
+    # Database Configuration
     KONG_DATABASE: "off"
     KONG_DECLARATIVE_CONFIG: /home/kong/kong.yml
-    KONG_PLUGINS: request-transformer,cors,key-auth,acl,basic-auth
+    # DNS Configuration
     KONG_DNS_ORDER: LAST,A,CNAME
+    # Plugins Configuration
+    KONG_PLUGINS: request-transformer,cors,key-auth,acl,basic-auth
+    # Nginx Proxy Configuration
     KONG_NGINX_PROXY_PROXY_BUFFER_SIZE: 160k
     KONG_NGINX_PROXY_PROXY_BUFFERS: "64 160k"
+    # Supabase Keys - to be replaced with secret references
+    SUPABASE_ANON_KEY: change-me-from-secret
+    SUPABASE_SERVICE_KEY: change-me-from-secret
+    # Dashboard Credentials - to be replaced with secret references
+    DASHBOARD_USERNAME: supabase
+    DASHBOARD_PASSWORD: change-me-from-secret
   hostPath:
     kongConfigFile: /mnt/existing_ebs_volume/supabase/volumes/api/kong.yml
+  # Command from docker-compose - using entrypoint
+  command:
+    - bash
+    - "-c"
+    - 'eval "echo \"$(cat ~/temp.yml)\"" > ~/kong.yml && /docker-entrypoint.sh kong docker-start'
   livenessProbe:
-    tcpSocket: { port: 8000 }
-    initialDelaySeconds: 10
+    tcpSocket:
+      port: 8000
+    initialDelaySeconds: 15
     periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
   readinessProbe:
-    tcpSocket: { port: 8000 }
-    initialDelaySeconds: 5
+    tcpSocket:
+      port: 8000
+    initialDelaySeconds: 10
     periodSeconds: 5
+    timeoutSeconds: 5
+    failureThreshold: 3
 
 studio:
   enabled: true
@@ -326,19 +583,43 @@ studio:
   service:
     port: 3000
   env:
+    # Postgres Meta URL
     STUDIO_PG_META_URL: http://supabase-meta:8080
-    POSTGRES_PASSWORD: change-me
+    # Database Password - to be replaced with secret reference
+    POSTGRES_PASSWORD: change-me-from-secret
+    # Organization and Project Settings from .env
+    DEFAULT_ORGANIZATION_NAME: Default Organization
+    DEFAULT_PROJECT_NAME: Default Project
+    # OpenAI API Key (optional)
+    OPENAI_API_KEY: ""
+    # Supabase URLs and Keys
     SUPABASE_URL: http://supabase-kong:8000
-    SUPABASE_PUBLIC_URL: http://api.bluestone.systems
-    SUPABASE_ANON_KEY: change-me
-    SUPABASE_SERVICE_KEY: change-me
-    AUTH_JWT_SECRET: change-me
+    SUPABASE_PUBLIC_URL: https://api.bluestone.systems
+    # Secrets - to be replaced with secret references
+    SUPABASE_ANON_KEY: change-me-from-secret
+    SUPABASE_SERVICE_KEY: change-me-from-secret
+    AUTH_JWT_SECRET: change-me-from-secret
+    # Logflare Configuration
+    LOGFLARE_PRIVATE_ACCESS_TOKEN: your-super-secret-and-long-logflare-key-private
+    LOGFLARE_URL: http://supabase-analytics:4000
     NEXT_PUBLIC_ENABLE_LOGS: "true"
+    # Analytics Backend (comment to use Big Query backend)
+    NEXT_ANALYTICS_BACKEND_PROVIDER: postgres
+    # Uncomment to use Big Query backend for analytics
+    # NEXT_ANALYTICS_BACKEND_PROVIDER: bigquery
   livenessProbe:
-    httpGet: { path: /, port: 3000 }
-    initialDelaySeconds: 15
+    httpGet:
+      path: /api/platform/profile
+      port: 3000
+    initialDelaySeconds: 20
     periodSeconds: 10
+    timeoutSeconds: 10
+    failureThreshold: 3
   readinessProbe:
-    httpGet: { path: /, port: 3000 }
-    initialDelaySeconds: 5
+    httpGet:
+      path: /api/platform/profile
+      port: 3000
+    initialDelaySeconds: 15
     periodSeconds: 5
+    timeoutSeconds: 10
+    failureThreshold: 3

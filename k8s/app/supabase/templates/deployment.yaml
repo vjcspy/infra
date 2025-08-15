@@ -93,8 +93,14 @@ spec:
           imagePullPolicy: {{ .Values.supavisor.image.pullPolicy }}
           ports:
             - containerPort: {{ .Values.supavisor.service.port }}
+          {{- if .Values.supavisor.command }}
+          command:
+            {{- range .Values.supavisor.command }}
+            - {{ . | quote }}
+            {{- end }}
+          {{- end }}
           env:
-{{ include "supabase.renderEnv" .Values.supavisor.env | indent 12 }}
+{{ include "supabase.renderEnvWithSecrets" .Values.supavisor.env | indent 12 }}
           volumeMounts:
             - name: pooler-config
               mountPath: /etc/pooler/pooler.exs
@@ -117,7 +123,7 @@ spec:
           ports:
             - containerPort: {{ .Values.auth.service.port }}
           env:
-{{ include "supabase.renderEnv" .Values.auth.env | indent 12 }}
+{{ include "supabase.renderEnvWithSecrets" .Values.auth.env | indent 12 }}
           {{- with .Values.auth.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
@@ -134,8 +140,14 @@ spec:
           imagePullPolicy: {{ .Values.rest.image.pullPolicy }}
           ports:
             - containerPort: {{ .Values.rest.service.port }}
+          {{- if .Values.rest.command }}
+          command:
+            {{- range .Values.rest.command }}
+            - {{ . | quote }}
+            {{- end }}
+          {{- end }}
           env:
-{{ include "supabase.renderEnv" .Values.rest.env | indent 12 }}
+{{ include "supabase.renderEnvWithSecrets" .Values.rest.env | indent 12 }}
           {{- with .Values.rest.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
@@ -153,7 +165,7 @@ spec:
           ports:
             - containerPort: {{ .Values.realtime.service.port }}
           env:
-{{ include "supabase.renderEnv" .Values.realtime.env | indent 12 }}
+{{ include "supabase.renderEnvWithSecrets" .Values.realtime.env | indent 12 }}
           {{- with .Values.realtime.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
@@ -171,7 +183,7 @@ spec:
           ports:
             - containerPort: {{ .Values.storage.service.port }}
           env:
-{{ include "supabase.renderEnv" .Values.storage.env | indent 12 }}
+{{ include "supabase.renderEnvWithSecrets" .Values.storage.env | indent 12 }}
           volumeMounts:
             - name: storage-data
               mountPath: /var/lib/storage
@@ -193,6 +205,9 @@ spec:
             - containerPort: {{ .Values.imgproxy.service.port }}
           env:
 {{ include "supabase.renderEnv" .Values.imgproxy.env | indent 12 }}
+          volumeMounts:
+            - name: imgproxy-storage
+              mountPath: /var/lib/storage
           {{- with .Values.imgproxy.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
@@ -210,7 +225,7 @@ spec:
           ports:
             - containerPort: {{ .Values.meta.service.port }}
           env:
-{{ include "supabase.renderEnv" .Values.meta.env | indent 12 }}
+{{ include "supabase.renderEnvWithSecrets" .Values.meta.env | indent 12 }}
           {{- with .Values.meta.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
@@ -227,8 +242,14 @@ spec:
           imagePullPolicy: {{ .Values.functions.image.pullPolicy }}
           ports:
             - containerPort: {{ .Values.functions.service.port }}
+          {{- if .Values.functions.command }}
+          command:
+            {{- range .Values.functions.command }}
+            - {{ . | quote }}
+            {{- end }}
+          {{- end }}
           env:
-{{ include "supabase.renderEnv" .Values.functions.env | indent 12 }}
+{{ include "supabase.renderEnvWithSecrets" .Values.functions.env | indent 12 }}
           volumeMounts:
             - name: functions-code
               mountPath: /home/deno/functions
@@ -249,7 +270,7 @@ spec:
           ports:
             - containerPort: {{ .Values.analytics.service.port }}
           env:
-{{ include "supabase.renderEnv" .Values.analytics.env | indent 12 }}
+{{ include "supabase.renderEnvWithSecrets" .Values.analytics.env | indent 12 }}
           {{- with .Values.analytics.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
@@ -264,12 +285,17 @@ spec:
         - name: kong
           image: "{{ .Values.kong.image.repository }}:{{ .Values.kong.image.tag }}"
           imagePullPolicy: {{ .Values.kong.image.pullPolicy }}
-          env:
-{{ include "supabase.renderEnv" .Values.kong.env | indent 12 }}
-          command: ["bash","-lc","eval \"echo \"\$(cat ~/temp.yml)\"\" > ~/kong.yml && /docker-entrypoint.sh kong docker-start"]
+          {{- if .Values.kong.command }}
+          command:
+            {{- range .Values.kong.command }}
+            - {{ . | quote }}
+            {{- end }}
+          {{- end }}
           ports:
             - containerPort: {{ .Values.kong.service.ports.http }}
             - containerPort: {{ .Values.kong.service.ports.https }}
+          env:
+{{ include "supabase.renderEnvWithSecrets" .Values.kong.env | indent 12 }}
           volumeMounts:
             - name: kong-config
               mountPath: /home/kong/temp.yml
@@ -292,7 +318,7 @@ spec:
           ports:
             - containerPort: {{ .Values.studio.service.port }}
           env:
-{{ include "supabase.renderEnv" .Values.studio.env | indent 12 }}
+{{ include "supabase.renderEnvWithSecrets" .Values.studio.env | indent 12 }}
           {{- with .Values.studio.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
@@ -356,6 +382,12 @@ spec:
         - name: storage-data
           hostPath:
             path: {{ .Values.storage.hostPath.data }}
+            type: DirectoryOrCreate
+        {{- end }}
+        {{- if .Values.imgproxy.enabled }}
+        - name: imgproxy-storage
+          hostPath:
+            path: {{ .Values.imgproxy.hostPath.storage }}
             type: DirectoryOrCreate
         {{- end }}
         {{- if .Values.functions.enabled }}

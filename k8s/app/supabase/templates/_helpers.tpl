@@ -73,7 +73,7 @@ Create the name of the service account to use
 {{/* Render environment variables with secret references for sensitive data */}}
 {{- define "supabase.renderEnvWithSecrets" -}}
 {{- $env := . -}}
-{{- $secretKeys := list "POSTGRES_PASSWORD" "PGPASSWORD" "JWT_SECRET" "ANON_KEY" "SERVICE_ROLE_KEY" "DASHBOARD_PASSWORD" "SECRET_KEY_BASE" "VAULT_ENC_KEY" -}}
+{{- $secretKeys := list "POSTGRES_PASSWORD" "PGPASSWORD" "JWT_SECRET" "ANON_KEY" "SERVICE_ROLE_KEY" "DASHBOARD_PASSWORD" "SECRET_KEY_BASE" "VAULT_ENC_KEY" "GOTRUE_JWT_SECRET" "PGRST_JWT_SECRET" "PGRST_APP_SETTINGS_JWT_SECRET" "DB_PASSWORD" "PG_META_DB_PASSWORD" "API_JWT_SECRET" "METRICS_JWT_SECRET" "SUPABASE_ANON_KEY" "SUPABASE_SERVICE_KEY" "DASHBOARD_USERNAME" "AUTH_JWT_SECRET" "DATABASE_URL" "GOTRUE_DB_DATABASE_URL" "PGRST_DB_URI" "SUPABASE_DB_URL" "POSTGRES_BACKEND_URL" -}}
 {{- range $k, $v := $env }}
 {{- if has $k $secretKeys }}
             - name: {{ $k }}

@@ -50,5 +50,5 @@ spec:
               service:
                 name: supabase-studio
                 port:
-                  number: 3000
+                  number: {{ .Values.studio.service.port }}
 {{- end }}

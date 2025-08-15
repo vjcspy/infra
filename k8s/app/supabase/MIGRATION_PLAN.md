@@ -40,12 +40,29 @@ Before deploying the Helm chart, create a Kubernetes secret containing sensitive
 ```bash
 kubectl create secret generic supabase-secrets \
   --from-literal=POSTGRES_PASSWORD="your-super-secret-and-long-postgres-password" \
+  --from-literal=PGPASSWORD="your-super-secret-and-long-postgres-password" \
   --from-literal=JWT_SECRET="your-super-secret-jwt-token-with-at-least-32-characters-long" \
   --from-literal=ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE" \
   --from-literal=SERVICE_ROLE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJzZXJ2aWNlX3JvbGUiLAogICAgImlzcyI6ICJzdXBhYmFzZS1kZW1vIiwKICAgICJpYXQiOiAxNjQxNzY5MjAwLAogICAgImV4cCI6IDE3OTk1MzU2MDAKfQ.DaYlNEoUrrEn2Ig7tqibS-PHK5vgusbcbo7X36XVt4Q" \
+  --from-literal=DASHBOARD_USERNAME="supabase" \
   --from-literal=DASHBOARD_PASSWORD="this_password_is_insecure_and_should_be_updated" \
   --from-literal=SECRET_KEY_BASE="UpNVntn3cDxHJpq99YMc1T1AQgQpc8kfYTuRgBiYa15BLrx8etQoXz3gZv1/u2oq" \
-  --from-literal=VAULT_ENC_KEY="your-encryption-key-32-chars-min"
+  --from-literal=VAULT_ENC_KEY="your-encryption-key-32-chars-min" \
+  --from-literal=GOTRUE_JWT_SECRET="your-super-secret-jwt-token-with-at-least-32-characters-long" \
+  --from-literal=PGRST_JWT_SECRET="your-super-secret-jwt-token-with-at-least-32-characters-long" \
+  --from-literal=PGRST_APP_SETTINGS_JWT_SECRET="your-super-secret-jwt-token-with-at-least-32-characters-long" \
+  --from-literal=DB_PASSWORD="your-super-secret-and-long-postgres-password" \
+  --from-literal=PG_META_DB_PASSWORD="your-super-secret-and-long-postgres-password" \
+  --from-literal=API_JWT_SECRET="your-super-secret-jwt-token-with-at-least-32-characters-long" \
+  --from-literal=METRICS_JWT_SECRET="your-super-secret-jwt-token-with-at-least-32-characters-long" \
+  --from-literal=SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE" \
+  --from-literal=SUPABASE_SERVICE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJzZXJ2aWNlX3JvbGUiLAogICAgImlzcyI6ICJzdXBhYmFzZS1kZW1vIiwKICAgICJpYXQiOiAxNjQxNzY5MjAwLAogICAgImV4cCI6IDE3OTk1MzU2MDAKfQ.DaYlNEoUrrEn2Ig7tqibS-PHK5vgusbcbo7X36XVt4Q" \
+  --from-literal=AUTH_JWT_SECRET="your-super-secret-jwt-token-with-at-least-32-characters-long" \
+  --from-literal=DATABASE_URL="ecto://supabase_admin:your-super-secret-and-long-postgres-password@supabase-postgres:5432/_supabase" \
+  --from-literal=GOTRUE_DB_DATABASE_URL="postgres://supabase_auth_admin:your-super-secret-and-long-postgres-password@supabase-postgres:5432/postgres" \
+  --from-literal=PGRST_DB_URI="postgres://authenticator:your-super-secret-and-long-postgres-password@supabase-postgres:5432/postgres" \
+  --from-literal=SUPABASE_DB_URL="postgresql://postgres:your-super-secret-and-long-postgres-password@supabase-postgres:5432/postgres" \
+  --from-literal=POSTGRES_BACKEND_URL="postgresql://supabase_admin:your-super-secret-and-long-postgres-password@supabase-postgres:5432/_supabase"
 ```
 
 The Helm templates will reference these secrets using `valueFrom.secretKeyRef` for the corresponding environment variables.
