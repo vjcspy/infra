@@ -211,7 +211,7 @@ rest:
     tag: v12.2.12
     pullPolicy: IfNotPresent
   service:
-    port: 3001 # Changed from 3000 to avoid conflict with studio
+    port: 3000 # Default PostgREST port
   env:
     # Database Configuration
     PGRST_DB_SCHEMAS: public,storage,graphql_public
@@ -224,14 +224,14 @@ rest:
   resources: {}
   livenessProbe:
     tcpSocket:
-      port: 3001
+      port: 3000
     initialDelaySeconds: 10
     periodSeconds: 10
     timeoutSeconds: 5
     failureThreshold: 3
   readinessProbe:
     tcpSocket:
-      port: 3001
+      port: 3000
     initialDelaySeconds: 5
     periodSeconds: 5
     timeoutSeconds: 5
@@ -245,7 +245,7 @@ realtime:
     tag: v2.34.47
     pullPolicy: IfNotPresent
   service:
-    port: 4001 # Changed from 4000 to avoid conflict with analytics
+    port: 4000 # Default realtime port
   env:
     # Port Configuration
     PORT: "4000"

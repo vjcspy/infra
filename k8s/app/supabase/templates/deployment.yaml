@@ -174,14 +174,6 @@ spec:
               name: http
           env:
 {{ include "supabase.renderServiceEnv" (list . "realtime") | indent 12 }}
-          {{- with .Values.realtime.livenessProbe }}
-          livenessProbe:
-            {{ toYaml . | nindent 12 }}
-          {{- end }}
-          {{- with .Values.realtime.readinessProbe }}
-          readinessProbe:
-            {{ toYaml . | nindent 12 }}
-          {{- end }}
         {{- end }}
 
         {{- if .Values.storage.enabled }}
