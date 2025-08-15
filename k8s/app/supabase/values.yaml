@@ -48,12 +48,12 @@ postgres:
   env:
     # Database configuration
     POSTGRES_HOST: /var/run/postgresql
-    PGPORT: "5432"
-    POSTGRES_PORT: "5432"
+    PGPORT: 5432
+    POSTGRES_PORT: 5432
     PGDATABASE: postgres
     POSTGRES_DB: postgres
     POSTGRES_USER: postgres
-    JWT_EXP: "3600"
+    JWT_EXP: 3600
   resources: { }
   livenessProbe:
     exec:

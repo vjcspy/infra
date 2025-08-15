@@ -113,7 +113,7 @@ Create the name of the service account to use
 - name: PGRST_APP_SETTINGS_JWT_SECRET
   value: {{ $root.Values.secrets.jwtSecret | quote }}
 - name: PGRST_APP_SETTINGS_JWT_EXP
-  value: "3600"
+  value: {{ $root.Values.postgres.env.JWT_EXP | quote }}
 {{- else if eq $serviceName "realtime" }}
 - name: DB_PASSWORD
   value: {{ $root.Values.secrets.postgresPassword | quote }}
