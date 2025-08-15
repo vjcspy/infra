@@ -245,10 +245,10 @@ spec:
           ports:
             - containerPort: {{ .Values.functions.service.port }}
               name: functions-port
-          command:
+          args:
             - start
-            - "--main-service"
-            - "/home/deno/functions/main"
+            - --main-service
+            - /home/deno/functions/main
           env:
           {{ include "supabase.renderServiceEnv" (list . "functions") | indent 12 }}
           volumeMounts:
