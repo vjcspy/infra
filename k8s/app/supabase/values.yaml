@@ -219,7 +219,7 @@ realtime:
     # Port Configuration
     PORT: "4000"
     # Database Configuration
-    DB_HOST: supabase-postgres
+    DB_HOST: postgres
     DB_PORT: "5432"
     DB_USER: supabase_admin
     DB_NAME: postgres
@@ -264,7 +264,7 @@ storage:
     port: 5000
   env:
     # API Configuration
-    POSTGREST_URL: http://supabase-rest:3000
+    POSTGREST_URL: http://rest:3000
     # Storage Configuration
     FILE_SIZE_LIMIT: "52428800"
     STORAGE_BACKEND: file
@@ -274,7 +274,7 @@ storage:
     GLOBAL_S3_BUCKET: stub
     # Image Transformation
     ENABLE_IMAGE_TRANSFORMATION: "true"
-    IMGPROXY_URL: http://supabase-imgproxy:5001
+    IMGPROXY_URL: http://imgproxy:5001
   waitForDb: true
   resources: { }
   livenessProbe:
@@ -341,7 +341,7 @@ meta:
     # Port Configuration
     PG_META_PORT: "8080"
     # Database Configuration
-    PG_META_DB_HOST: supabase-postgres
+    PG_META_DB_HOST: postgres
     PG_META_DB_PORT: "5432"
     PG_META_DB_NAME: postgres
     PG_META_DB_USER: supabase_admin
@@ -359,7 +359,7 @@ functions:
     port: 9000
   env:
     # Supabase URLs
-    SUPABASE_URL: http://supabase-kong:8000
+    SUPABASE_URL: http://kong:8000
     # Verification setting from .env
     VERIFY_JWT: "false"
   resources: { }
@@ -393,7 +393,7 @@ analytics:
     # Database Configuration
     DB_USERNAME: supabase_admin
     DB_DATABASE: _supabase
-    DB_HOSTNAME: supabase-postgres
+    DB_HOSTNAME: postgres
     DB_PORT: "5432"
     DB_SCHEMA: _analytics
     # Postgres Backend Configuration
@@ -479,18 +479,18 @@ studio:
     port: 3000
   env:
     # Postgres Meta URL
-    STUDIO_PG_META_URL: http://supabase-meta:8080
+    STUDIO_PG_META_URL: http://meta:8080
     # Organization and Project Settings from .env
     DEFAULT_ORGANIZATION_NAME: Default Organization
     DEFAULT_PROJECT_NAME: Default Project
     # OpenAI API Key (optional)
     OPENAI_API_KEY: ""
     # Supabase URLs
-    SUPABASE_URL: http://supabase-kong:8000
+    SUPABASE_URL: http://kong:8000
     SUPABASE_PUBLIC_URL: https://api.bluestone.systems
     # Logflare Configuration
     LOGFLARE_PRIVATE_ACCESS_TOKEN: your-super-secret-and-long-logflare-key-private
-    LOGFLARE_URL: http://supabase-analytics:4000
+    LOGFLARE_URL: http://analytics:4000
     NEXT_PUBLIC_ENABLE_LOGS: "true"
     # Analytics Backend (comment to use Big Query backend)
     NEXT_ANALYTICS_BACKEND_PROVIDER: postgres

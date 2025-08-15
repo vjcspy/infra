@@ -175,7 +175,7 @@ Create the name of the service account to use
     - -c
     - |
       for i in $(seq 1 60); do
-        nc -z -w 2 {{ . | default "supabase-postgres" }} 5432 && exit 0
+  nc -z -w 2 {{ . | default "postgres" }} 5432 && exit 0
         echo "[wait-for-db] waiting for db... ($i)"
         sleep 2
       done
@@ -201,7 +201,7 @@ Build database URLs and complex environment variables from values
 {{- if $svcHostname -}}
 {{ $svcHostname }}
 {{- else -}}
-supabase-postgres
+postgres
 {{- end -}}
 {{- end }}
 

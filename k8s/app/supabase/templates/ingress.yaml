@@ -3,7 +3,7 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: supabase-kong
+  name: kong
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
   {{- with .Values.ingress.kong.annotations }}
@@ -20,7 +20,7 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: supabase-kong
+                name: kong
                 port:
                   number: {{ .Values.kong.service.ports.http }}
 ---
@@ -31,7 +31,7 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: supabase-studio
+  name: studio
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
   {{- with .Values.ingress.studio.annotations }}
@@ -48,7 +48,7 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: supabase-studio
+                name: studio
                 port:
                   number: {{ .Values.studio.service.port }}
 {{- end }}
