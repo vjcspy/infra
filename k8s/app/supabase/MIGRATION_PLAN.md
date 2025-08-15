@@ -60,6 +60,7 @@ ingress:
 EOF
 
 # Deploy with custom values
+kubectl create namespace supabase
 helm upgrade --install supabase . -f custom-values.yaml -n supabase
 ```
 
