@@ -65,8 +65,8 @@ Create the name of the service account to use
 {{- define "supabase.renderEnv" -}}
 {{- $env := . -}}
 {{- range $k, $v := $env }}
-            - name: {{ $k }}
-              value: {{ $v | quote }}
+- name: {{ $k }}
+  value: {{ $v | quote }}
 {{- end }}
 {{- end }}
 
@@ -76,104 +76,94 @@ Create the name of the service account to use
 {{- $serviceName := index . 1 -}}
 {{- $serviceEnv := index $root.Values $serviceName "env" -}}
 {{- range $k, $v := $serviceEnv }}
-            - name: {{ $k }}
-              value: {{ $v | quote }}
+- name: {{ $k }}
+  value: {{ $v | quote }}
 {{- end }}
 {{/* Inject secrets based on service */}}
 {{- if eq $serviceName "postgres" }}
-            - name: POSTGRES_PASSWORD
-              value: {{ $root.Values.secrets.postgresPassword | quote }}
-            - name: PGPASSWORD
-              value: {{ $root.Values.secrets.postgresPassword | quote }}
-            - name: JWT_SECRET
-              value: {{ $root.Values.secrets.jwtSecret | quote }}
+- name: POSTGRES_PASSWORD
+  value: {{ $root.Values.secrets.postgresPassword | quote }}
+- name: PGPASSWORD
+  value: {{ $root.Values.secrets.postgresPassword | quote }}
+- name: JWT_SECRET
+  value: {{ $root.Values.secrets.jwtSecret | quote }}
 {{- else if eq $serviceName "supavisor" }}
-            - name: POSTGRES_PASSWORD
-              value: {{ $root.Values.secrets.postgresPassword | quote }}
-            - name: DATABASE_URL
-              value: {{ include "supabase.supavisor.databaseUrl" $root | quote }}
-            - name: SECRET_KEY_BASE
-              value: {{ $root.Values.secrets.secretKeyBase | quote }}
-            - name: VAULT_ENC_KEY
-              value: {{ $root.Values.secrets.vaultEncKey | quote }}
-            - name: API_JWT_SECRET
-              value: {{ $root.Values.secrets.jwtSecret | quote }}
-            - name: METRICS_JWT_SECRET
-              value: {{ $root.Values.secrets.jwtSecret | quote }}
+- name: POSTGRES_PASSWORD
+  value: {{ $root.Values.secrets.postgresPassword | quote }}
+- name: DATABASE_URL
+  value: {{ include "supabase.supavisor.databaseUrl" $root | quote }}
+- name: SECRET_KEY_BASE
+  value: {{ $root.Values.secrets.secretKeyBase | quote }}
+- name: VAULT_ENC_KEY
+  value: {{ $root.Values.secrets.vaultEncKey | quote }}
+- name: API_JWT_SECRET
+  value: {{ $root.Values.secrets.jwtSecret | quote }}
+- name: METRICS_JWT_SECRET
+  value: {{ $root.Values.secrets.jwtSecret | quote }}
 {{- else if eq $serviceName "auth" }}
-            - name: GOTRUE_DB_DATABASE_URL
-              value: {{ include "supabase.auth.databaseUrl" $root | quote }}
-            - name: GOTRUE_JWT_SECRET
-              value: {{ $root.Values.secrets.jwtSecret | quote }}
+- name: GOTRUE_DB_DATABASE_URL
+  value: {{ include "supabase.auth.databaseUrl" $root | quote }}
+- name: GOTRUE_JWT_SECRET
+  value: {{ $root.Values.secrets.jwtSecret | quote }}
 {{- else if eq $serviceName "rest" }}
-            - name: PGRST_DB_URI
-              value: {{ include "supabase.rest.databaseUri" $root | quote }}
-            - name: PGRST_JWT_SECRET
-              value: {{ $root.Values.secrets.jwtSecret | quote }}
-            - name: PGRST_APP_SETTINGS_JWT_SECRET
-              value: {{ $root.Values.secrets.jwtSecret | quote }}
-            - name: PGRST_APP_SETTINGS_JWT_EXP
-              value: "3600"
+- name: PGRST_DB_URI
+  value: {{ include "supabase.rest.databaseUri" $root | quote }}
+- name: PGRST_JWT_SECRET
+  value: {{ $root.Values.secrets.jwtSecret | quote }}
+- name: PGRST_APP_SETTINGS_JWT_SECRET
+  value: {{ $root.Values.secrets.jwtSecret | quote }}
+- name: PGRST_APP_SETTINGS_JWT_EXP
+  value: "3600"
 {{- else if eq $serviceName "realtime" }}
-            - name: DB_PASSWORD
-              value: {{ $root.Values.secrets.postgresPassword | quote }}
-            - name: API_JWT_SECRET
-              value: {{ $root.Values.secrets.jwtSecret | quote }}
-            - name: SECRET_KEY_BASE
-              value: {{ $root.Values.secrets.secretKeyBase | quote }}
+- name: DB_PASSWORD
+  value: {{ $root.Values.secrets.postgresPassword | quote }}
+- name: API_JWT_SECRET
+  value: {{ $root.Values.secrets.jwtSecret | quote }}
+- name: SECRET_KEY_BASE
+  value: {{ $root.Values.secrets.secretKeyBase | quote }}
 {{- else if eq $serviceName "storage" }}
-            - name: ANON_KEY
-              value: {{ $root.Values.secrets.anonKey | quote }}
-            - name: SERVICE_KEY
-              value: {{ $root.Values.secrets.serviceRoleKey | quote }}
-            - name: PGRST_JWT_SECRET
-              value: {{ $root.Values.secrets.jwtSecret | quote }}
-            - name: DATABASE_URL
-              value: {{ include "supabase.storage.databaseUrl" $root | quote }}
+- name: ANON_KEY
+  value: {{ $root.Values.secrets.anonKey | quote }}
+- name: SERVICE_KEY
+  value: {{ $root.Values.secrets.serviceRoleKey | quote }}
+- name: PGRST_JWT_SECRET
+  value: {{ $root.Values.secrets.jwtSecret | quote }}
+- name: DATABASE_URL
+  value: {{ include "supabase.storage.databaseUrl" $root | quote }}
 {{- else if eq $serviceName "meta" }}
-            - name: PG_META_DB_PASSWORD
-              value: {{ $root.Values.secrets.postgresPassword | quote }}
+- name: PG_META_DB_PASSWORD
+  value: {{ $root.Values.secrets.postgresPassword | quote }}
 {{- else if eq $serviceName "functions" }}
-            - name: JWT_SECRET
-              value: {{ $root.Values.secrets.jwtSecret | quote }}
-            - name: SUPABASE_ANON_KEY
-              value: {{ $root.Values.secrets.anonKey | quote }}
-            - name: SUPABASE_SERVICE_ROLE_KEY
-              value: {{ $root.Values.secrets.serviceRoleKey | quote }}
-            - name: SUPABASE_DB_URL
-              value: {{ include "supabase.functions.databaseUrl" $root | quote }}
+- name: JWT_SECRET
+  value: {{ $root.Values.secrets.jwtSecret | quote }}
+- name: SUPABASE_ANON_KEY
+  value: {{ $root.Values.secrets.anonKey | quote }}
+- name: SUPABASE_SERVICE_ROLE_KEY
+  value: {{ $root.Values.secrets.serviceRoleKey | quote }}
+- name: SUPABASE_DB_URL
+  value: {{ include "supabase.functions.databaseUrl" $root | quote }}
 {{- else if eq $serviceName "analytics" }}
-            - name: DB_PASSWORD
-              value: {{ $root.Values.secrets.postgresPassword | quote }}
-            - name: POSTGRES_BACKEND_URL
-              value: {{ include "supabase.analytics.databaseUrl" $root | quote }}
+- name: DB_PASSWORD
+  value: {{ $root.Values.secrets.postgresPassword | quote }}
+- name: POSTGRES_BACKEND_URL
+  value: {{ include "supabase.analytics.databaseUrl" $root | quote }}
 {{- else if eq $serviceName "kong" }}
-            - name: SUPABASE_ANON_KEY
-              value: {{ $root.Values.secrets.anonKey | quote }}
-            - name: SUPABASE_SERVICE_KEY
-              value: {{ $root.Values.secrets.serviceRoleKey | quote }}
-            - name: DASHBOARD_PASSWORD
-              value: {{ $root.Values.secrets.dashboardPassword | quote }}
+- name: SUPABASE_ANON_KEY
+  value: {{ $root.Values.secrets.anonKey | quote }}
+- name: SUPABASE_SERVICE_KEY
+  value: {{ $root.Values.secrets.serviceRoleKey | quote }}
+- name: DASHBOARD_PASSWORD
+  value: {{ $root.Values.secrets.dashboardPassword | quote }}
 {{- else if eq $serviceName "studio" }}
-            - name: POSTGRES_PASSWORD
-              value: {{ $root.Values.secrets.postgresPassword | quote }}
-            - name: SUPABASE_ANON_KEY
-              value: {{ $root.Values.secrets.anonKey | quote }}
-            - name: SUPABASE_SERVICE_KEY
-              value: {{ $root.Values.secrets.serviceRoleKey | quote }}
-            - name: AUTH_JWT_SECRET
-              value: {{ $root.Values.secrets.jwtSecret | quote }}
+- name: POSTGRES_PASSWORD
+  value: {{ $root.Values.secrets.postgresPassword | quote }}
+- name: SUPABASE_ANON_KEY
+  value: {{ $root.Values.secrets.anonKey | quote }}
+- name: SUPABASE_SERVICE_KEY
+  value: {{ $root.Values.secrets.serviceRoleKey | quote }}
+- name: AUTH_JWT_SECRET
+  value: {{ $root.Values.secrets.jwtSecret | quote }}
 {{- end }}
-{{- end }}
-
-{{/* Init container to verify EBS hostPath mount is present with sentinel file */}}
-{{- define "supabase.initEbsCheck" -}}
-				- name: init-ebs-check
-					image: busybox:1.37.0
-					command: ["sh","-c","for i in $(seq 1 5); do echo Checking EBS mount attempt $i; if [ -f /host_ebs_volume/DONT_DELETE ]; then echo OK; exit 0; fi; sleep 10; done; echo FAIL; exit 1"]
-					volumeMounts:
-						- name: host-ebs-root
-							mountPath: /host_ebs_volume
 {{- end }}
 
 {{/* Init container to wait for Postgres TCP port to be reachable */}}

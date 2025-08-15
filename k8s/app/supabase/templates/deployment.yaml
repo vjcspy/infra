@@ -19,7 +19,12 @@ spec:
     spec:
       serviceAccountName: {{ include "supabase.serviceAccountName" . }}
       initContainers:
-        {{ include "supabase.initEbsCheck" . | nindent 8 }}
+        - name: init-ebs-check
+          image: busybox:1.37.0
+          command: [ "sh","-c","for i in $(seq 1 5); do echo Checking EBS mount attempt $i; if [ -f /host_ebs_volume/DONT_DELETE ]; then echo OK; exit 0; fi; sleep 10; done; echo FAIL; exit 1" ]
+          volumeMounts:
+            - name: host-ebs-root
+              mountPath: /host_ebs_volume
       containers:
         {{- if .Values.postgres.enabled }}
         - name: postgres
@@ -219,11 +224,11 @@ spec:
                   key: SECRET_KEY_BASE
           {{- with .Values.realtime.livenessProbe }}
           livenessProbe:
-            {{- toYaml . | nindent 12 }}
+            {{ toYaml . | nindent 12 }}
           {{- end }}
           {{- with .Values.realtime.readinessProbe }}
           readinessProbe:
-            {{- toYaml . | nindent 12 }}
+            {{ toYaml . | nindent 12 }}
           {{- end }}
         {{- end }}
 
