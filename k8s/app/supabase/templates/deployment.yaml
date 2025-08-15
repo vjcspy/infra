@@ -25,6 +25,21 @@ spec:
           volumeMounts:
             - name: host-ebs-root
               mountPath: /host_ebs_volume
+        # Seed Postgres custom configs into the mounted volume to avoid losing defaults when overlaying the directory
+        {{- if .Values.postgres.enabled }}
+        - name: init-postgres-config
+          image: "{{ .Values.postgres.image.repository }}:{{ .Values.postgres.image.tag }}"
+          imagePullPolicy: {{ .Values.postgres.image.pullPolicy }}
+          command: [
+            "sh",
+            "-c",
+            "set -e; echo \"[init-postgres-config] Preparing /work-config\"; mkdir -p /work-config; if [ -z \"$(ls -A /work-config 2>/dev/null)\" ]; then echo \"[init-postgres-config] Empty target, seeding defaults from /etc/postgresql-custom\"; cp -a /etc/postgresql-custom/. /work-config/; else echo \"[init-postgres-config] Target already has content, skipping seed\"; fi; echo \"[init-postgres-config] Final contents:\"; ls -la /work-config"
+          ]
+          volumeMounts:
+            - name: supabase-root
+              mountPath: /work-config
+              subPath: db/config
+        {{- end }}
       containers:
         {{- if .Values.postgres.enabled }}
         - name: postgres
