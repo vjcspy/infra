@@ -41,7 +41,7 @@ postgres:
   replicaCount: 1
   image:
     repository: supabase/postgres
-    tag: 15.8.1.131
+    tag: 15.8.1.060
     pullPolicy: IfNotPresent
   service:
     port: 5432
