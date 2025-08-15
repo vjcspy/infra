@@ -60,8 +60,7 @@ ingress:
 EOF
 
 # Deploy with custom values
-kubectl create namespace supabase
-helm upgrade --install supabase . -f custom-values.yaml -n supabase
+kubectl create namespace supabase && helm upgrade --install supabase . -f custom-values.yaml -n supabase
 ```
 
 This approach eliminates the need for separate Kubernetes secret creation and management.

@@ -33,12 +33,4 @@ spec:
               name: meta-port
           env:
           {{ include "supabase.renderServiceEnv" (list . "meta") | indent 12 }}
-          {{- with .Values.meta.livenessProbe }}
-          livenessProbe:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
-          {{- with .Values.meta.readinessProbe }}
-          readinessProbe:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
 {{- end }}

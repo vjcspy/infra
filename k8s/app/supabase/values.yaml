@@ -347,22 +347,6 @@ meta:
     PG_META_DB_USER: supabase_admin
   waitForDb: true
   resources: { }
-  livenessProbe:
-    httpGet:
-      path: /ping
-      port: 8080
-    initialDelaySeconds: 10
-    periodSeconds: 10
-    timeoutSeconds: 5
-    failureThreshold: 3
-  readinessProbe:
-    httpGet:
-      path: /ping
-      port: 8080
-    initialDelaySeconds: 5
-    periodSeconds: 5
-    timeoutSeconds: 5
-    failureThreshold: 3
 
 functions:
   enabled: true
