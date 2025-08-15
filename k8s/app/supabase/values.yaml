@@ -4,14 +4,14 @@ fullnameOverride: ""
 serviceAccount:
   create: true
   automount: true
-  annotations: {}
+  annotations: { }
   name: ""
 
-podAnnotations: {}
-podLabels: {}
+podAnnotations: { }
+podLabels: { }
 
-podSecurityContext: {}
-securityContext: {}
+podSecurityContext: { }
+securityContext: { }
 
 # Sensitive data - override these in a custom values file
 secrets:
@@ -24,19 +24,17 @@ secrets:
   vaultEncKey: "your-encryption-key-32-chars-min"
 
 global:
-  hostPath:
-    root: /mnt/existing_ebs_volume/supabase/volumes
   ingressClassName: nginx
 
 ingress:
   kong:
     enabled: true
     host: api.bluestone.systems
-    annotations: {}
+    annotations: { }
   studio:
     enabled: true
     host: studio.bluestone.systems
-    annotations: {}
+    annotations: { }
 
 postgres:
   enabled: true
@@ -56,18 +54,7 @@ postgres:
     POSTGRES_DB: postgres
     POSTGRES_USER: postgres
     JWT_EXP: "3600"
-  hostPath:
-    data: /mnt/existing_ebs_volume/supabase/volumes/db/data
-    config: /mnt/existing_ebs_volume/supabase/volumes/db/config
-    # Individual SQL files mapped like in docker-compose
-    realtimeSql: /mnt/existing_ebs_volume/supabase/volumes/db/realtime.sql
-    webhooksSql: /mnt/existing_ebs_volume/supabase/volumes/db/webhooks.sql
-    rolesSql: /mnt/existing_ebs_volume/supabase/volumes/db/roles.sql
-    jwtSql: /mnt/existing_ebs_volume/supabase/volumes/db/jwt.sql
-    supabaseSql: /mnt/existing_ebs_volume/supabase/volumes/db/_supabase.sql
-    logsSql: /mnt/existing_ebs_volume/supabase/volumes/db/logs.sql
-    poolerSql: /mnt/existing_ebs_volume/supabase/volumes/db/pooler.sql
-  resources: {}
+  resources: { }
   livenessProbe:
     exec:
       command: [ "pg_isready", "-U", "postgres", "-h", "localhost" ]
@@ -107,10 +94,8 @@ supavisor:
     CLUSTER_POSTGRES: "true"
     REGION: local
     ERL_AFLAGS: -proto_dist inet_tcp
-  hostPath:
-    configFile: /mnt/existing_ebs_volume/supabase/volumes/pooler/pooler.exs
   waitForDb: true
-  resources: {}
+  resources: { }
   livenessProbe:
     httpGet:
       path: /api/health
@@ -173,7 +158,7 @@ auth:
     GOTRUE_MAILER_URLPATHS_RECOVERY: "/auth/v1/verify"
     GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE: "/auth/v1/verify"
   waitForDb: true
-  resources: {}
+  resources: { }
   livenessProbe:
     httpGet:
       path: /health
@@ -206,7 +191,7 @@ rest:
     PGRST_DB_ANON_ROLE: anon
     PGRST_DB_USE_LEGACY_GUCS: "false"
   waitForDb: true
-  resources: {}
+  resources: { }
   livenessProbe:
     tcpSocket:
       port: 3000
@@ -251,7 +236,7 @@ realtime:
     SEED_SELF_HOST: "true"
     RUN_JANITOR: "true"
   waitForDb: true
-  resources: {}
+  resources: { }
   livenessProbe:
     httpGet:
       path: /api/tenants/realtime-dev/health
@@ -291,10 +276,8 @@ storage:
     # Image Transformation
     ENABLE_IMAGE_TRANSFORMATION: "true"
     IMGPROXY_URL: http://supabase-imgproxy:5001
-  hostPath:
-    data: /mnt/existing_ebs_volume/supabase/volumes/storage
   waitForDb: true
-  resources: {}
+  resources: { }
   livenessProbe:
     httpGet:
       path: /status
@@ -330,10 +313,7 @@ imgproxy:
     IMGPROXY_USE_ETAG: "true"
     # WebP Detection from .env
     IMGPROXY_ENABLE_WEBP_DETECTION: "true"
-  # Need access to storage volume
-  hostPath:
-    storage: /mnt/existing_ebs_volume/supabase/volumes/storage
-  resources: {}
+  resources: { }
   livenessProbe:
     exec:
       command: [ "imgproxy", "health" ]
@@ -367,7 +347,7 @@ meta:
     PG_META_DB_NAME: postgres
     PG_META_DB_USER: supabase_admin
   waitForDb: true
-  resources: {}
+  resources: { }
   livenessProbe:
     httpGet:
       path: /ping
@@ -399,9 +379,7 @@ functions:
     SUPABASE_URL: http://supabase-kong:8000
     # Verification setting from .env
     VERIFY_JWT: "false"
-  hostPath:
-    functions: /mnt/existing_ebs_volume/supabase/volumes/functions
-  resources: {}
+  resources: { }
   livenessProbe:
     tcpSocket:
       port: 9000
@@ -450,7 +428,7 @@ analytics:
     # GOOGLE_PROJECT_ID: GOOGLE_PROJECT_ID
     # GOOGLE_PROJECT_NUMBER: GOOGLE_PROJECT_NUMBER
   waitForDb: true
-  resources: {}
+  resources: { }
   livenessProbe:
     httpGet:
       path: /health
@@ -492,8 +470,6 @@ kong:
     KONG_NGINX_PROXY_PROXY_BUFFERS: "64 160k"
     # Dashboard Configuration
     DASHBOARD_USERNAME: supabase
-  hostPath:
-    kongConfigFile: /mnt/existing_ebs_volume/supabase/volumes/api/kong.yml
   livenessProbe:
     tcpSocket:
       port: 8000

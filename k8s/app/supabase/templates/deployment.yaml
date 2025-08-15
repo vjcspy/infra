@@ -43,46 +43,48 @@ spec:
           {{ include "supabase.renderServiceEnv" (list . "postgres") | indent 12 }}
           volumeMounts:
             # Realtime migrations
-            - name: pg-sql-realtime
+            - name: supabase-root
               mountPath: /docker-entrypoint-initdb.d/migrations/99-realtime.sql
-              subPath: realtime.sql
+              subPath: db/realtime.sql
               readOnly: true
             # Must be superuser to create event trigger
-            - name: pg-sql-webhooks
+            - name: supabase-root
               mountPath: /docker-entrypoint-initdb.d/init-scripts/98-webhooks.sql
-              subPath: webhooks.sql
+              subPath: db/webhooks.sql
               readOnly: true
             # Must be superuser to alter reserved role
-            - name: pg-sql-roles
+            - name: supabase-root
               mountPath: /docker-entrypoint-initdb.d/init-scripts/99-roles.sql
-              subPath: roles.sql
+              subPath: db/roles.sql
               readOnly: true
             # Initialize the database settings with JWT_SECRET and JWT_EXP
-            - name: pg-sql-jwt
+            - name: supabase-root
               mountPath: /docker-entrypoint-initdb.d/init-scripts/99-jwt.sql
-              subPath: jwt.sql
+              subPath: db/jwt.sql
               readOnly: true
             # PGDATA directory is persisted between restarts
-            - name: pg-data
+            - name: supabase-root
               mountPath: /var/lib/postgresql/data
+              subPath: db/data
             # Changes required for internal supabase data such as _analytics
-            - name: pg-sql-supabase
+            - name: supabase-root
               mountPath: /docker-entrypoint-initdb.d/migrations/97-_supabase.sql
-              subPath: _supabase.sql
+              subPath: db/_supabase.sql
               readOnly: true
             # Changes required for Analytics support
-            - name: pg-sql-logs
+            - name: supabase-root
               mountPath: /docker-entrypoint-initdb.d/migrations/99-logs.sql
-              subPath: logs.sql
+              subPath: db/logs.sql
               readOnly: true
             # Changes required for Pooler support
-            - name: pg-sql-pooler
+            - name: supabase-root
               mountPath: /docker-entrypoint-initdb.d/migrations/99-pooler.sql
-              subPath: pooler.sql
+              subPath: db/pooler.sql
               readOnly: true
             # Use named volume to persist pgsodium decryption key between restarts
-            - name: pg-config
+            - name: supabase-root
               mountPath: /etc/postgresql-custom
+              subPath: db/config
           {{- with .Values.postgres.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
@@ -110,9 +112,9 @@ spec:
           env:
           {{ include "supabase.renderServiceEnv" (list . "supavisor") | indent 12 }}
           volumeMounts:
-            - name: pooler-config
+            - name: supabase-root
               mountPath: /etc/pooler/pooler.exs
-              subPath: pooler.exs
+              subPath: pooler/pooler.exs
               readOnly: true
           {{- with .Values.supavisor.livenessProbe }}
           livenessProbe:
@@ -185,8 +187,9 @@ spec:
           env:
           {{ include "supabase.renderServiceEnv" (list . "storage") | indent 12 }}
           volumeMounts:
-            - name: storage-data
+            - name: supabase-root
               mountPath: /var/lib/storage
+              subPath: storage
           {{- with .Values.storage.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
@@ -207,8 +210,9 @@ spec:
           env:
           {{ include "supabase.renderServiceEnv" (list . "imgproxy") | indent 12 }}
           volumeMounts:
-            - name: imgproxy-storage
+            - name: supabase-root
               mountPath: /var/lib/storage
+              subPath: storage
           {{- with .Values.imgproxy.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
@@ -252,8 +256,9 @@ spec:
           env:
           {{ include "supabase.renderServiceEnv" (list . "functions") | indent 12 }}
           volumeMounts:
-            - name: functions-code
+            - name: supabase-root
               mountPath: /home/deno/functions
+              subPath: functions
           {{- with .Values.functions.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
@@ -300,9 +305,9 @@ spec:
           env:
           {{ include "supabase.renderServiceEnv" (list . "kong") | indent 12 }}
           volumeMounts:
-            - name: kong-config
+            - name: supabase-root
               mountPath: /home/kong/temp.yml
-              subPath: kong.yml
+              subPath: api/kong.yml
               readOnly: true
           {{- with .Values.kong.livenessProbe }}
           livenessProbe:
@@ -338,71 +343,7 @@ spec:
           hostPath:
             path: /mnt/existing_ebs_volume
             type: Directory
-        {{- if .Values.postgres.enabled }}
-        - name: pg-data
+        - name: supabase-root
           hostPath:
-            path: {{ .Values.postgres.hostPath.data }}
-            type: DirectoryOrCreate
-        - name: pg-config
-          hostPath:
-            path: {{ .Values.postgres.hostPath.config }}
-            type: DirectoryOrCreate
-        - name: pg-sql-supabase
-          hostPath:
-            path: {{ .Values.postgres.hostPath.supabaseSql }}
-            type: File
-        - name: pg-sql-jwt
-          hostPath:
-            path: {{ .Values.postgres.hostPath.jwtSql }}
-            type: File
-        - name: pg-sql-webhooks
-          hostPath:
-            path: {{ .Values.postgres.hostPath.webhooksSql }}
-            type: File
-        - name: pg-sql-roles
-          hostPath:
-            path: {{ .Values.postgres.hostPath.rolesSql }}
-            type: File
-        - name: pg-sql-logs
-          hostPath:
-            path: {{ .Values.postgres.hostPath.logsSql }}
-            type: File
-        - name: pg-sql-pooler
-          hostPath:
-            path: {{ .Values.postgres.hostPath.poolerSql }}
-            type: File
-        - name: pg-sql-realtime
-          hostPath:
-            path: {{ .Values.postgres.hostPath.realtimeSql }}
-            type: File
-        {{- end }}
-        {{- if .Values.supavisor.enabled }}
-        - name: pooler-config
-          hostPath:
-            path: {{ .Values.supavisor.hostPath.configFile }}
-            type: File
-        {{- end }}
-        {{- if .Values.storage.enabled }}
-        - name: storage-data
-          hostPath:
-            path: {{ .Values.storage.hostPath.data }}
-            type: DirectoryOrCreate
-        {{- end }}
-        {{- if .Values.imgproxy.enabled }}
-        - name: imgproxy-storage
-          hostPath:
-            path: {{ .Values.imgproxy.hostPath.storage }}
-            type: DirectoryOrCreate
-        {{- end }}
-        {{- if .Values.functions.enabled }}
-        - name: functions-code
-          hostPath:
-            path: {{ .Values.functions.hostPath.functions }}
-            type: DirectoryOrCreate
-        {{- end }}
-        {{- if .Values.kong.enabled }}
-        - name: kong-config
-          hostPath:
-            path: {{ .Values.kong.hostPath.kongConfigFile }}
-            type: File
-        {{- end }}
+            path: /mnt/existing_ebs_volume/supabase/volumes
+            type: Directory
