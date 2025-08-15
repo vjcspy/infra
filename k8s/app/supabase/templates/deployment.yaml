@@ -34,7 +34,7 @@ spec:
             {{- end }}
           {{- end }}
           env:
-{{ include "supabase.renderServiceEnv" (list . "postgres") | indent 12 }}
+          {{ include "supabase.renderServiceEnv" (list . "postgres") | indent 12 }}
           volumeMounts:
             # Realtime migrations
             - name: pg-sql-realtime
