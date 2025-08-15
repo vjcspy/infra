@@ -45,7 +45,14 @@ postgres:
   hostPath:
     data: /mnt/existing_ebs_volume/supabase/volumes/db/data
     config: /mnt/existing_ebs_volume/supabase/volumes/db/config
-    init: /mnt/existing_ebs_volume/supabase/volumes/db/init
+    # Individual SQL files mapped like in docker-compose
+    realtimeSql: /mnt/existing_ebs_volume/supabase/volumes/db/realtime.sql
+    webhooksSql: /mnt/existing_ebs_volume/supabase/volumes/db/webhooks.sql
+    rolesSql: /mnt/existing_ebs_volume/supabase/volumes/db/roles.sql
+    jwtSql: /mnt/existing_ebs_volume/supabase/volumes/db/jwt.sql
+    supabaseSql: /mnt/existing_ebs_volume/supabase/volumes/db/_supabase.sql
+    logsSql: /mnt/existing_ebs_volume/supabase/volumes/db/logs.sql
+    poolerSql: /mnt/existing_ebs_volume/supabase/volumes/db/pooler.sql
   resources: {}
   livenessProbe:
     exec:
