@@ -13,6 +13,16 @@ podLabels: {}
 podSecurityContext: {}
 securityContext: {}
 
+# Sensitive data - override these in a custom values file
+secrets:
+  postgresPassword: "your-super-secret-and-long-postgres-password"
+  jwtSecret: "your-super-secret-jwt-token-with-at-least-32-characters-long"
+  anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0"
+  serviceRoleKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU"
+  dashboardPassword: "this_password_is_insecure_and_should_be_updated"
+  secretKeyBase: "AbCdEfGhIjKlMnOpQrStUvWxYz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789"
+  vaultEncKey: "your-encryption-key-32-chars-min"
+
 global:
   hostPath:
     root: /mnt/existing_ebs_volume/supabase/volumes
@@ -45,10 +55,6 @@ postgres:
     PGDATABASE: postgres
     POSTGRES_DB: postgres
     POSTGRES_USER: postgres
-    # Secrets - to be replaced with secret references
-    PGPASSWORD: change-me-from-secret
-    POSTGRES_PASSWORD: change-me-from-secret
-    JWT_SECRET: change-me-from-secret
     JWT_EXP: "3600"
   hostPath:
     data: /mnt/existing_ebs_volume/supabase/volumes/db/data
@@ -98,14 +104,6 @@ supavisor:
     PORT: "4000"
     POSTGRES_PORT: "5432"
     POSTGRES_DB: postgres
-    # Secrets - to be replaced with secret references
-    POSTGRES_PASSWORD: change-me-from-secret
-    DATABASE_URL: ecto://supabase_admin:change-me-from-secret@supabase-postgres:5432/_supabase
-    SECRET_KEY_BASE: change-me-from-secret
-    VAULT_ENC_KEY: change-me-from-secret
-    JWT_SECRET: change-me-from-secret
-    API_JWT_SECRET: change-me-from-secret
-    METRICS_JWT_SECRET: change-me-from-secret
     # Pool configuration from .env
     POOLER_TENANT_ID: k8s
     POOLER_DEFAULT_POOL_SIZE: "20"
@@ -158,14 +156,11 @@ auth:
     API_EXTERNAL_URL: https://api.bluestone.systems
     # Database Configuration
     GOTRUE_DB_DRIVER: postgres
-    GOTRUE_DB_DATABASE_URL: postgres://supabase_auth_admin:change-me-from-secret@supabase-postgres:5432/postgres
     # JWT Configuration
     GOTRUE_JWT_ADMIN_ROLES: service_role
     GOTRUE_JWT_AUD: authenticated
     GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
     GOTRUE_JWT_EXP: "3600"
-    # Secrets - to be replaced with secret references
-    GOTRUE_JWT_SECRET: change-me-from-secret
     # Site Configuration
     GOTRUE_SITE_URL: http://localhost:3000
     GOTRUE_URI_ALLOW_LIST: ""
@@ -219,14 +214,9 @@ rest:
     port: 3000
   env:
     # Database Configuration
-    PGRST_DB_URI: postgres://authenticator:change-me-from-secret@supabase-postgres:5432/postgres
     PGRST_DB_SCHEMAS: public,storage,graphql_public
     PGRST_DB_ANON_ROLE: anon
     PGRST_DB_USE_LEGACY_GUCS: "false"
-    # JWT Configuration
-    PGRST_JWT_SECRET: change-me-from-secret
-    PGRST_APP_SETTINGS_JWT_SECRET: change-me-from-secret
-    PGRST_APP_SETTINGS_JWT_EXP: "3600"
   # Command from docker-compose
   command:
     - postgrest
@@ -263,14 +253,9 @@ realtime:
     DB_HOST: supabase-postgres
     DB_PORT: "5432"
     DB_USER: supabase_admin
-    DB_PASSWORD: change-me-from-secret
     DB_NAME: postgres
     DB_AFTER_CONNECT_QUERY: 'SET search_path TO _realtime'
     DB_ENC_KEY: supabaserealtime
-    # JWT Configuration
-    API_JWT_SECRET: change-me-from-secret
-    # Secret Key
-    SECRET_KEY_BASE: change-me-from-secret
     # Erlang Configuration
     ERL_AFLAGS: -proto_dist inet_tcp
     DNS_NODES: "''"
@@ -286,9 +271,6 @@ realtime:
     httpGet:
       path: /api/tenants/realtime-dev/health
       port: 4000
-      httpHeaders:
-        - name: Authorization
-          value: Bearer change-me-from-secret
     initialDelaySeconds: 15
     periodSeconds: 10
     timeoutSeconds: 5
@@ -297,9 +279,6 @@ realtime:
     httpGet:
       path: /api/tenants/realtime-dev/health
       port: 4000
-      httpHeaders:
-        - name: Authorization
-          value: Bearer change-me-from-secret
     initialDelaySeconds: 10
     periodSeconds: 5
     timeoutSeconds: 5
@@ -315,12 +294,6 @@ storage:
   service:
     port: 5000
   env:
-    # Keys - to be replaced with secret references
-    ANON_KEY: change-me-from-secret
-    SERVICE_KEY: change-me-from-secret
-    PGRST_JWT_SECRET: change-me-from-secret
-    # Database Configuration
-    DATABASE_URL: postgres://supabase_storage_admin:change-me-from-secret@supabase-postgres:5432/postgres
     # API Configuration
     POSTGREST_URL: http://supabase-rest:3000
     # Storage Configuration
@@ -408,7 +381,6 @@ meta:
     PG_META_DB_PORT: "5432"
     PG_META_DB_NAME: postgres
     PG_META_DB_USER: supabase_admin
-    PG_META_DB_PASSWORD: change-me-from-secret
   waitForDb: true
   resources: {}
   livenessProbe:
@@ -438,14 +410,8 @@ functions:
   service:
     port: 9000
   env:
-    # JWT Configuration
-    JWT_SECRET: change-me-from-secret
-    # Supabase URLs and Keys
+    # Supabase URLs
     SUPABASE_URL: http://supabase-kong:8000
-    SUPABASE_ANON_KEY: change-me-from-secret
-    SUPABASE_SERVICE_ROLE_KEY: change-me-from-secret
-    # Database URL
-    SUPABASE_DB_URL: postgresql://postgres:change-me-from-secret@supabase-postgres:5432/postgres
     # Verification setting from .env
     VERIFY_JWT: "false"
   hostPath:
@@ -488,8 +454,9 @@ analytics:
     DB_DATABASE: _supabase
     DB_HOSTNAME: supabase-postgres
     DB_PORT: "5432"
-    DB_PASSWORD: change-me-from-secret
     DB_SCHEMA: _analytics
+    # Postgres Backend Configuration
+    POSTGRES_BACKEND_SCHEMA: _analytics
     # Access Tokens from .env
     LOGFLARE_PUBLIC_ACCESS_TOKEN: your-super-secret-and-long-logflare-key-public
     LOGFLARE_PRIVATE_ACCESS_TOKEN: your-super-secret-and-long-logflare-key-private
@@ -497,9 +464,7 @@ analytics:
     LOGFLARE_SINGLE_TENANT: "true"
     LOGFLARE_SUPABASE_MODE: "true"
     LOGFLARE_MIN_CLUSTER_SIZE: "1"
-    # Postgres Backend Configuration (comment to use Big Query)
-    POSTGRES_BACKEND_URL: postgresql://supabase_admin:change-me-from-secret@supabase-postgres:5432/_supabase
-    POSTGRES_BACKEND_SCHEMA: _analytics
+    # Feature Flag Configuration
     LOGFLARE_FEATURE_FLAG_OVERRIDE: multibackend=true
     # Big Query Configuration (uncomment to use Big Query backend)
     # GOOGLE_PROJECT_ID: GOOGLE_PROJECT_ID
@@ -545,12 +510,8 @@ kong:
     # Nginx Proxy Configuration
     KONG_NGINX_PROXY_PROXY_BUFFER_SIZE: 160k
     KONG_NGINX_PROXY_PROXY_BUFFERS: "64 160k"
-    # Supabase Keys - to be replaced with secret references
-    SUPABASE_ANON_KEY: change-me-from-secret
-    SUPABASE_SERVICE_KEY: change-me-from-secret
-    # Dashboard Credentials - to be replaced with secret references
+    # Dashboard Configuration
     DASHBOARD_USERNAME: supabase
-    DASHBOARD_PASSWORD: change-me-from-secret
   hostPath:
     kongConfigFile: /mnt/existing_ebs_volume/supabase/volumes/api/kong.yml
   # Command from docker-compose - using entrypoint
@@ -585,20 +546,14 @@ studio:
   env:
     # Postgres Meta URL
     STUDIO_PG_META_URL: http://supabase-meta:8080
-    # Database Password - to be replaced with secret reference
-    POSTGRES_PASSWORD: change-me-from-secret
     # Organization and Project Settings from .env
     DEFAULT_ORGANIZATION_NAME: Default Organization
     DEFAULT_PROJECT_NAME: Default Project
     # OpenAI API Key (optional)
     OPENAI_API_KEY: ""
-    # Supabase URLs and Keys
+    # Supabase URLs
     SUPABASE_URL: http://supabase-kong:8000
     SUPABASE_PUBLIC_URL: https://api.bluestone.systems
-    # Secrets - to be replaced with secret references
-    SUPABASE_ANON_KEY: change-me-from-secret
-    SUPABASE_SERVICE_KEY: change-me-from-secret
-    AUTH_JWT_SECRET: change-me-from-secret
     # Logflare Configuration
     LOGFLARE_PRIVATE_ACCESS_TOKEN: your-super-secret-and-long-logflare-key-private
     LOGFLARE_URL: http://supabase-analytics:4000

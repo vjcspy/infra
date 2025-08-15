@@ -11,10 +11,10 @@ This plan describes how we will migrate the official Supabase Docker Compose sta
 - Storage: hostPath mounted from EBS
   - Root: `/mnt/existing_ebs_volume/supabase/volumes`
   - Every pod using hostPath includes an initContainer that verifies the EBS mount (sentinel file `DONT_DELETE`)
-- Configuration: values-only with secrets for sensitive data
-  - Secrets for: POSTGRES_PASSWORD, JWT_SECRET, ANON_KEY, SERVICE_ROLE_KEY, DASHBOARD_PASSWORD, SECRET_KEY_BASE, VAULT_ENC_KEY
-  - Other env/config are defined in `values.yaml` for simplicity
-  - No overrides; keep a clean, readable structure
+- Configuration: all env vars and credentials in values.yaml for simplicity
+  - No Kubernetes Secrets - all sensitive data is stored in values.yaml
+  - Use a custom values file to override sensitive values during deployment
+  - Clean, readable structure with all configuration in one place
 - Public exposure
   - Kong (API Gateway): `api.bluestone.systems`
   - Studio UI: `studio.bluestone.systems`
@@ -33,39 +33,37 @@ This plan describes how we will migrate the official Supabase Docker Compose sta
   - Kong (Gateway)
 - Stability: add `wait-for-db` initContainer where it helps startup reliability
 
-## Kubernetes Secret Creation
+## Configuration management
 
-Before deploying the Helm chart, create a Kubernetes secret containing sensitive values:
+All configuration is managed through `values.yaml` for simplicity. Sensitive values are stored in the `secrets` section and can be overridden using custom values files for different environments.
+
+For production deployment, create a custom values file:
 
 ```bash
-kubectl create secret generic supabase-secrets \
-  --from-literal=POSTGRES_PASSWORD="your-super-secret-and-long-postgres-password" \
-  --from-literal=PGPASSWORD="your-super-secret-and-long-postgres-password" \
-  --from-literal=JWT_SECRET="your-super-secret-jwt-token-with-at-least-32-characters-long" \
-  --from-literal=ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE" \
-  --from-literal=SERVICE_ROLE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJzZXJ2aWNlX3JvbGUiLAogICAgImlzcyI6ICJzdXBhYmFzZS1kZW1vIiwKICAgICJpYXQiOiAxNjQxNzY5MjAwLAogICAgImV4cCI6IDE3OTk1MzU2MDAKfQ.DaYlNEoUrrEn2Ig7tqibS-PHK5vgusbcbo7X36XVt4Q" \
-  --from-literal=DASHBOARD_USERNAME="supabase" \
-  --from-literal=DASHBOARD_PASSWORD="this_password_is_insecure_and_should_be_updated" \
-  --from-literal=SECRET_KEY_BASE="UpNVntn3cDxHJpq99YMc1T1AQgQpc8kfYTuRgBiYa15BLrx8etQoXz3gZv1/u2oq" \
-  --from-literal=VAULT_ENC_KEY="your-encryption-key-32-chars-min" \
-  --from-literal=GOTRUE_JWT_SECRET="your-super-secret-jwt-token-with-at-least-32-characters-long" \
-  --from-literal=PGRST_JWT_SECRET="your-super-secret-jwt-token-with-at-least-32-characters-long" \
-  --from-literal=PGRST_APP_SETTINGS_JWT_SECRET="your-super-secret-jwt-token-with-at-least-32-characters-long" \
-  --from-literal=DB_PASSWORD="your-super-secret-and-long-postgres-password" \
-  --from-literal=PG_META_DB_PASSWORD="your-super-secret-and-long-postgres-password" \
-  --from-literal=API_JWT_SECRET="your-super-secret-jwt-token-with-at-least-32-characters-long" \
-  --from-literal=METRICS_JWT_SECRET="your-super-secret-jwt-token-with-at-least-32-characters-long" \
-  --from-literal=SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE" \
-  --from-literal=SUPABASE_SERVICE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJzZXJ2aWNlX3JvbGUiLAogICAgImlzcyI6ICJzdXBhYmFzZS1kZW1vIiwKICAgICJpYXQiOiAxNjQxNzY5MjAwLAogICAgImV4cCI6IDE3OTk1MzU2MDAKfQ.DaYlNEoUrrEn2Ig7tqibS-PHK5vgusbcbo7X36XVt4Q" \
-  --from-literal=AUTH_JWT_SECRET="your-super-secret-jwt-token-with-at-least-32-characters-long" \
-  --from-literal=DATABASE_URL="ecto://supabase_admin:your-super-secret-and-long-postgres-password@supabase-postgres:5432/_supabase" \
-  --from-literal=GOTRUE_DB_DATABASE_URL="postgres://supabase_auth_admin:your-super-secret-and-long-postgres-password@supabase-postgres:5432/postgres" \
-  --from-literal=PGRST_DB_URI="postgres://authenticator:your-super-secret-and-long-postgres-password@supabase-postgres:5432/postgres" \
-  --from-literal=SUPABASE_DB_URL="postgresql://postgres:your-super-secret-and-long-postgres-password@supabase-postgres:5432/postgres" \
-  --from-literal=POSTGRES_BACKEND_URL="postgresql://supabase_admin:your-super-secret-and-long-postgres-password@supabase-postgres:5432/_supabase"
+# Create custom values file for production
+cat > custom-values.yaml << EOF
+secrets:
+  postgresPassword: "$(openssl rand -base64 32)"
+  jwtSecret: "$(openssl rand -base64 32)"
+  anonKey: "your-production-anon-key"
+  serviceRoleKey: "your-production-service-key"
+  dashboardPassword: "$(openssl rand -base64 16)"
+  secretKeyBase: "$(openssl rand -base64 64)"
+  vaultEncKey: "$(openssl rand -base64 32)"
+
+# Override other production-specific values
+ingress:
+  kong:
+    host: api.yourdomain.com
+  studio:
+    host: studio.yourdomain.com
+EOF
+
+# Deploy with custom values
+helm upgrade --install supabase . -f custom-values.yaml
 ```
 
-The Helm templates will reference these secrets using `valueFrom.secretKeyRef` for the corresponding environment variables.
+This approach eliminates the need for separate Kubernetes secret creation and management.
 
 ## HostPath layout (under /mnt/existing_ebs_volume/supabase/volumes)
 
@@ -109,8 +107,11 @@ Liveness/readiness probes will be added with sensible defaults per component.
 
 ## values.yaml structure (single source of truth)
 
+All configuration is stored in `values.yaml` for simplicity. Sensitive data is in the `secrets` section and can be overridden using custom values files.
+
 Top-level keys:
 
+- `secrets`: All sensitive values (passwords, keys, tokens)
 - `global.hostPath.root` → `/mnt/existing_ebs_volume/supabase/volumes`
 - `global.ingressClassName` → `nginx`
 - `ingress`:
@@ -120,14 +121,23 @@ Top-level keys:
   - `enabled`
   - `image: { repository, tag, pullPolicy }`
   - `service: { port }`
-  - `env: { ... }` (includes credentials)
+  - `env: { ... }` (includes all environment variables, with Helm template expressions for complex values)
   - `resources`, `livenessProbe`, `readinessProbe`
-  - `hostPath: { mounts: [...] }` (if applicable)
+  - `hostPath: { ... }` (if applicable)
   - `waitForDb: true|false` (if applicable)
 
 Example skeleton:
 
 ```yaml
+secrets:
+  postgresPassword: "your-super-secret-and-long-postgres-password"
+  jwtSecret: "your-super-secret-jwt-token-with-at-least-32-characters-long"
+  anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  serviceRoleKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  dashboardPassword: "this_password_is_insecure_and_should_be_updated"
+  secretKeyBase: "your-secret-key-base-64-chars-minimum"
+  vaultEncKey: "your-encryption-key-32-chars-min"
+
 global:
   hostPath:
     root: /mnt/existing_ebs_volume/supabase/volumes
@@ -144,26 +154,20 @@ postgres:
   image: { repository: supabase/postgres, tag: 15.8.1.060, pullPolicy: IfNotPresent }
   service: { port: 5432 }
   env:
-    POSTGRES_DB: app
+    POSTGRES_DB: postgres
     POSTGRES_USER: postgres
-    POSTGRES_PASSWORD: change-me
-    JWT_EXPIRY: "3600"
+    POSTGRES_PASSWORD: "{{ .Values.secrets.postgresPassword }}"
+    JWT_SECRET: "{{ .Values.secrets.jwtSecret }}"
+    JWT_EXP: "3600"
   hostPath:
     data: "/mnt/existing_ebs_volume/supabase/volumes/db/data"
     config: "/mnt/existing_ebs_volume/supabase/volumes/db/config"
-    init: "/mnt/existing_ebs_volume/supabase/volumes/db/init" # optional
-  probes: { }
-
-supavisor:
-  enabled: true
-  image: { repository: supabase/supavisor, tag: 2.5.7, pullPolicy: IfNotPresent }
-  service: { port: 6543 }
-  env:
-    DB_POOL_SIZE: "20"
-    DATABASE_URL: postgres://postgres:change-me@postgres:5432/app
-  hostPath:
-    configFile: "/mnt/existing_ebs_volume/supabase/volumes/pooler/pooler.exs"
-  waitForDb: true
+  command:
+    - postgres
+    - "-c"
+    - "config_file=/etc/postgresql/postgresql.conf"
+    - "-c"
+    - "log_min_messages=fatal"
 
 auth:
   enabled: true
@@ -172,8 +176,8 @@ auth:
   env:
     API_EXTERNAL_URL: https://api.bluestone.systems
     GOTRUE_DB_DRIVER: postgres
-    GOTRUE_DB_DATABASE_URL: postgres://supabase_auth_admin:change-me@postgres:5432/app
-    GOTRUE_JWT_SECRET: change-me
+    GOTRUE_DB_DATABASE_URL: "{{ include \"supabase.auth.databaseUrl\" . }}"
+    GOTRUE_JWT_SECRET: "{{ .Values.secrets.jwtSecret }}"
   waitForDb: true
 
 rest:
@@ -181,75 +185,14 @@ rest:
   image: { repository: postgrest/postgrest, tag: v12.2.12, pullPolicy: IfNotPresent }
   service: { port: 3000 }
   env:
-    PGRST_APP_SETTINGS_JWT_EXP: "3600"
-    PGRST_DB_URI: postgres://postgres:change-me@postgres:5432/app
+    PGRST_DB_SCHEMAS: public,storage,graphql_public
+    PGRST_DB_URI: "{{ include \"supabase.rest.databaseUri\" . }}"
+    PGRST_JWT_SECRET: "{{ .Values.secrets.jwtSecret }}"
+  command: [ "postgrest" ]
   waitForDb: true
-
-realtime:
-  enabled: true
-  image: { repository: supabase/realtime, tag: v2.34.47, pullPolicy: IfNotPresent }
-  service: { port: 4000 }
-  env: { }
-  waitForDb: true
-
-storage:
-  enabled: true
-  image: { repository: supabase/storage-api, tag: v1.25.7, pullPolicy: IfNotPresent }
-  service: { port: 5000 }
-  env: { }
-  hostPath:
-    data: "/mnt/existing_ebs_volume/supabase/volumes/storage"
-  waitForDb: true
-
-imgproxy:
-  enabled: true
-  image: { repository: darthsim/imgproxy, tag: v3.8.0, pullPolicy: IfNotPresent }
-  service: { port: 8080 }
-  env: { }
-
-meta:
-  enabled: true
-  image: { repository: supabase/postgres-meta, tag: v0.91.0, pullPolicy: IfNotPresent }
-  service: { port: 8080 }
-  env: { }
-  waitForDb: true
-
-functions:
-  enabled: true
-  image: { repository: supabase/edge-runtime, tag: v1.67.4, pullPolicy: IfNotPresent }
-  service: { port: 9000 }
-  env:
-    VERIFY_JWT: "true"
-  hostPath:
-    functions: "/mnt/existing_ebs_volume/supabase/volumes/functions"
-
-analytics:
-  enabled: true
-  image: { repository: supabase/logflare, tag: 1.14.2, pullPolicy: IfNotPresent }
-  service: { port: 4000 }
-  env:
-    LOGFLARE_PUBLIC_ACCESS_TOKEN: xxx
-    LOGFLARE_PRIVATE_ACCESS_TOKEN: yyy
-
-kong:
-  enabled: true
-  image: { repository: kong, tag: 2.8.1, pullPolicy: IfNotPresent }
-  service:
-    ports:
-      http: 8000
-      https: 8443
-  env:
-    KONG_DATABASE: "off"
-    KONG_DECLARATIVE_CONFIG: /home/kong/kong.yml
-    KONG_PLUGINS: request-transformer,cors,key-auth,acl,basic-auth
-    KONG_DNS_ORDER: LAST,A,CNAME
-    KONG_NGINX_PROXY_PROXY_BUFFER_SIZE: 160k
-    KONG_NGINX_PROXY_PROXY_BUFFERS: "64 160k"
-    SUPABASE_ANON_KEY: ...
-    SUPABASE_SERVICE_KEY: ...
-  hostPath:
-    kongConfigFile: "/mnt/existing_ebs_volume/supabase/volumes/api/kong.yml"
 ```
+
+Complex environment variables like database URLs are built using Helm template helper functions that reference values from the `secrets` section.
 
 ## Templates (supabase/templates)
 
