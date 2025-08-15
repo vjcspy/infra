@@ -127,27 +127,8 @@ spec:
           imagePullPolicy: {{ .Values.auth.image.pullPolicy }}
           ports:
             - containerPort: {{ .Values.auth.service.port }}
-          command:
-            - /bin/sh
-            - -c
-            - |
-              export GOTRUE_DB_DATABASE_URL="postgres://supabase_auth_admin:$POSTGRES_PASSWORD@supabase-postgres:5432/postgres"
-              /usr/local/bin/gotrue
           env:
 {{ include "supabase.renderServiceEnv" (list . "auth") | indent 12 }}
-            # Secret references
-            - name: GOTRUE_DB_DATABASE_URL
-              value: "postgres://supabase_auth_admin:$POSTGRES_PASSWORD@supabase-postgres:5432/postgres"
-            - name: GOTRUE_JWT_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: supabase-secrets
-                  key: JWT_SECRET
-            - name: POSTGRES_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: supabase-secrets
-                  key: POSTGRES_PASSWORD
           {{- with .Values.auth.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
@@ -165,29 +146,9 @@ spec:
           ports:
             - containerPort: {{ .Values.rest.service.port }}
           command:
-            - /bin/sh
-            - -c
-            - |
-              export PGRST_DB_URI="postgres://authenticator:$POSTGRES_PASSWORD@supabase-postgres:5432/postgres"
-              postgrest
+            - postgrest
           env:
 {{ include "supabase.renderServiceEnv" (list . "rest") | indent 12 }}
-            # Secret references
-            - name: PGRST_JWT_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: supabase-secrets
-                  key: JWT_SECRET
-            - name: PGRST_APP_SETTINGS_JWT_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: supabase-secrets
-                  key: JWT_SECRET
-            - name: POSTGRES_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: supabase-secrets
-                  key: POSTGRES_PASSWORD
           {{- with .Values.rest.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
@@ -206,7 +167,6 @@ spec:
             - containerPort: {{ .Values.realtime.service.port }}
           env:
 {{ include "supabase.renderServiceEnv" (list . "realtime") | indent 12 }}
-            # Secret references
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
@@ -238,35 +198,8 @@ spec:
           imagePullPolicy: {{ .Values.storage.image.pullPolicy }}
           ports:
             - containerPort: {{ .Values.storage.service.port }}
-          command:
-            - /bin/sh
-            - -c
-            - |
-              export DATABASE_URL="postgres://supabase_storage_admin:$POSTGRES_PASSWORD@supabase-postgres:5432/postgres"
-              exec node dist/main.js
           env:
 {{ include "supabase.renderServiceEnv" (list . "storage") | indent 12 }}
-            # Secret references
-            - name: ANON_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: supabase-secrets
-                  key: ANON_KEY
-            - name: SERVICE_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: supabase-secrets
-                  key: SERVICE_ROLE_KEY
-            - name: PGRST_JWT_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: supabase-secrets
-                  key: JWT_SECRET
-            - name: POSTGRES_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: supabase-secrets
-                  key: POSTGRES_PASSWORD
           volumeMounts:
             - name: storage-data
               mountPath: /var/lib/storage
@@ -309,7 +242,6 @@ spec:
             - containerPort: {{ .Values.meta.service.port }}
           env:
 {{ include "supabase.renderServiceEnv" (list . "meta") | indent 12 }}
-            # Secret references
             - name: PG_META_DB_PASSWORD
               valueFrom:
                 secretKeyRef:
@@ -338,35 +270,12 @@ spec:
             {{- end }}
           {{- else }}
           command:
-            - /bin/sh
-            - -c
-            - |
-              export SUPABASE_DB_URL="postgresql://postgres:$POSTGRES_PASSWORD@supabase-postgres:5432/postgres"
-              deno run --allow-all --unstable /home/deno/functions/main.ts
+            - start
+            - "--main-service"
+            - "/home/deno/functions/main"
           {{- end }}
           env:
 {{ include "supabase.renderServiceEnv" (list . "functions") | indent 12 }}
-            # Secret references
-            - name: JWT_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: supabase-secrets
-                  key: JWT_SECRET
-            - name: SUPABASE_ANON_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: supabase-secrets
-                  key: ANON_KEY
-            - name: SUPABASE_SERVICE_ROLE_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: supabase-secrets
-                  key: SERVICE_ROLE_KEY
-            - name: POSTGRES_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: supabase-secrets
-                  key: POSTGRES_PASSWORD
           volumeMounts:
             - name: functions-code
               mountPath: /home/deno/functions
@@ -386,25 +295,8 @@ spec:
           imagePullPolicy: {{ .Values.analytics.image.pullPolicy }}
           ports:
             - containerPort: {{ .Values.analytics.service.port }}
-          command:
-            - /bin/sh
-            - -c
-            - |
-              export POSTGRES_BACKEND_URL="postgresql://supabase_admin:$POSTGRES_PASSWORD@supabase-postgres:5432/_supabase"
-              exec logflare
           env:
 {{ include "supabase.renderServiceEnv" (list . "analytics") | indent 12 }}
-            # Secret references
-            - name: DB_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: supabase-secrets
-                  key: POSTGRES_PASSWORD
-            - name: POSTGRES_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: supabase-secrets
-                  key: POSTGRES_PASSWORD
           {{- with .Values.analytics.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
@@ -430,22 +322,6 @@ spec:
             - containerPort: {{ .Values.kong.service.ports.https }}
           env:
 {{ include "supabase.renderServiceEnv" (list . "kong") | indent 12 }}
-            # Secret references
-            - name: SUPABASE_ANON_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: supabase-secrets
-                  key: ANON_KEY
-            - name: SUPABASE_SERVICE_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: supabase-secrets
-                  key: SERVICE_ROLE_KEY
-            - name: DASHBOARD_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: supabase-secrets
-                  key: DASHBOARD_PASSWORD
           volumeMounts:
             - name: kong-config
               mountPath: /home/kong/temp.yml
@@ -469,27 +345,6 @@ spec:
             - containerPort: {{ .Values.studio.service.port }}
           env:
 {{ include "supabase.renderServiceEnv" (list . "studio") | indent 12 }}
-            # Secret references
-            - name: POSTGRES_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: supabase-secrets
-                  key: POSTGRES_PASSWORD
-            - name: SUPABASE_ANON_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: supabase-secrets
-                  key: ANON_KEY
-            - name: SUPABASE_SERVICE_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: supabase-secrets
-                  key: SERVICE_ROLE_KEY
-            - name: AUTH_JWT_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: supabase-secrets
-                  key: JWT_SECRET
           {{- with .Values.studio.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}

@@ -1,4 +1,4 @@
-{{/*
+e{{/*
 Expand the name of the chart.
 */}}
 {{- define "supabase.name" -}}
