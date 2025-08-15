@@ -86,7 +86,7 @@ We’ll require a sentinel file at `/mnt/existing_ebs_volume/DONT_DELETE` for th
   - Command: loop-check for `/host_ebs_volume/DONT_DELETE` up to 5 attempts
 - wait-for-db (for DB dependents):
   - Image: `busybox:1.37.0`
-  - Command: loop until TCP connect to `postgres:5432` (Service DNS) succeeds
+  - Command: loop until TCP connect to `supabase-postgres:5432` (Service DNS) succeeds
   - Enabled by default for: Auth, PostgREST, Realtime, Storage, Meta, Supavisor
 
 ## Ingress
@@ -100,11 +100,32 @@ We’ll require a sentinel file at `/mnt/existing_ebs_volume/DONT_DELETE` for th
 
 ## Kubernetes resources
 
-- One Deployment named `supabase` with multiple containers (Postgres, Supavisor, Auth, PostgREST, Realtime, Storage, Imgproxy, Postgres Meta, Edge Functions, Analytics, Kong, Studio)
-- One Service per component (ClusterIP) exposing the corresponding container port(s)
+- One Deployment per component (independent Pods), each in its own template file:
+  - `deployment-postgres.yaml`
+  - `deployment-supavisor.yaml`
+  - `deployment-auth.yaml`
+  - `deployment-rest.yaml`
+  - `deployment-realtime.yaml`
+  - `deployment-storage.yaml`
+  - `deployment-imgproxy.yaml`
+  - `deployment-meta.yaml`
+  - `deployment-functions.yaml`
+  - `deployment-analytics.yaml`
+  - `deployment-kong.yaml`
+  - `deployment-studio.yaml`
+- One Service per component (ClusterIP), each in its own template file:
+  - `service-postgres.yaml`, `service-supavisor.yaml`, `service-auth.yaml`, `service-rest.yaml`, `service-realtime.yaml`, `service-storage.yaml`, `service-imgproxy.yaml`, `service-meta.yaml`, `service-functions.yaml`, `service-analytics.yaml`, `service-kong.yaml`, `service-studio.yaml`
+- Optional always-on debug Deployment for troubleshooting: `deployment-debug.yaml` (gated by `.Values.debug.enabled`)
 - Two Ingress objects (Kong at `api.bluestone.systems`, Studio at `studio.bluestone.systems`)
 
-Liveness/readiness probes will be added with sensible defaults per component.
+Labeling and selectors:
+- All Deployments/Pods and Services include:
+  - `app.kubernetes.io/name: supabase`
+  - `app.kubernetes.io/instance: {{ .Release.Name }}`
+  - `app.kubernetes.io/component: <component>`
+- Each Service selector matches the same three labels to route only to its component Pods.
+
+Liveness/readiness probes are configured per component with sensible defaults.
 
 ## values.yaml structure (single source of truth)
 
@@ -197,15 +218,17 @@ Complex environment variables like database URLs are built using Helm template h
 
 ## Templates (supabase/templates)
 
-- `_helpers.tpl`: extend with hostPath helpers, EBS check partial, wait-for-db partial
-- `deployment.yaml`: a single Deployment resource containing all Supabase components as containers (each gated by `.Values.<svc>.enabled`)
-- `service.yaml`: a single file emitting all Services (multi-document), one per component
-- `ingress.yaml`: a single file emitting both Ingress objects (Kong and Studio), with `ingressClassName: nginx` and no TLS blocks
+- `_helpers.tpl`: contains shared labels, env helpers, EBS check partial, and wait-for-db partial.
+- `deployment-*.yaml`: one Deployment template per component (see list above). Each Deployment:
+  - Uses the EBS mount check initContainer when hostPath volumes are mounted
+  - Mounts hostPath paths under `/mnt/existing_ebs_volume/supabase/volumes` as needed
+  - Optionally includes the wait-for-db initContainer for DB-dependent components
+- `service-*.yaml`: one Service template per component with selectors including `app.kubernetes.io/component`.
+- `deployment-debug.yaml`: optional always-running BusyBox for debugging (enabled via `.Values.debug.enabled`).
+- `ingress.yaml`: emits both Ingress objects (Kong and Studio) with `ingressClassName: nginx` and no TLS blocks.
 
-The Deployment mounts hostPath volumes for the relevant containers and:
-- Mounts the appropriate path(s) from `global.hostPath.root`
-- Includes the EBS check initContainer
-- Note: `wait-for-db` is not used in the current single-Pod model (containers share a network namespace and start together). The helper remains available if you later split services into separate Pods.
+Legacy compatibility:
+- The previous monolithic `deployment.yaml` and consolidated `service.yaml` are retained only for reference and can be guarded behind `.Values.legacy.monolithic.enabled` (disabled by default) or removed.
 
 ## Probes (defaults to be refined during implementation)
 
@@ -227,13 +250,18 @@ The Deployment mounts hostPath volumes for the relevant containers and:
 
 ## Delivery steps
 
-1) Update `_helpers.tpl` with partials for EBS check and wait-for-db
-2) Add values.yaml structure per above (keeping everything in values)
-3) Implement a single `deployment.yaml` containing all containers; add hostPath mounts and initContainers where needed
-4) Implement a consolidated `service.yaml` containing all Services
-5) Implement a consolidated `ingress.yaml` containing Kong and Studio Ingresses (nginx class, no TLS)
-7) Add probes and resource defaults; review securityContext/fsGroup for hostPath write access
-8) README updates for preparing host directories and sentinel file
+1) Update `_helpers.tpl` with partials for EBS check and wait-for-db.
+2) Add/align `values.yaml` structure per above (single source of truth for all components).
+3) Implement one `deployment-*.yaml` per component; add hostPath mounts and initContainers where needed; include wait-for-db where applicable.
+4) Implement one `service-*.yaml` per component; ensure selectors include `app.kubernetes.io/component`.
+5) Keep `ingress.yaml` for Kong and Studio (nginx class, no TLS).
+6) Add probes and resource defaults; review securityContext/fsGroup for hostPath write access.
+7) Optionally add `deployment-debug.yaml` and gate with `.Values.debug.enabled`.
+8) README updates for preparing host directories and sentinel file.
+
+Validation:
+- Render templates with Helm to verify resources and selectors.
+- Deploy to a test namespace and verify inter-service DNS (e.g., `supabase-rest`, `supabase-postgres`).
 
 ## Notes
 
