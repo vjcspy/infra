@@ -48,6 +48,12 @@ spec:
           ports:
             - containerPort: {{ .Values.postgres.service.port }}
               name: postgres
+          args:
+            - postgres
+            - "-c"
+            - "config_file=/etc/postgresql/postgresql.conf"
+            - "-c"
+            - "log_min_messages=fatal"
           env:
           {{ include "supabase.renderServiceEnv" (list . "postgres") | indent 12 }}
           volumeMounts:
