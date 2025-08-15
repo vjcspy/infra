@@ -64,19 +64,11 @@ We’ll require a sentinel file at `/mnt/existing_ebs_volume/DONT_DELETE` for th
   - Kong: `api.bluestone.systems` → Service port 8000 (HTTP)
   - Studio: `studio.bluestone.systems` → Studio Service port (default 3000)
 
-## Kubernetes resources per service
+## Kubernetes resources
 
-- Postgres: Deployment + ClusterIP Service (5432)
-- Supavisor: Deployment + ClusterIP Service (6543)
-- Auth (GoTrue): Deployment + ClusterIP Service (9999)
-- PostgREST: Deployment + ClusterIP Service (3000)
-- Realtime: Deployment + ClusterIP Service (4000)
-- Storage API: Deployment + ClusterIP Service (5000), hostPath mount `storage/`
-- Imgproxy: Deployment + ClusterIP Service (8080), optional mount `storage/` for reading originals
-- Postgres Meta: Deployment + ClusterIP Service (8080)
-- Edge Functions: Deployment + ClusterIP Service (9000), mount `functions/`
-- Analytics (Logflare): Deployment + ClusterIP Service (4000)
-- Kong: Deployment + ClusterIP Service (8000, 8443) + Ingress (host `api.bluestone.systems`)
+- One Deployment named `supabase` with multiple containers (Postgres, Supavisor, Auth, PostgREST, Realtime, Storage, Imgproxy, Postgres Meta, Edge Functions, Analytics, Kong, Studio)
+- One Service per component (ClusterIP) exposing the corresponding container port(s)
+- Two Ingress objects (Kong at `api.bluestone.systems`, Studio at `studio.bluestone.systems`)
 
 Liveness/readiness probes will be added with sensible defaults per component.
 
@@ -224,17 +216,17 @@ kong:
     kongConfigFile: "/mnt/existing_ebs_volume/supabase/volumes/api/kong.yml"
 ```
 
-## Templates to add (supabase/templates)
+## Templates (supabase/templates)
 
 - `_helpers.tpl`: extend with hostPath helpers, EBS check partial, wait-for-db partial
-- `deployment.yaml`: a single file emitting ALL Deployments (multi-document), one per service, each gated by `.Values.<svc>.enabled`
-- `services.yaml`: a single file emitting ALL Services (multi-document), one per service
+- `deployment.yaml`: a single Deployment resource containing all Supabase components as containers (each gated by `.Values.<svc>.enabled`)
+- `service.yaml`: a single file emitting all Services (multi-document), one per component
 - `ingress.yaml`: a single file emitting both Ingress objects (Kong and Studio), with `ingressClassName: nginx` and no TLS blocks
 
-Each deployment that uses hostPath will:
-- Mount the appropriate path(s) from `global.hostPath.root`
-- Include the EBS check initContainer
-- Optionally include `wait-for-db` when `{svc}.waitForDb: true`
+The Deployment mounts hostPath volumes for the relevant containers and:
+- Mounts the appropriate path(s) from `global.hostPath.root`
+- Includes the EBS check initContainer
+- Note: `wait-for-db` is not used in the current single-Pod model (containers share a network namespace and start together). The helper remains available if you later split services into separate Pods.
 
 ## Probes (defaults to be refined during implementation)
 
@@ -258,8 +250,8 @@ Each deployment that uses hostPath will:
 
 1) Update `_helpers.tpl` with partials for EBS check and wait-for-db
 2) Add values.yaml structure per above (keeping everything in values)
-3) Implement a consolidated `deployment.yaml` containing DB and all other Deployments; add hostPath mounts and initContainers per service
-4) Implement a consolidated `services.yaml` containing all Services
+3) Implement a single `deployment.yaml` containing all containers; add hostPath mounts and initContainers where needed
+4) Implement a consolidated `service.yaml` containing all Services
 5) Implement a consolidated `ingress.yaml` containing Kong and Studio Ingresses (nginx class, no TLS)
 7) Add probes and resource defaults; review securityContext/fsGroup for hostPath write access
 8) README updates for preparing host directories and sentinel file
