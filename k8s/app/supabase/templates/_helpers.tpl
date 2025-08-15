@@ -60,3 +60,29 @@ Create the name of the service account to use
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
 {{- end }}
+
+{{/* Render key/value env pairs from a map */}}
+{{- define "supabase.renderEnv" -}}
+{{- $env := . -}}
+{{- range $k, $v := $env }}
+						- name: {{ $k }}
+							value: {{ $v | quote }}
+{{- end }}
+{{- end }}
+
+{{/* Init container to verify EBS hostPath mount is present with sentinel file */}}
+{{- define "supabase.initEbsCheck" -}}
+				- name: init-ebs-check
+					image: busybox:1.37.0
+					command: ["sh","-c","for i in $(seq 1 5); do echo Checking EBS mount attempt $i; if [ -f /host_ebs_volume/DONT_DELETE ]; then echo OK; exit 0; fi; sleep 10; done; echo FAIL; exit 1"]
+					volumeMounts:
+						- name: host-ebs-root
+							mountPath: /host_ebs_volume
+{{- end }}
+
+{{/* Init container to wait for Postgres TCP port to be reachable */}}
+{{- define "supabase.waitForDb" -}}
+				- name: wait-for-db
+					image: busybox:1.37.0
+					command: ["sh","-c","for i in $(seq 1 60); do nc -z -w 2 {{ . | default "supabase-postgres" }} 5432 && exit 0; echo waiting for db; sleep 2; done; echo timed out; exit 1"]
+{{- end }}

@@ -1,78 +1,307 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "supabase.fullname" . }}
+  name: supabase
   labels:
-    {{- include "supabase.labels" . | nindent 4 }}
+    app.kubernetes.io/name: supabase
+    app.kubernetes.io/instance: {{ .Release.Name }}
 spec:
-  {{- if not .Values.autoscaling.enabled }}
-  replicas: {{ .Values.replicaCount }}
-  {{- end }}
+  replicas: 1
   selector:
     matchLabels:
-      {{- include "supabase.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/name: supabase
+      app.kubernetes.io/instance: {{ .Release.Name }}
   template:
     metadata:
-      {{- with .Values.podAnnotations }}
-      annotations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
       labels:
-        {{- include "supabase.labels" . | nindent 8 }}
-        {{- with .Values.podLabels }}
-        {{- toYaml . | nindent 8 }}
-        {{- end }}
+        app.kubernetes.io/name: supabase
+        app.kubernetes.io/instance: {{ .Release.Name }}
     spec:
-      {{- with .Values.imagePullSecrets }}
-      imagePullSecrets:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
       serviceAccountName: {{ include "supabase.serviceAccountName" . }}
-      {{- with .Values.podSecurityContext }}
-      securityContext:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+      initContainers:
+        {{ include "supabase.initEbsCheck" . | nindent 8 }}
       containers:
-        - name: {{ .Chart.Name }}
-          {{- with .Values.securityContext }}
-          securityContext:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
+        {{- if .Values.postgres.enabled }}
+        - name: postgres
+          image: "{{ .Values.postgres.image.repository }}:{{ .Values.postgres.image.tag }}"
+          imagePullPolicy: {{ .Values.postgres.image.pullPolicy }}
           ports:
-            - name: http
-              containerPort: {{ .Values.service.port }}
-              protocol: TCP
-          {{- with .Values.livenessProbe }}
+            - containerPort: {{ .Values.postgres.service.port }}
+          env:
+{{ include "supabase.renderEnv" .Values.postgres.env | indent 12 }}
+          volumeMounts:
+            - name: pg-data
+              mountPath: /var/lib/postgresql/data
+            - name: pg-config
+              mountPath: /etc/postgresql-custom
+            - name: pg-init
+              mountPath: /docker-entrypoint-initdb.d
+          {{- with .Values.postgres.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- with .Values.readinessProbe }}
+          {{- with .Values.postgres.readinessProbe }}
           readinessProbe:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- with .Values.resources }}
-          resources:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
-          {{- with .Values.volumeMounts }}
+        {{- end }}
+
+        {{- if .Values.supavisor.enabled }}
+        - name: supavisor
+          image: "{{ .Values.supavisor.image.repository }}:{{ .Values.supavisor.image.tag }}"
+          imagePullPolicy: {{ .Values.supavisor.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.supavisor.service.port }}
+          env:
+{{ include "supabase.renderEnv" .Values.supavisor.env | indent 12 }}
           volumeMounts:
+            - name: pooler-config
+              mountPath: /etc/pooler/pooler.exs
+              subPath: pooler.exs
+              readOnly: true
+          {{- with .Values.supavisor.livenessProbe }}
+          livenessProbe:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-      {{- with .Values.volumes }}
+          {{- with .Values.supavisor.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+        {{- end }}
+
+        {{- if .Values.auth.enabled }}
+        - name: auth
+          image: "{{ .Values.auth.image.repository }}:{{ .Values.auth.image.tag }}"
+          imagePullPolicy: {{ .Values.auth.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.auth.service.port }}
+          env:
+{{ include "supabase.renderEnv" .Values.auth.env | indent 12 }}
+          {{- with .Values.auth.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.auth.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+        {{- end }}
+
+        {{- if .Values.rest.enabled }}
+        - name: rest
+          image: "{{ .Values.rest.image.repository }}:{{ .Values.rest.image.tag }}"
+          imagePullPolicy: {{ .Values.rest.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.rest.service.port }}
+          env:
+{{ include "supabase.renderEnv" .Values.rest.env | indent 12 }}
+          {{- with .Values.rest.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.rest.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+        {{- end }}
+
+        {{- if .Values.realtime.enabled }}
+        - name: realtime
+          image: "{{ .Values.realtime.image.repository }}:{{ .Values.realtime.image.tag }}"
+          imagePullPolicy: {{ .Values.realtime.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.realtime.service.port }}
+          env:
+{{ include "supabase.renderEnv" .Values.realtime.env | indent 12 }}
+          {{- with .Values.realtime.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.realtime.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+        {{- end }}
+
+        {{- if .Values.storage.enabled }}
+        - name: storage
+          image: "{{ .Values.storage.image.repository }}:{{ .Values.storage.image.tag }}"
+          imagePullPolicy: {{ .Values.storage.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.storage.service.port }}
+          env:
+{{ include "supabase.renderEnv" .Values.storage.env | indent 12 }}
+          volumeMounts:
+            - name: storage-data
+              mountPath: /var/lib/storage
+          {{- with .Values.storage.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.storage.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+        {{- end }}
+
+        {{- if .Values.imgproxy.enabled }}
+        - name: imgproxy
+          image: "{{ .Values.imgproxy.image.repository }}:{{ .Values.imgproxy.image.tag }}"
+          imagePullPolicy: {{ .Values.imgproxy.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.imgproxy.service.port }}
+          env:
+{{ include "supabase.renderEnv" .Values.imgproxy.env | indent 12 }}
+          {{- with .Values.imgproxy.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.imgproxy.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+        {{- end }}
+
+        {{- if .Values.meta.enabled }}
+        - name: meta
+          image: "{{ .Values.meta.image.repository }}:{{ .Values.meta.image.tag }}"
+          imagePullPolicy: {{ .Values.meta.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.meta.service.port }}
+          env:
+{{ include "supabase.renderEnv" .Values.meta.env | indent 12 }}
+          {{- with .Values.meta.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.meta.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+        {{- end }}
+
+        {{- if .Values.functions.enabled }}
+        - name: functions
+          image: "{{ .Values.functions.image.repository }}:{{ .Values.functions.image.tag }}"
+          imagePullPolicy: {{ .Values.functions.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.functions.service.port }}
+          env:
+{{ include "supabase.renderEnv" .Values.functions.env | indent 12 }}
+          volumeMounts:
+            - name: functions-code
+              mountPath: /home/deno/functions
+          {{- with .Values.functions.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.functions.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+        {{- end }}
+
+        {{- if .Values.analytics.enabled }}
+        - name: analytics
+          image: "{{ .Values.analytics.image.repository }}:{{ .Values.analytics.image.tag }}"
+          imagePullPolicy: {{ .Values.analytics.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.analytics.service.port }}
+          env:
+{{ include "supabase.renderEnv" .Values.analytics.env | indent 12 }}
+          {{- with .Values.analytics.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.analytics.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+        {{- end }}
+
+        {{- if .Values.kong.enabled }}
+        - name: kong
+          image: "{{ .Values.kong.image.repository }}:{{ .Values.kong.image.tag }}"
+          imagePullPolicy: {{ .Values.kong.image.pullPolicy }}
+          env:
+{{ include "supabase.renderEnv" .Values.kong.env | indent 12 }}
+          command: ["bash","-lc","eval \"echo \"\$(cat ~/temp.yml)\"\" > ~/kong.yml && /docker-entrypoint.sh kong docker-start"]
+          ports:
+            - containerPort: {{ .Values.kong.service.ports.http }}
+            - containerPort: {{ .Values.kong.service.ports.https }}
+          volumeMounts:
+            - name: kong-config
+              mountPath: /home/kong/temp.yml
+              subPath: kong.yml
+              readOnly: true
+          {{- with .Values.kong.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.kong.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+        {{- end }}
+
+        {{- if .Values.studio.enabled }}
+        - name: studio
+          image: "{{ .Values.studio.image.repository }}:{{ .Values.studio.image.tag }}"
+          imagePullPolicy: {{ .Values.studio.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.studio.service.port }}
+          env:
+{{ include "supabase.renderEnv" .Values.studio.env | indent 12 }}
+          {{- with .Values.studio.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.studio.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+        {{- end }}
+
       volumes:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.nodeSelector }}
-      nodeSelector:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.affinity }}
-      affinity:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.tolerations }}
-      tolerations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+        - name: host-ebs-root
+          hostPath:
+            path: /mnt/existing_ebs_volume
+            type: Directory
+        {{- if .Values.postgres.enabled }}
+        - name: pg-data
+          hostPath:
+            path: {{ .Values.postgres.hostPath.data }}
+            type: DirectoryOrCreate
+        - name: pg-config
+          hostPath:
+            path: {{ .Values.postgres.hostPath.config }}
+            type: DirectoryOrCreate
+        - name: pg-init
+          hostPath:
+            path: {{ .Values.postgres.hostPath.init }}
+            type: DirectoryOrCreate
+        {{- end }}
+        {{- if .Values.supavisor.enabled }}
+        - name: pooler-config
+          hostPath:
+            path: {{ .Values.supavisor.hostPath.configFile }}
+            type: File
+        {{- end }}
+        {{- if .Values.storage.enabled }}
+        - name: storage-data
+          hostPath:
+            path: {{ .Values.storage.hostPath.data }}
+            type: DirectoryOrCreate
+        {{- end }}
+        {{- if .Values.functions.enabled }}
+        - name: functions-code
+          hostPath:
+            path: {{ .Values.functions.hostPath.functions }}
+            type: DirectoryOrCreate
+        {{- end }}
+        {{- if .Values.kong.enabled }}
+        - name: kong-config
+          hostPath:
+            path: {{ .Values.kong.hostPath.kongConfigFile }}
+            type: File
+        {{- end }}

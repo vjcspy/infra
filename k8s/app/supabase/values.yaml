@@ -1,123 +1,322 @@
-# Default values for supabase.
-# This is a YAML-formatted file.
-# Declare variables to be passed into your templates.
-
-# This will set the replicaset count more information can be found here: https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/
-replicaCount: 1
-
-# This sets the container image more information can be found here: https://kubernetes.io/docs/concepts/containers/images/
-image:
-  repository: nginx
-  # This sets the pull policy for images.
-  pullPolicy: IfNotPresent
-  # Overrides the image tag whose default is the chart appVersion.
-  tag: ""
-
-# This is for the secrets for pulling an image from a private repository more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
-imagePullSecrets: []
-# This is to override the chart name.
 nameOverride: ""
 fullnameOverride: ""
 
-# This section builds out the service account more information can be found here: https://kubernetes.io/docs/concepts/security/service-accounts/
 serviceAccount:
-  # Specifies whether a service account should be created
   create: true
-  # Automatically mount a ServiceAccount's API credentials?
   automount: true
-  # Annotations to add to the service account
   annotations: {}
-  # The name of the service account to use.
-  # If not set and create is true, a name is generated using the fullname template
   name: ""
 
-# This is for setting Kubernetes Annotations to a Pod.
-# For more information checkout: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
 podAnnotations: {}
-# This is for setting Kubernetes Labels to a Pod.
-# For more information checkout: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
 podLabels: {}
 
 podSecurityContext: {}
-  # fsGroup: 2000
-
 securityContext: {}
-  # capabilities:
-  #   drop:
-  #   - ALL
-  # readOnlyRootFilesystem: true
-  # runAsNonRoot: true
-  # runAsUser: 1000
 
-# This is for setting up a service more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/
-service:
-  # This sets the service type more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types
-  type: ClusterIP
-  # This sets the ports more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/#field-spec-ports
-  port: 80
+global:
+  hostPath:
+    root: /mnt/existing_ebs_volume/supabase/volumes
+  ingressClassName: nginx
 
-# This block is for setting up the ingress for more information can be found here: https://kubernetes.io/docs/concepts/services-networking/ingress/
 ingress:
-  enabled: false
-  className: ""
-  annotations: {}
-    # kubernetes.io/ingress.class: nginx
-    # kubernetes.io/tls-acme: "true"
-  hosts:
-    - host: chart-example.local
-      paths:
-        - path: /
-          pathType: ImplementationSpecific
-  tls: []
-  #  - secretName: chart-example-tls
-  #    hosts:
-  #      - chart-example.local
+  kong:
+    enabled: true
+    host: api.bluestone.systems
+    annotations: {}
+  studio:
+    enabled: true
+    host: studio.bluestone.systems
+    annotations: {}
 
-resources: {}
-  # We usually recommend not to specify default resources and to leave this as a conscious
-  # choice for the user. This also increases chances charts run on environments with little
-  # resources, such as Minikube. If you do want to specify resources, uncomment the following
-  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
-  # limits:
-  #   cpu: 100m
-  #   memory: 128Mi
-  # requests:
-  #   cpu: 100m
-  #   memory: 128Mi
+postgres:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: supabase/postgres
+    tag: 15.8.1.060
+    pullPolicy: IfNotPresent
+  service:
+    port: 5432
+  env:
+    POSTGRES_DB: app
+    POSTGRES_USER: postgres
+    POSTGRES_PASSWORD: change-me
+    JWT_EXPIRY: "3600"
+  hostPath:
+    data: /mnt/existing_ebs_volume/supabase/volumes/db/data
+    config: /mnt/existing_ebs_volume/supabase/volumes/db/config
+    init: /mnt/existing_ebs_volume/supabase/volumes/db/init
+  resources: {}
+  livenessProbe:
+    exec:
+      command: ["sh","-c","pg_isready -U $POSTGRES_USER -d $POSTGRES_DB -h 127.0.0.1 -p 5432"]
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 6
+  readinessProbe:
+    exec:
+      command: ["sh","-c","pg_isready -U $POSTGRES_USER -d $POSTGRES_DB -h 127.0.0.1 -p 5432"]
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    timeoutSeconds: 5
+    failureThreshold: 6
 
-# This is to setup the liveness and readiness probes more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
-livenessProbe:
-  httpGet:
-    path: /
-    port: http
-readinessProbe:
-  httpGet:
-    path: /
-    port: http
+supavisor:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: supabase/supavisor
+    tag: 2.5.7
+    pullPolicy: IfNotPresent
+  service:
+    port: 6543
+  env:
+    DB_POOL_SIZE: "20"
+    DATABASE_URL: postgres://postgres:change-me@supabase-postgres:5432/app
+  hostPath:
+    configFile: /mnt/existing_ebs_volume/supabase/volumes/pooler/pooler.exs
+  waitForDb: true
+  resources: {}
+  livenessProbe:
+    tcpSocket: { port: 6543 }
+    initialDelaySeconds: 5
+    periodSeconds: 10
+  readinessProbe:
+    tcpSocket: { port: 6543 }
+    initialDelaySeconds: 3
+    periodSeconds: 5
 
-# This section is for setting up autoscaling more information can be found here: https://kubernetes.io/docs/concepts/workloads/autoscaling/
-autoscaling:
-  enabled: false
-  minReplicas: 1
-  maxReplicas: 100
-  targetCPUUtilizationPercentage: 80
-  # targetMemoryUtilizationPercentage: 80
+auth:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: supabase/gotrue
+    tag: v2.177.0
+    pullPolicy: IfNotPresent
+  service:
+    port: 9999
+  env:
+    API_EXTERNAL_URL: https://api.bluestone.systems
+    GOTRUE_DB_DRIVER: postgres
+    GOTRUE_DB_DATABASE_URL: postgres://supabase_auth_admin:change-me@supabase-postgres:5432/app
+    GOTRUE_JWT_SECRET: change-me
+  waitForDb: true
+  resources: {}
+  livenessProbe:
+    httpGet: { path: /health, port: 9999 }
+    initialDelaySeconds: 10
+    periodSeconds: 10
+  readinessProbe:
+    httpGet: { path: /health, port: 9999 }
+    initialDelaySeconds: 5
+    periodSeconds: 5
 
-# Additional volumes on the output Deployment definition.
-volumes: []
-# - name: foo
-#   secret:
-#     secretName: mysecret
-#     optional: false
+rest:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: postgrest/postgrest
+    tag: v12.2.12
+    pullPolicy: IfNotPresent
+  service:
+    port: 3000
+  env:
+    PGRST_APP_SETTINGS_JWT_EXP: "3600"
+    PGRST_DB_URI: postgres://postgres:change-me@supabase-postgres:5432/app
+  waitForDb: true
+  resources: {}
+  livenessProbe:
+    tcpSocket: { port: 3000 }
+    initialDelaySeconds: 10
+    periodSeconds: 10
+  readinessProbe:
+    tcpSocket: { port: 3000 }
+    initialDelaySeconds: 5
+    periodSeconds: 5
 
-# Additional volumeMounts on the output Deployment definition.
-volumeMounts: []
-# - name: foo
-#   mountPath: "/etc/foo"
-#   readOnly: true
+realtime:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: supabase/realtime
+    tag: v2.34.47
+    pullPolicy: IfNotPresent
+  service:
+    port: 4000
+  env: {}
+  waitForDb: true
+  resources: {}
+  livenessProbe:
+    httpGet: { path: /api/health, port: 4000 }
+    initialDelaySeconds: 10
+    periodSeconds: 10
+  readinessProbe:
+    httpGet: { path: /api/health, port: 4000 }
+    initialDelaySeconds: 5
+    periodSeconds: 5
 
-nodeSelector: {}
+storage:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: supabase/storage-api
+    tag: v1.25.7
+    pullPolicy: IfNotPresent
+  service:
+    port: 5000
+  env: {}
+  hostPath:
+    data: /mnt/existing_ebs_volume/supabase/volumes/storage
+  waitForDb: true
+  resources: {}
+  livenessProbe:
+    httpGet: { path: /health, port: 5000 }
+    initialDelaySeconds: 10
+    periodSeconds: 10
+  readinessProbe:
+    httpGet: { path: /health, port: 5000 }
+    initialDelaySeconds: 5
+    periodSeconds: 5
 
-tolerations: []
+imgproxy:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: darthsim/imgproxy
+    tag: v3.8.0
+    pullPolicy: IfNotPresent
+  service:
+    port: 8080
+  env: {}
+  resources: {}
+  livenessProbe:
+    tcpSocket: { port: 8080 }
+    initialDelaySeconds: 10
+    periodSeconds: 10
+  readinessProbe:
+    tcpSocket: { port: 8080 }
+    initialDelaySeconds: 5
+    periodSeconds: 5
 
-affinity: {}
+meta:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: supabase/postgres-meta
+    tag: v0.91.0
+    pullPolicy: IfNotPresent
+  service:
+    port: 8080
+  env: {}
+  waitForDb: true
+  resources: {}
+  livenessProbe:
+    httpGet: { path: /ping, port: 8080 }
+    initialDelaySeconds: 10
+    periodSeconds: 10
+  readinessProbe:
+    httpGet: { path: /ping, port: 8080 }
+    initialDelaySeconds: 5
+    periodSeconds: 5
+
+functions:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: supabase/edge-runtime
+    tag: v1.67.4
+    pullPolicy: IfNotPresent
+  service:
+    port: 9000
+  env:
+    VERIFY_JWT: "true"
+  hostPath:
+    functions: /mnt/existing_ebs_volume/supabase/volumes/functions
+  resources: {}
+  livenessProbe:
+    tcpSocket: { port: 9000 }
+    initialDelaySeconds: 10
+    periodSeconds: 10
+  readinessProbe:
+    tcpSocket: { port: 9000 }
+    initialDelaySeconds: 5
+    periodSeconds: 5
+
+analytics:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: supabase/logflare
+    tag: 1.14.2
+    pullPolicy: IfNotPresent
+  service:
+    port: 4000
+  env:
+    LOGFLARE_PUBLIC_ACCESS_TOKEN: change-me
+    LOGFLARE_PRIVATE_ACCESS_TOKEN: change-me
+  resources: {}
+  livenessProbe:
+    httpGet: { path: /health, port: 4000 }
+    initialDelaySeconds: 10
+    periodSeconds: 10
+  readinessProbe:
+    httpGet: { path: /health, port: 4000 }
+    initialDelaySeconds: 5
+    periodSeconds: 5
+
+kong:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: kong
+    tag: 2.8.1
+    pullPolicy: IfNotPresent
+  service:
+    ports:
+      http: 8000
+      https: 8443
+  env:
+    KONG_DATABASE: "off"
+    KONG_DECLARATIVE_CONFIG: /home/kong/kong.yml
+    KONG_PLUGINS: request-transformer,cors,key-auth,acl,basic-auth
+    KONG_DNS_ORDER: LAST,A,CNAME
+    KONG_NGINX_PROXY_PROXY_BUFFER_SIZE: 160k
+    KONG_NGINX_PROXY_PROXY_BUFFERS: "64 160k"
+  hostPath:
+    kongConfigFile: /mnt/existing_ebs_volume/supabase/volumes/api/kong.yml
+  livenessProbe:
+    tcpSocket: { port: 8000 }
+    initialDelaySeconds: 10
+    periodSeconds: 10
+  readinessProbe:
+    tcpSocket: { port: 8000 }
+    initialDelaySeconds: 5
+    periodSeconds: 5
+
+studio:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: supabase/studio
+    tag: 2025.06.30-sha-6f5982d
+    pullPolicy: IfNotPresent
+  service:
+    port: 3000
+  env:
+    STUDIO_PG_META_URL: http://supabase-meta:8080
+    POSTGRES_PASSWORD: change-me
+    SUPABASE_URL: http://supabase-kong:8000
+    SUPABASE_PUBLIC_URL: http://api.bluestone.systems
+    SUPABASE_ANON_KEY: change-me
+    SUPABASE_SERVICE_KEY: change-me
+    AUTH_JWT_SECRET: change-me
+    NEXT_PUBLIC_ENABLE_LOGS: "true"
+  livenessProbe:
+    httpGet: { path: /, port: 3000 }
+    initialDelaySeconds: 15
+    periodSeconds: 10
+  readinessProbe:
+    httpGet: { path: /, port: 3000 }
+    initialDelaySeconds: 5
+    periodSeconds: 5

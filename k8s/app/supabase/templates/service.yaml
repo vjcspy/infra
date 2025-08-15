@@ -1,15 +1,255 @@
+{{- /* Postgres Service */ -}}
+{{- if .Values.postgres.enabled }}
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "supabase.fullname" . }}
+  name: supabase-postgres
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
 spec:
-  type: {{ .Values.service.type }}
+  type: ClusterIP
   ports:
-    - port: {{ .Values.service.port }}
-      targetPort: http
+    - port: {{ .Values.postgres.service.port }}
+      targetPort: {{ .Values.postgres.service.port }}
+      protocol: TCP
+      name: tcp
+  selector:
+    app.kubernetes.io/name: supabase-postgres
+    app.kubernetes.io/instance: {{ .Release.Name }}
+---
+{{- end }}
+
+{{- /* Supavisor Service */ -}}
+{{- if .Values.supavisor.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: supabase-supavisor
+  labels:
+    {{- include "supabase.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.supavisor.service.port }}
+      targetPort: {{ .Values.supavisor.service.port }}
+      protocol: TCP
+      name: tcp
+  selector:
+    app.kubernetes.io/name: supabase-supavisor
+    app.kubernetes.io/instance: {{ .Release.Name }}
+---
+{{- end }}
+
+{{- /* Auth Service */ -}}
+{{- if .Values.auth.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: supabase-auth
+  labels:
+    {{- include "supabase.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.auth.service.port }}
+      targetPort: {{ .Values.auth.service.port }}
       protocol: TCP
       name: http
   selector:
-    {{- include "supabase.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/name: supabase-auth
+    app.kubernetes.io/instance: {{ .Release.Name }}
+---
+{{- end }}
+
+{{- /* PostgREST Service */ -}}
+{{- if .Values.rest.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: supabase-rest
+  labels:
+    {{- include "supabase.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.rest.service.port }}
+      targetPort: {{ .Values.rest.service.port }}
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: supabase-rest
+    app.kubernetes.io/instance: {{ .Release.Name }}
+---
+{{- end }}
+
+{{- /* Realtime Service */ -}}
+{{- if .Values.realtime.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: supabase-realtime
+  labels:
+    {{- include "supabase.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.realtime.service.port }}
+      targetPort: {{ .Values.realtime.service.port }}
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: supabase-realtime
+    app.kubernetes.io/instance: {{ .Release.Name }}
+---
+{{- end }}
+
+{{- /* Storage API Service */ -}}
+{{- if .Values.storage.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: supabase-storage
+  labels:
+    {{- include "supabase.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.storage.service.port }}
+      targetPort: {{ .Values.storage.service.port }}
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: supabase-storage
+    app.kubernetes.io/instance: {{ .Release.Name }}
+---
+{{- end }}
+
+{{- /* Imgproxy Service */ -}}
+{{- if .Values.imgproxy.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: supabase-imgproxy
+  labels:
+    {{- include "supabase.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.imgproxy.service.port }}
+      targetPort: {{ .Values.imgproxy.service.port }}
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: supabase-imgproxy
+    app.kubernetes.io/instance: {{ .Release.Name }}
+---
+{{- end }}
+
+{{- /* Meta Service */ -}}
+{{- if .Values.meta.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: supabase-meta
+  labels:
+    {{- include "supabase.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.meta.service.port }}
+      targetPort: {{ .Values.meta.service.port }}
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: supabase-meta
+    app.kubernetes.io/instance: {{ .Release.Name }}
+---
+{{- end }}
+
+{{- /* Functions Service */ -}}
+{{- if .Values.functions.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: supabase-functions
+  labels:
+    {{- include "supabase.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.functions.service.port }}
+      targetPort: {{ .Values.functions.service.port }}
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: supabase-functions
+    app.kubernetes.io/instance: {{ .Release.Name }}
+---
+{{- end }}
+
+{{- /* Analytics Service */ -}}
+{{- if .Values.analytics.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: supabase-analytics
+  labels:
+    {{- include "supabase.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.analytics.service.port }}
+      targetPort: {{ .Values.analytics.service.port }}
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: supabase-analytics
+    app.kubernetes.io/instance: {{ .Release.Name }}
+---
+{{- end }}
+
+{{- /* Kong Service */ -}}
+{{- if .Values.kong.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: supabase-kong
+  labels:
+    {{- include "supabase.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.kong.service.ports.http }}
+      targetPort: {{ .Values.kong.service.ports.http }}
+      protocol: TCP
+      name: http
+    - port: {{ .Values.kong.service.ports.https }}
+      targetPort: {{ .Values.kong.service.ports.https }}
+      protocol: TCP
+      name: https
+  selector:
+    app.kubernetes.io/name: supabase-kong
+    app.kubernetes.io/instance: {{ .Release.Name }}
+---
+{{- end }}
+
+{{- /* Studio Service */ -}}
+{{- if .Values.studio.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: supabase-studio
+  labels:
+    {{- include "supabase.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.studio.service.port }}
+      targetPort: {{ .Values.studio.service.port }}
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: supabase-studio
+    app.kubernetes.io/instance: {{ .Release.Name }}
+---
+{{- end }}
