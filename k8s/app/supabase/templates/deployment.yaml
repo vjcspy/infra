@@ -167,21 +167,6 @@ spec:
             - containerPort: {{ .Values.realtime.service.port }}
           env:
 {{ include "supabase.renderServiceEnv" (list . "realtime") | indent 12 }}
-            - name: DB_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: supabase-secrets
-                  key: POSTGRES_PASSWORD
-            - name: API_JWT_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: supabase-secrets
-                  key: JWT_SECRET
-            - name: SECRET_KEY_BASE
-              valueFrom:
-                secretKeyRef:
-                  name: supabase-secrets
-                  key: SECRET_KEY_BASE
           {{- with .Values.realtime.livenessProbe }}
           livenessProbe:
             {{ toYaml . | nindent 12 }}
@@ -242,11 +227,6 @@ spec:
             - containerPort: {{ .Values.meta.service.port }}
           env:
 {{ include "supabase.renderServiceEnv" (list . "meta") | indent 12 }}
-            - name: PG_META_DB_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: supabase-secrets
-                  key: POSTGRES_PASSWORD
           {{- with .Values.meta.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
