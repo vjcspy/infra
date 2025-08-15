@@ -1,4 +1,4 @@
-{{- /* Postgres Service */ -}}
+{{- /* Postgres Service - Internal */ -}}
 {{- if .Values.postgres.enabled }}
 apiVersion: v1
 kind: Service
@@ -19,28 +19,7 @@ spec:
 ---
 {{- end }}
 
-{{- /* Supavisor Service */ -}}
-{{- if .Values.supavisor.enabled }}
-apiVersion: v1
-kind: Service
-metadata:
-  name: supabase-supavisor
-  labels:
-    {{- include "supabase.labels" . | nindent 4 }}
-spec:
-  type: ClusterIP
-  ports:
-    - port: {{ .Values.supavisor.service.port }}
-      targetPort: {{ .Values.supavisor.service.port }}
-      protocol: TCP
-      name: tcp
-  selector:
-    app.kubernetes.io/name: supabase
-    app.kubernetes.io/instance: {{ .Release.Name }}
----
-{{- end }}
-
-{{- /* Auth Service */ -}}
+{{- /* Auth Service - Internal */ -}}
 {{- if .Values.auth.enabled }}
 apiVersion: v1
 kind: Service
@@ -61,7 +40,7 @@ spec:
 ---
 {{- end }}
 
-{{- /* PostgREST Service */ -}}
+{{- /* PostgREST Service - Internal */ -}}
 {{- if .Values.rest.enabled }}
 apiVersion: v1
 kind: Service
@@ -82,7 +61,7 @@ spec:
 ---
 {{- end }}
 
-{{- /* Realtime Service */ -}}
+{{- /* Realtime Service - Internal */ -}}
 {{- if .Values.realtime.enabled }}
 apiVersion: v1
 kind: Service
@@ -103,7 +82,7 @@ spec:
 ---
 {{- end }}
 
-{{- /* Storage API Service */ -}}
+{{- /* Storage API Service - Internal */ -}}
 {{- if .Values.storage.enabled }}
 apiVersion: v1
 kind: Service
@@ -124,7 +103,7 @@ spec:
 ---
 {{- end }}
 
-{{- /* Imgproxy Service */ -}}
+{{- /* Imgproxy Service - Internal */ -}}
 {{- if .Values.imgproxy.enabled }}
 apiVersion: v1
 kind: Service
@@ -145,7 +124,7 @@ spec:
 ---
 {{- end }}
 
-{{- /* Meta Service */ -}}
+{{- /* Meta Service - Internal */ -}}
 {{- if .Values.meta.enabled }}
 apiVersion: v1
 kind: Service
@@ -166,7 +145,7 @@ spec:
 ---
 {{- end }}
 
-{{- /* Functions Service */ -}}
+{{- /* Functions Service - Internal */ -}}
 {{- if .Values.functions.enabled }}
 apiVersion: v1
 kind: Service
@@ -187,7 +166,28 @@ spec:
 ---
 {{- end }}
 
-{{- /* Analytics Service */ -}}
+{{- /* Studio Service - Internal */ -}}
+{{- if .Values.studio.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: supabase-studio
+  labels:
+    {{- include "supabase.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.studio.service.port }}
+      targetPort: {{ .Values.studio.service.port }}
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: supabase
+    app.kubernetes.io/instance: {{ .Release.Name }}
+---
+{{- end }}
+
+{{- /* Analytics Service - Exposed in docker-compose */ -}}
 {{- if .Values.analytics.enabled }}
 apiVersion: v1
 kind: Service
@@ -208,7 +208,7 @@ spec:
 ---
 {{- end }}
 
-{{- /* Kong Service */ -}}
+{{- /* Kong Service - Exposed in docker-compose */ -}}
 {{- if .Values.kong.enabled }}
 apiVersion: v1
 kind: Service
@@ -233,21 +233,25 @@ spec:
 ---
 {{- end }}
 
-{{- /* Studio Service */ -}}
-{{- if .Values.studio.enabled }}
+{{- /* Supavisor Service - Exposed in docker-compose with 2 ports */ -}}
+{{- if .Values.supavisor.enabled }}
 apiVersion: v1
 kind: Service
 metadata:
-  name: supabase-studio
+  name: supabase-supavisor
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
 spec:
   type: ClusterIP
   ports:
-    - port: {{ .Values.studio.service.port }}
-      targetPort: {{ .Values.studio.service.port }}
+    - port: 5432
+      targetPort: 5432
       protocol: TCP
-      name: http
+      name: postgres
+    - port: {{ .Values.supavisor.service.port }}
+      targetPort: {{ .Values.supavisor.service.port }}
+      protocol: TCP
+      name: pooler
   selector:
     app.kubernetes.io/name: supabase
     app.kubernetes.io/instance: {{ .Release.Name }}

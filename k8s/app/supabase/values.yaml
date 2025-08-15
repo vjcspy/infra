@@ -69,22 +69,22 @@ postgres:
     poolerSql: /mnt/existing_ebs_volume/supabase/volumes/db/pooler.sql
   # Command from docker-compose
   command:
-    - postgres
-    - "-c"
-    - "config_file=/etc/postgresql/postgresql.conf"
-    - "-c"
-    - "log_min_messages=fatal"  # prevents Realtime polling queries from appearing in logs
+  - postgres
+  - "-c"
+  - "config_file=/etc/postgresql/postgresql.conf"
+  - "-c"
+  - "log_min_messages=fatal" # prevents Realtime polling queries from appearing in logs
   resources: {}
   livenessProbe:
     exec:
-      command: ["pg_isready", "-U", "postgres", "-h", "localhost"]
+      command: [ "pg_isready", "-U", "postgres", "-h", "localhost" ]
     initialDelaySeconds: 10
     periodSeconds: 5
     timeoutSeconds: 5
     failureThreshold: 10
   readinessProbe:
     exec:
-      command: ["pg_isready", "-U", "postgres", "-h", "localhost"]
+      command: [ "pg_isready", "-U", "postgres", "-h", "localhost" ]
     initialDelaySeconds: 5
     periodSeconds: 5
     timeoutSeconds: 5
@@ -118,9 +118,9 @@ supavisor:
     configFile: /mnt/existing_ebs_volume/supabase/volumes/pooler/pooler.exs
   # Command from docker-compose
   command:
-    - /bin/sh
-    - "-c"
-    - "/app/bin/migrate && /app/bin/supavisor eval \"$(cat /etc/pooler/pooler.exs)\" && /app/bin/server"
+  - /bin/sh
+  - "-c"
+  - "/app/bin/migrate && /app/bin/supavisor eval \"$(cat /etc/pooler/pooler.exs)\" && /app/bin/server"
   waitForDb: true
   resources: {}
   livenessProbe:
@@ -211,7 +211,7 @@ rest:
     tag: v12.2.12
     pullPolicy: IfNotPresent
   service:
-    port: 3000
+    port: 3001 # Changed from 3000 to avoid conflict with studio
   env:
     # Database Configuration
     PGRST_DB_SCHEMAS: public,storage,graphql_public
@@ -219,19 +219,19 @@ rest:
     PGRST_DB_USE_LEGACY_GUCS: "false"
   # Command from docker-compose
   command:
-    - postgrest
+  - postgrest
   waitForDb: true
   resources: {}
   livenessProbe:
     tcpSocket:
-      port: 3000
+      port: 3001
     initialDelaySeconds: 10
     periodSeconds: 10
     timeoutSeconds: 5
     failureThreshold: 3
   readinessProbe:
     tcpSocket:
-      port: 3000
+      port: 3001
     initialDelaySeconds: 5
     periodSeconds: 5
     timeoutSeconds: 5
@@ -245,7 +245,7 @@ realtime:
     tag: v2.34.47
     pullPolicy: IfNotPresent
   service:
-    port: 4000
+    port: 4001 # Changed from 4000 to avoid conflict with analytics
   env:
     # Port Configuration
     PORT: "4000"
@@ -351,14 +351,14 @@ imgproxy:
   resources: {}
   livenessProbe:
     exec:
-      command: ["imgproxy", "health"]
+      command: [ "imgproxy", "health" ]
     initialDelaySeconds: 10
     periodSeconds: 10
     timeoutSeconds: 5
     failureThreshold: 3
   readinessProbe:
     exec:
-      command: ["imgproxy", "health"]
+      command: [ "imgproxy", "health" ]
     initialDelaySeconds: 5
     periodSeconds: 5
     timeoutSeconds: 5
@@ -418,9 +418,9 @@ functions:
     functions: /mnt/existing_ebs_volume/supabase/volumes/functions
   # Command from docker-compose
   command:
-    - start
-    - "--main-service"
-    - "/home/deno/functions/main"
+  - start
+  - "--main-service"
+  - "/home/deno/functions/main"
   resources: {}
   livenessProbe:
     tcpSocket:
@@ -516,9 +516,9 @@ kong:
     kongConfigFile: /mnt/existing_ebs_volume/supabase/volumes/api/kong.yml
   # Command from docker-compose - using entrypoint
   command:
-    - bash
-    - "-c"
-    - 'eval "echo \"$(cat ~/temp.yml)\"" > ~/kong.yml && /docker-entrypoint.sh kong docker-start'
+  - bash
+  - "-c"
+  - 'eval "echo \"$(cat ~/temp.yml)\"" > ~/kong.yml && /docker-entrypoint.sh kong docker-start'
   livenessProbe:
     tcpSocket:
       port: 8000
