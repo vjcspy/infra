@@ -151,7 +151,7 @@ spec:
           ports:
             - containerPort: {{ .Values.rest.service.port }}
               name: rest-port
-          command:
+          args:
             - postgrest
           env:
           {{ include "supabase.renderServiceEnv" (list . "rest") | indent 12 }}
