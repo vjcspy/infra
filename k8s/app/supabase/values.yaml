@@ -29,11 +29,7 @@ global:
 ingress:
   kong:
     enabled: true
-    host: api.bluestone.systems
-    annotations: { }
-  studio:
-    enabled: true
-    host: studio.bluestone.systems
+    host: db.bluestone.systems
     annotations: { }
 
 postgres:
@@ -125,7 +121,7 @@ auth:
     # API Configuration
     GOTRUE_API_HOST: 0.0.0.0
     GOTRUE_API_PORT: "9999"
-    API_EXTERNAL_URL: https://api.bluestone.systems
+    API_EXTERNAL_URL: https://db.bluestone.systems
     # Database Configuration
     GOTRUE_DB_DRIVER: postgres
     # JWT Configuration
@@ -487,7 +483,7 @@ studio:
     OPENAI_API_KEY: ""
     # Supabase URLs
     SUPABASE_URL: http://kong:8000
-    SUPABASE_PUBLIC_URL: https://api.bluestone.systems
+    SUPABASE_PUBLIC_URL: https://db.bluestone.systems
     # Logflare Configuration
     LOGFLARE_PRIVATE_ACCESS_TOKEN: your-super-secret-and-long-logflare-key-private
     LOGFLARE_URL: http://analytics:4000

@@ -16,8 +16,7 @@ This plan describes how we will migrate the official Supabase Docker Compose sta
   - Use a custom values file to override sensitive values during deployment
   - Clean, readable structure with all configuration in one place
 - Public exposure
-  - Kong (API Gateway): `api.bluestone.systems`
-  - Studio UI: `studio.bluestone.systems`
+  - Kong (API Gateway): `db.bluestone.systems`
   - Do not use subdomain `db`
 - Services to deploy immediately
   - Postgres (Deployment)
@@ -86,7 +85,7 @@ InitContainers
   - Note: Other components no longer perform EBS mount checks; Postgres validates the hostPath mount and others rely on the same volume root.
 - wait-for-db (for DB dependents):
   - Image: `busybox:1.37.0`
-  - Command: loop until TCP connect to `supabase-postgres:5432` (Service DNS) succeeds
+  - Command: loop until TCP connect to `postgres:5432` (Service DNS) succeeds
   - Enabled by default for: Auth, PostgREST, Realtime, Storage, Meta, Supavisor
 - depends_on (docker-compose-like) via kubectl rollout:
   - Image: `bitnami/kubectl:latest`
@@ -108,8 +107,7 @@ InitContainers
 - `ingressClassName: nginx`
 - No TLS blocks
 - Hosts:
-  - Kong: `api.bluestone.systems` → Service port 8000 (HTTP)
-  - Studio: `studio.bluestone.systems` → Studio Service port (default 3000)
+  - Kong: `db.bluestone.systems` → Service port 8000 (HTTP)
 
 ## Kubernetes resources
 
@@ -129,7 +127,8 @@ InitContainers
 - One Service per component (ClusterIP), each in its own template file:
   - `service-postgres.yaml`, `service-supavisor.yaml`, `service-auth.yaml`, `service-rest.yaml`, `service-realtime.yaml`, `service-storage.yaml`, `service-imgproxy.yaml`, `service-meta.yaml`, `service-functions.yaml`, `service-analytics.yaml`, `service-kong.yaml`, `service-studio.yaml`
 - Optional always-on debug Deployment for troubleshooting: `deployment-debug.yaml` (gated by `.Values.debug.enabled`)
-- Two Ingress objects (Kong at `api.bluestone.systems`, Studio at `studio.bluestone.systems`)
+- Two Ingress objects (Kong at `db.bluestone.systems`)
+  - Ingress names: `kong` and `studio`
 
 Labeling and selectors:
 - All Deployments/Pods and Services include:
@@ -150,8 +149,7 @@ Top-level keys:
 - `global.hostPath.root` → `/mnt/existing_ebs_volume/supabase/volumes`
 - `global.ingressClassName` → `nginx`
 - `ingress`:
-  - `kong.host`: `api.bluestone.systems`
-  - `studio.host`: `studio.bluestone.systems`
+  - `kong.host`: `db.bluestone.systems`
 - A section per service with:
   - `enabled`
   - `image: { repository, tag, pullPolicy }`
@@ -180,9 +178,7 @@ global:
 
 ingress:
   kong:
-    host: api.bluestone.systems
-  studio:
-    host: studio.bluestone.systems
+    host: db.bluestone.systems
 
 postgres:
   enabled: true
@@ -209,7 +205,7 @@ auth:
   image: { repository: supabase/gotrue, tag: v2.177.0, pullPolicy: IfNotPresent }
   service: { port: 9999 }
   env:
-    API_EXTERNAL_URL: https://api.bluestone.systems
+    API_EXTERNAL_URL: https://db.bluestone.systems
     GOTRUE_DB_DRIVER: postgres
     GOTRUE_DB_DATABASE_URL: "{{ include \"supabase.auth.databaseUrl\" . }}"
     GOTRUE_JWT_SECRET: "{{ .Values.secrets.jwtSecret }}"
@@ -274,7 +270,7 @@ Legacy compatibility:
 
 Validation:
 - Render templates with Helm to verify resources and selectors.
-- Deploy to a test namespace and verify inter-service DNS (e.g., `supabase-rest`, `supabase-postgres`).
+- Deploy to a test namespace and verify inter-service DNS (e.g., `rest`, `postgres`).
 
 ## Notes
 
