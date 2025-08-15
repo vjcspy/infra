@@ -176,26 +176,30 @@ Create the name of the service account to use
 {{/*
 Build database URLs and complex environment variables from values
 */}}
+{{- define "supabase.dbHost" -}}
+{{- default "supabase-postgres" .Values.postgres.serviceHostname -}}
+{{- end }}
+
 {{- define "supabase.auth.databaseUrl" -}}
-postgres://supabase_auth_admin:{{ .Values.secrets.postgresPassword }}@supabase-postgres:5432/{{ .Values.postgres.env.POSTGRES_DB }}
+postgres://supabase_auth_admin:{{ .Values.secrets.postgresPassword }}@{{ include "supabase.dbHost" . }}:5432/{{ .Values.postgres.env.POSTGRES_DB }}
 {{- end }}
 
 {{- define "supabase.rest.databaseUri" -}}
-postgres://authenticator:{{ .Values.secrets.postgresPassword }}@supabase-postgres:5432/{{ .Values.postgres.env.POSTGRES_DB }}
+postgres://authenticator:{{ .Values.secrets.postgresPassword }}@{{ include "supabase.dbHost" . }}:5432/{{ .Values.postgres.env.POSTGRES_DB }}
 {{- end }}
 
 {{- define "supabase.storage.databaseUrl" -}}
-postgres://supabase_storage_admin:{{ .Values.secrets.postgresPassword }}@supabase-postgres:5432/{{ .Values.postgres.env.POSTGRES_DB }}
+postgres://supabase_storage_admin:{{ .Values.secrets.postgresPassword }}@{{ include "supabase.dbHost" . }}:5432/{{ .Values.postgres.env.POSTGRES_DB }}
 {{- end }}
 
 {{- define "supabase.functions.databaseUrl" -}}
-postgresql://postgres:{{ .Values.secrets.postgresPassword }}@supabase-postgres:5432/{{ .Values.postgres.env.POSTGRES_DB }}
+postgresql://postgres:{{ .Values.secrets.postgresPassword }}@{{ include "supabase.dbHost" . }}:5432/{{ .Values.postgres.env.POSTGRES_DB }}
 {{- end }}
 
 {{- define "supabase.analytics.databaseUrl" -}}
-postgresql://supabase_admin:{{ .Values.secrets.postgresPassword }}@supabase-postgres:5432/_supabase
+postgresql://supabase_admin:{{ .Values.secrets.postgresPassword }}@{{ include "supabase.dbHost" . }}:5432/_supabase
 {{- end }}
 
 {{- define "supabase.supavisor.databaseUrl" -}}
-ecto://supabase_admin:{{ .Values.secrets.postgresPassword }}@supabase-postgres:5432/_supabase
+ecto://supabase_admin:{{ .Values.secrets.postgresPassword }}@{{ include "supabase.dbHost" . }}:5432/_supabase
 {{- end }}

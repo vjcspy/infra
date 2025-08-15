@@ -8,6 +8,7 @@ metadata:
     {{- include "supabase.labels" . | nindent 4 }}
 spec:
   type: ClusterIP
+  publishNotReadyAddresses: true
   ports:
     - port: {{ .Values.postgres.service.port }}
       targetPort: {{ .Values.postgres.service.port }}
@@ -16,7 +17,6 @@ spec:
   selector:
     app.kubernetes.io/name: supabase
     app.kubernetes.io/instance: {{ .Release.Name }}
----
 {{- end }}
 
 {{- /* Auth Service - Internal */ -}}
