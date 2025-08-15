@@ -23,15 +23,7 @@ spec:
     spec:
       serviceAccountName: {{ include "supabase.serviceAccountName" . }}
       initContainers:
-        - name: init-ebs-check
-          image: busybox:1.37.0
-          command:
-            - sh
-            - -c
-            - for i in $(seq 1 5); do echo Checking EBS mount attempt $i; if [ -f /host_ebs_volume/DONT_DELETE ]; then echo OK; exit 0; fi; sleep 10; done; echo FAIL; exit 1
-          volumeMounts:
-            - name: host-ebs-root
-              mountPath: /host_ebs_volume
+      {{ include "supabase.waitForDeployment" (list . "supabase-analytics") | nindent 8 }}
       containers:
         - name: kong
           image: "{{ .Values.kong.image.repository }}:{{ .Values.kong.image.tag }}"

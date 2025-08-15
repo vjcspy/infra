@@ -23,9 +23,7 @@ spec:
     spec:
       serviceAccountName: {{ include "supabase.serviceAccountName" . }}
       initContainers:
-      {{- if .Values.rest.waitForDb }}
-      {{ include "supabase.waitForDb" (include "supabase.dbHost" .) | nindent 6 }}
-      {{- end }}
+{{ include "supabase.waitForDeployment" (list . "supabase-analytics") | nindent 8 }}
       containers:
         - name: rest
           image: "{{ .Values.rest.image.repository }}:{{ .Values.rest.image.tag }}"

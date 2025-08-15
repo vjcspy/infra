@@ -78,16 +78,30 @@ This approach eliminates the need for separate Kubernetes secret creation and ma
 
 We’ll require a sentinel file at `/mnt/existing_ebs_volume/DONT_DELETE` for the EBS mount check.
 
-## InitContainers
+InitContainers
 
-- EBS mount check (attached to pods with hostPath):
+- EBS mount check (only once, on Postgres):
   - Image: `busybox:1.37.0`
   - Mount: directory `/mnt/existing_ebs_volume` as `/host_ebs_volume`
   - Command: loop-check for `/host_ebs_volume/DONT_DELETE` up to 5 attempts
+  - Note: Other components no longer perform EBS mount checks; Postgres validates the hostPath mount and others rely on the same volume root.
 - wait-for-db (for DB dependents):
   - Image: `busybox:1.37.0`
   - Command: loop until TCP connect to `supabase-postgres:5432` (Service DNS) succeeds
   - Enabled by default for: Auth, PostgREST, Realtime, Storage, Meta, Supavisor
+- depends_on (docker-compose-like) via kubectl rollout:
+  - Image: `bitnami/kubectl:latest`
+  - Command: `kubectl rollout status deployment/<name> --namespace={{ .Release.Namespace }} --timeout=300s`
+  - Used to enforce startup ordering similar to docker-compose:
+    - studio → analytics
+    - kong → analytics
+    - auth → postgres, analytics
+    - rest → postgres, analytics
+    - realtime → postgres, analytics
+    - storage → postgres, rest, imgproxy
+    - meta → postgres, analytics
+    - functions → analytics
+    - supavisor → postgres, analytics
 
 ## Ingress
 

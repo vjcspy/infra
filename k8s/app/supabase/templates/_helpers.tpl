@@ -1,4 +1,4 @@
-e{{/*
+{{/*
 Expand the name of the chart.
 */}}
 {{- define "supabase.name" -}}
@@ -168,16 +168,41 @@ Create the name of the service account to use
 
 {{/* Init container to wait for Postgres TCP port to be reachable */}}
 {{- define "supabase.waitForDb" -}}
-				- name: wait-for-db
-					image: busybox:1.37.0
-					command: ["sh","-c","for i in $(seq 1 60); do nc -z -w 2 {{ . | default "supabase-postgres" }} 5432 && exit 0; echo waiting for db; sleep 2; done; echo timed out; exit 1"]
+- name: wait-for-db
+  image: busybox:1.37.0
+  command:
+    - sh
+    - -c
+    - |
+      for i in $(seq 1 60); do
+        nc -z -w 2 {{ . | default "supabase-postgres" }} 5432 && exit 0
+        echo "[wait-for-db] waiting for db... ($i)"
+        sleep 2
+      done
+      echo "[wait-for-db] timed out waiting for db"
+      exit 1
+{{- end }}
+
+{{/* Init container to wait for a specific Deployment to be Ready via kubectl */}}
+{{- define "supabase.waitForDeployment" -}}
+{{- $root := index . 0 -}}
+{{- $dep := index . 1 -}}
+- name: wait-for-{{ $dep }}
+  image: bitnami/kubectl:latest
+  command: ["/bin/bash", "-c"]
+  args: ["echo 'Waiting for {{ $dep }} to be ready in namespace {{ $root.Release.Namespace }}...'; kubectl rollout status deployment/{{ $dep }} --namespace={{ $root.Release.Namespace }} --timeout=300s; echo '{{ $dep }} is ready.'"]
 {{- end }}
 
 {{/*
 Build database URLs and complex environment variables from values
 */}}
 {{- define "supabase.dbHost" -}}
-{{- default "supabase-postgres" .Values.postgres.serviceHostname -}}
+{{- $svcHostname := (index .Values "postgres" "serviceHostname") | default "" -}}
+{{- if $svcHostname -}}
+{{ $svcHostname }}
+{{- else -}}
+supabase-postgres
+{{- end -}}
 {{- end }}
 
 {{- define "supabase.auth.databaseUrl" -}}

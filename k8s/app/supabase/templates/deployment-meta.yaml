@@ -22,6 +22,8 @@ spec:
         app.kubernetes.io/component: meta
     spec:
       serviceAccountName: {{ include "supabase.serviceAccountName" . }}
+      initContainers:
+{{ include "supabase.waitForDeployment" (list . "supabase-analytics") | nindent 6 }}
       containers:
         - name: meta
           image: "{{ .Values.meta.image.repository }}:{{ .Values.meta.image.tag }}"

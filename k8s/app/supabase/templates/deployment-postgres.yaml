@@ -25,18 +25,52 @@ spec:
       initContainers:
         - name: init-ebs-check
           image: busybox:1.37.0
-          command: [ "sh","-c","for i in $(seq 1 5); do echo Checking EBS mount attempt $i; if [ -f /host_ebs_volume/DONT_DELETE ]; then echo OK; exit 0; fi; sleep 10; done; echo FAIL; exit 1" ]
+          command:
+            - sh
+            - -c
+            - |
+              for i in $(seq 1 5); do
+                echo "[init-ebs-check] Checking EBS mount attempt $i"
+                if [ -f /host_ebs_volume/DONT_DELETE ]; then
+                  echo "[init-ebs-check] EBS mount OK"
+                  exit 0
+                fi
+                sleep 10
+              done
+              echo "[init-ebs-check] FAIL: sentinel not found"
+              exit 1
           volumeMounts:
             - name: host-ebs-root
               mountPath: /host_ebs_volume
         - name: init-postgres-config
           image: "{{ .Values.postgres.image.repository }}:{{ .Values.postgres.image.tag }}"
           imagePullPolicy: {{ .Values.postgres.image.pullPolicy }}
-          command: [
-            "sh",
-            "-c",
-            "set -e; echo \"[init-postgres-config] Preparing /work-config\"; mkdir -p /work-config; if [ -z \"$(ls -A /work-config 2>/dev/null)\" ]; then echo \"[init-postgres-config] Empty /work-config, seeding defaults from /etc/postgresql-custom\"; cp -a /etc/postgresql-custom/. /work-config/; else echo \"[init-postgres-config] /work-config already has content, skipping seed\"; fi; echo \"[init-postgres-config] Final /work-config contents:\"; ls -la /work-config; echo \"[init-postgres-config] Preparing /work-data\"; mkdir -p /work-data; if [ -z \"$(ls -A /work-data 2>/dev/null)\" ]; then echo \"[init-postgres-config] Empty /work-data, seeding defaults from /var/lib/postgresql/data\"; cp -a /var/lib/postgresql/data/. /work-data/ || true; else echo \"[init-postgres-config] /work-data already has content, skipping seed\"; fi; echo \"[init-postgres-config] Final /work-data contents:\"; ls -la /work-data"
-          ]
+          command:
+            - sh
+            - -c
+            - |
+              set -e
+              echo "[init-postgres-config] Preparing /work-config"
+              mkdir -p /work-config
+              if [ -z "$(ls -A /work-config 2>/dev/null)" ]; then
+                echo "[init-postgres-config] Empty /work-config, seeding defaults from /etc/postgresql-custom"
+                cp -a /etc/postgresql-custom/. /work-config/
+              else
+                echo "[init-postgres-config] /work-config already has content, skipping seed"
+              fi
+              echo "[init-postgres-config] Final /work-config contents:"
+              ls -la /work-config
+
+              echo "[init-postgres-config] Preparing /work-data"
+              mkdir -p /work-data
+              if [ -z "$(ls -A /work-data 2>/dev/null)" ]; then
+                echo "[init-postgres-config] Empty /work-data, seeding defaults from /var/lib/postgresql/data"
+                cp -a /var/lib/postgresql/data/. /work-data/ || true
+              else
+                echo "[init-postgres-config] /work-data already has content, skipping seed"
+              fi
+              echo "[init-postgres-config] Final /work-data contents:"
+              ls -la /work-data
           volumeMounts:
             - name: supabase-root
               mountPath: /work-config

@@ -22,6 +22,8 @@ spec:
         app.kubernetes.io/component: studio
     spec:
       serviceAccountName: {{ include "supabase.serviceAccountName" . }}
+      initContainers:
+      {{ include "supabase.waitForDeployment" (list . "supabase-analytics") | nindent 8 }}
       containers:
         - name: studio
           image: "{{ .Values.studio.image.repository }}:{{ .Values.studio.image.tag }}"
