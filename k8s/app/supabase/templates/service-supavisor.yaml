@@ -17,7 +17,9 @@ spec:
     - name: postgres-port
       port: 5432
       targetPort: 5432
+      nodePort: 32362
     - name: pooler-port
       port: {{ .Values.supavisor.service.port }}
       targetPort: {{ .Values.supavisor.service.port }}
+      nodePort: 32363
 {{- end }}
