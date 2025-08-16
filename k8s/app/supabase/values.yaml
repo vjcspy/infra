@@ -100,6 +100,7 @@ supavisor:
     port: 6543
   env:
     # Main configuration
+    POSTGRES_HOST: postgres
     PORT: "4000"
     POSTGRES_PORT: "5432"
     POSTGRES_DB: postgres
