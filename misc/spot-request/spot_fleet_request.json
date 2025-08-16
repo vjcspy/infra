@@ -8,7 +8,7 @@
   "Type": "maintain",
   "LaunchSpecifications": [
     {
-      "ImageId": "ami-07b1a1d64127111f3",
+      "ImageId": "ami-0baaeba7111a53fb7",
       "KeyName": "mt",
       "BlockDeviceMappings": [
         {
@@ -16,7 +16,7 @@
           "Ebs": {
             "DeleteOnTermination": true,
             "Iops": 3000,
-            "SnapshotId": "snap-06aaf8a32d8d8c3f7",
+            "SnapshotId": "snap-0a03fecce36096c4a",
             "VolumeSize": 60,
             "VolumeType": "gp3",
             "Encrypted": false,
@@ -30,10 +30,10 @@
           "GroupId": "sg-0ee6bd6033c82bbf2"
         }
       ],
-      "InstanceType": "c7i-flex.2xlarge"
+      "InstanceType": "m6i.2xlarge"
     },
     {
-      "ImageId": "ami-07b1a1d64127111f3",
+      "ImageId": "ami-0baaeba7111a53fb7",
       "KeyName": "mt",
       "BlockDeviceMappings": [
         {
@@ -41,32 +41,7 @@
           "Ebs": {
             "DeleteOnTermination": true,
             "Iops": 3000,
-            "SnapshotId": "snap-06aaf8a32d8d8c3f7",
-            "VolumeSize": 60,
-            "VolumeType": "gp3",
-            "Encrypted": false,
-            "Throughput": 125
-          }
-        }
-      ],
-      "SubnetId": "subnet-b8c272e1",
-      "SecurityGroups": [
-        {
-          "GroupId": "sg-0ee6bd6033c82bbf2"
-        }
-      ],
-      "InstanceType": "c6a.4xlarge"
-    },
-    {
-      "ImageId": "ami-07b1a1d64127111f3",
-      "KeyName": "mt",
-      "BlockDeviceMappings": [
-        {
-          "DeviceName": "/dev/xvda",
-          "Ebs": {
-            "DeleteOnTermination": true,
-            "Iops": 3000,
-            "SnapshotId": "snap-06aaf8a32d8d8c3f7",
+            "SnapshotId": "snap-0a03fecce36096c4a",
             "VolumeSize": 60,
             "VolumeType": "gp3",
             "Encrypted": false,
@@ -83,7 +58,7 @@
       "InstanceType": "m7i-flex.2xlarge"
     },
     {
-      "ImageId": "ami-07b1a1d64127111f3",
+      "ImageId": "ami-0baaeba7111a53fb7",
       "KeyName": "mt",
       "BlockDeviceMappings": [
         {
@@ -91,7 +66,32 @@
           "Ebs": {
             "DeleteOnTermination": true,
             "Iops": 3000,
-            "SnapshotId": "snap-06aaf8a32d8d8c3f7",
+            "SnapshotId": "snap-0a03fecce36096c4a",
+            "VolumeSize": 60,
+            "VolumeType": "gp3",
+            "Encrypted": false,
+            "Throughput": 125
+          }
+        }
+      ],
+      "SubnetId": "subnet-b8c272e1",
+      "SecurityGroups": [
+        {
+          "GroupId": "sg-0ee6bd6033c82bbf2"
+        }
+      ],
+      "InstanceType": "m7i-flex.2xlarge"
+    },
+    {
+      "ImageId": "ami-0baaeba7111a53fb7",
+      "KeyName": "mt",
+      "BlockDeviceMappings": [
+        {
+          "DeviceName": "/dev/xvda",
+          "Ebs": {
+            "DeleteOnTermination": true,
+            "Iops": 3000,
+            "SnapshotId": "snap-0a03fecce36096c4a",
             "VolumeSize": 60,
             "VolumeType": "gp3",
             "Encrypted": false,
@@ -108,7 +108,7 @@
       "InstanceType": "c7i.2xlarge"
     },
     {
-      "ImageId": "ami-07b1a1d64127111f3",
+      "ImageId": "ami-0baaeba7111a53fb7",
       "KeyName": "mt",
       "BlockDeviceMappings": [
         {
@@ -116,7 +116,7 @@
           "Ebs": {
             "DeleteOnTermination": true,
             "Iops": 3000,
-            "SnapshotId": "snap-06aaf8a32d8d8c3f7",
+            "SnapshotId": "snap-0a03fecce36096c4a",
             "VolumeSize": 60,
             "VolumeType": "gp3",
             "Encrypted": false,
@@ -131,6 +131,56 @@
         }
       ],
       "InstanceType": "m7i.2xlarge"
+    },
+    {
+      "ImageId": "ami-0baaeba7111a53fb7",
+      "KeyName": "mt",
+      "BlockDeviceMappings": [
+        {
+          "DeviceName": "/dev/xvda",
+          "Ebs": {
+            "DeleteOnTermination": true,
+            "Iops": 3000,
+            "SnapshotId": "snap-0a03fecce36096c4a",
+            "VolumeSize": 60,
+            "VolumeType": "gp3",
+            "Encrypted": false,
+            "Throughput": 125
+          }
+        }
+      ],
+      "SubnetId": "subnet-b8c272e1",
+      "SecurityGroups": [
+        {
+          "GroupId": "sg-0ee6bd6033c82bbf2"
+        }
+      ],
+      "InstanceType": "m6a.2xlarge"
+    },
+    {
+      "ImageId": "ami-0baaeba7111a53fb7",
+      "KeyName": "mt",
+      "BlockDeviceMappings": [
+        {
+          "DeviceName": "/dev/xvda",
+          "Ebs": {
+            "DeleteOnTermination": true,
+            "Iops": 3000,
+            "SnapshotId": "snap-0a03fecce36096c4a",
+            "VolumeSize": 60,
+            "VolumeType": "gp3",
+            "Encrypted": false,
+            "Throughput": 125
+          }
+        }
+      ],
+      "SubnetId": "subnet-b8c272e1",
+      "SecurityGroups": [
+        {
+          "GroupId": "sg-0ee6bd6033c82bbf2"
+        }
+      ],
+      "InstanceType": "m5.2xlarge"
     }
   ]
 }
