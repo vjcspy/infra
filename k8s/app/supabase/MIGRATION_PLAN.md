@@ -9,7 +9,7 @@ This plan describes how we will migrate the official Supabase Docker Compose sta
   - Use `spec.ingressClassName: nginx`
   - No TLS section in manifests (nginx fake cert; Cloudflare terminates TLS)
 - Storage: hostPath mounted from EBS
-  - Root: `/mnt/existing_ebs_volume/supabase/volumes`
+  - Root: `/mnt/ebs_postgres_data/supabase/volumes`
   - Every pod using hostPath includes an initContainer that verifies the EBS mount (sentinel file `DONT_DELETE`)
 - Configuration: all env vars and credentials in values.yaml for simplicity
   - No Kubernetes Secrets - all sensitive data is stored in values.yaml
@@ -64,7 +64,7 @@ kubectl create namespace supabase && helm upgrade --install supabase . -f custom
 
 This approach eliminates the need for separate Kubernetes secret creation and management.
 
-## HostPath layout (under /mnt/existing_ebs_volume/supabase/volumes)
+## HostPath layout (under /mnt/ebs_postgres_data/supabase/volumes)
 
 - `db/data/`            → Postgres data directory
 - `db/config/`          → Mounted at `/etc/postgresql-custom`
@@ -74,13 +74,13 @@ This approach eliminates the need for separate Kubernetes secret creation and ma
 - `storage/`            → Storage API data (`/var/lib/storage`)
 - `functions/`          → Edge Functions code (`/home/deno/functions`)
 
-We’ll require a sentinel file at `/mnt/existing_ebs_volume/DONT_DELETE` for the EBS mount check.
+We’ll require a sentinel file at `/mnt/ebs_postgres_data/DONT_DELETE` for the EBS mount check.
 
 InitContainers
 
 - EBS mount check (only once, on Postgres):
   - Image: `busybox:1.37.0`
-  - Mount: directory `/mnt/existing_ebs_volume` as `/host_ebs_volume`
+  - Mount: directory `/mnt/ebs_postgres_data` as `/host_ebs_volume`
   - Command: loop-check for `/host_ebs_volume/DONT_DELETE` up to 5 attempts
   - Note: Other components no longer perform EBS mount checks; Postgres validates the hostPath mount and others rely on the same volume root.
 - wait-for-db (for DB dependents):
@@ -146,7 +146,7 @@ All configuration is stored in `values.yaml` for simplicity. Sensitive data is i
 Top-level keys:
 
 - `secrets`: All sensitive values (passwords, keys, tokens)
-- `global.hostPath.root` → `/mnt/existing_ebs_volume/supabase/volumes`
+- `global.hostPath.root` → `/mnt/ebs_postgres_data/supabase/volumes`
 - `global.ingressClassName` → `nginx`
 - `ingress`:
   - `kong.host`: `db.bluestone.systems`
@@ -173,7 +173,7 @@ secrets:
 
 global:
   hostPath:
-    root: /mnt/existing_ebs_volume/supabase/volumes
+    root: /mnt/ebs_postgres_data/supabase/volumes
   ingressClassName: nginx
 
 ingress:
@@ -191,8 +191,8 @@ postgres:
     JWT_SECRET: "{{ .Values.secrets.jwtSecret }}"
     JWT_EXP: "3600"
   hostPath:
-    data: "/mnt/existing_ebs_volume/supabase/volumes/db/data"
-    config: "/mnt/existing_ebs_volume/supabase/volumes/db/config"
+    data: "/mnt/ebs_postgres_data/supabase/volumes/db/data"
+    config: "/mnt/ebs_postgres_data/supabase/volumes/db/config"
   command:
     - postgres
     - "-c"
@@ -230,7 +230,7 @@ Complex environment variables like database URLs are built using Helm template h
 - `_helpers.tpl`: contains shared labels, env helpers, EBS check partial, and wait-for-db partial.
 - `deployment-*.yaml`: one Deployment template per component (see list above). Each Deployment:
   - Uses the EBS mount check initContainer when hostPath volumes are mounted
-  - Mounts hostPath paths under `/mnt/existing_ebs_volume/supabase/volumes` as needed
+  - Mounts hostPath paths under `/mnt/ebs_postgres_data/supabase/volumes` as needed
   - Optionally includes the wait-for-db initContainer for DB-dependent components
 - `service-*.yaml`: one Service template per component with selectors including `app.kubernetes.io/component`.
 - `deployment-debug.yaml`: optional always-running BusyBox for debugging (enabled via `.Values.debug.enabled`).

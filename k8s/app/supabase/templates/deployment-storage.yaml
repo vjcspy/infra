@@ -48,6 +48,6 @@ spec:
       volumes:
         - name: supabase-root
           hostPath:
-            path: /mnt/existing_ebs_volume/supabase/volumes
+            path: /mnt/ebs_postgres_data/supabase/volumes
             type: Directory
 {{- end }}
