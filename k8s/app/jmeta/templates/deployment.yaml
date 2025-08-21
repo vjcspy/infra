@@ -4,7 +4,6 @@ metadata:
   name: {{ include "jmeta.fullname" . }}
   labels:
     {{- include "jmeta.labels" . | nindent 4 }}
-    app.kubernetes.io/component: api
   annotations:
     redeployTimestamp: "{{ now | unixEpoch }}"
 spec:
@@ -14,7 +13,6 @@ spec:
   selector:
     matchLabels:
       {{- include "jmeta.selectorLabels" . | nindent 6 }}
-      app.kubernetes.io/component: api
   template:
     metadata:
       {{- with .Values.podAnnotations }}

@@ -49,6 +49,7 @@ Selector labels
 {{- define "jmeta.selectorLabels" -}}
 app.kubernetes.io/name: {{ include "jmeta.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
+app.kubernetes.io/component: api
 {{- end }}
 
 {{/*
