@@ -79,6 +79,43 @@ pipeline:
         timeout: 10m
         tags: {}
     - stage:
+        name: ScaleDown
+        identifier: ScaleDown
+        description: ""
+        type: Deployment
+        spec:
+          deploymentType: Kubernetes
+          service:
+            serviceRef: jmeta
+            failureStrategies: []
+          environment:
+            environmentRef: k8ssingleenv
+            deployToAll: false
+            infrastructureDefinitions:
+              - identifier: k8shelmchartinfra
+            failureStrategies: []
+          execution:
+            steps:
+              - step:
+                  type: K8sDelete
+                  name: K8sDelete_1
+                  identifier: K8sDelete_1
+                  spec:
+                    deleteResources:
+                      type: ResourceName
+                      spec:
+                        resourceNames:
+                          - <+pipeline.stages.Configuration.spec.execution.steps.Resolve_Configuration.output.outputVariables.namespace>/Deployment/jmeta-<+pipeline.variables.project_name>
+                  timeout: 10m
+            rollbackSteps: []
+        tags: {}
+        failureStrategies:
+          - onFailure:
+              errors:
+                - AllErrors
+              action:
+                type: MarkAsFailure
+    - stage:
         name: SourceCode
         identifier: SourceCode
         description: ""
