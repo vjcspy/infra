@@ -46,10 +46,10 @@ podSecurityContext: {}
   # fsGroup: 2000
 
 podEnv:
-  BUILD_TIME: <+pipeline.stages.Configuration.spec.execution.steps.Resolve_Configuration.output.outputVariables.buildTime>
-  GIT_COMMIT_HASH: <+pipeline.stages.SourceCode.spec.execution.steps.Prepare_Source_Code.steps.Git_Clone_Source.output.outputVariables.gitCommitHash>
-  GIT_COMMIT_MESSAGE: <+pipeline.stages.SourceCode.spec.execution.steps.Prepare_Source_Code.steps.Git_Clone_Source.output.outputVariables.gitCommitMessage>
-  GIT_COMMIT_TIME: <+pipeline.stages.SourceCode.spec.execution.steps.Prepare_Source_Code.steps.Git_Clone_Source.output.outputVariables.gitCommitTime>
+  BUILD_TIME: "<+pipeline.stages.Configuration.spec.execution.steps.Resolve_Configuration.output.outputVariables.buildTime>"
+  GIT_COMMIT_HASH: "<+pipeline.stages.SourceCode.spec.execution.steps.Prepare_Source_Code.steps.Git_Clone_Source.output.outputVariables.gitCommitHash>"
+  GIT_COMMIT_MESSAGE: "<+pipeline.stages.SourceCode.spec.execution.steps.Prepare_Source_Code.steps.Git_Clone_Source.output.outputVariables.gitCommitMessage>"
+  GIT_COMMIT_TIME: "<+pipeline.stages.SourceCode.spec.execution.steps.Prepare_Source_Code.steps.Git_Clone_Source.output.outputVariables.gitCommitTime>"
 
 securityContext:
   capabilities:
