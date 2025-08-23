@@ -101,6 +101,10 @@ spec:
               value: {{ .Values.podEnv.BUILD_TIME }}
             - name: GIT_COMMIT_HASH
               value: {{ .Values.podEnv.GIT_COMMIT_HASH }}
+            - name: GIT_COMMIT_MESSAGE
+              value: {{ .Values.podEnv.GIT_COMMIT_MESSAGE }}
+            - name: GIT_COMMIT_TIME
+              value: {{ .Values.podEnv.GIT_COMMIT_TIME }}
           {{- with .Values.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
