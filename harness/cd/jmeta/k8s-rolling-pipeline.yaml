@@ -202,15 +202,24 @@ pipeline:
 
                             log "Git operations completed successfully"
                             
-                            # Determine current commit hash and expose as output
+                            # Determine current commit info and expose as output
                             if [ -d "$SOURCE_CODE_PATH/.git" ]; then
                               GIT_COMMIT_HASH=$(git -C "$SOURCE_CODE_PATH" rev-parse HEAD)
+                              GIT_COMMIT_MESSAGE=$(git -C "$SOURCE_CODE_PATH" log -1 --pretty=%B)
+                              GIT_COMMIT_TIME=$(git -C "$SOURCE_CODE_PATH" log -1 --pretty=%cI)
+                              export GIT_COMMIT_HASH
+                              export GIT_COMMIT_MESSAGE
+                              export GIT_COMMIT_TIME
                               log "Current git commit hash: $GIT_COMMIT_HASH"
+                              log "Current git commit message: $GIT_COMMIT_MESSAGE"
+                              log "Current git commit time: $GIT_COMMIT_TIME"
                             else
                               log "Warning: .git directory not found at $SOURCE_CODE_PATH"
                               GIT_COMMIT_HASH=""
+                              GIT_COMMIT_MESSAGE=""
+                              GIT_COMMIT_TIME=""
                             fi
-                            # The variable above will be captured by Harness outputVariables
+                            # The variables above will be captured by Harness outputVariables
                           resources:
                             limits:
                               memory: 2000Mi
@@ -219,6 +228,12 @@ pipeline:
                             - name: gitCommitHash
                               type: String
                               value: GIT_COMMIT_HASH
+                            - name: gitCommitMessage
+                              type: String
+                              value: GIT_COMMIT_MESSAGE
+                            - name: gitCommitTime
+                              type: String
+                              value: GIT_COMMIT_TIME
                         timeout: 2m
                   stepGroupInfra:
                     type: KubernetesDirect
