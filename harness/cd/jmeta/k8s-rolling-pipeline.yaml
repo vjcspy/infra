@@ -201,10 +201,24 @@ pipeline:
                             fi
 
                             log "Git operations completed successfully"
+                            
+                            # Determine current commit hash and expose as output
+                            if [ -d "$SOURCE_CODE_PATH/.git" ]; then
+                              GIT_COMMIT_HASH=$(git -C "$SOURCE_CODE_PATH" rev-parse HEAD)
+                              log "Current git commit hash: $GIT_COMMIT_HASH"
+                            else
+                              log "Warning: .git directory not found at $SOURCE_CODE_PATH"
+                              GIT_COMMIT_HASH=""
+                            fi
+                            # The variable above will be captured by Harness outputVariables
                           resources:
                             limits:
                               memory: 2000Mi
                               cpu: 500m
+                          outputVariables:
+                            - name: gitCommitHash
+                              type: String
+                              value: GIT_COMMIT_HASH
                         timeout: 2m
                   stepGroupInfra:
                     type: KubernetesDirect
