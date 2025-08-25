@@ -201,7 +201,7 @@ pipeline:
                             fi
 
                             log "Git operations completed successfully"
-                            
+
                             # Determine current commit info and expose as output
                             if [ -d "$SOURCE_CODE_PATH/.git" ]; then
                               GIT_COMMIT_HASH=$(git -C "$SOURCE_CODE_PATH" rev-parse HEAD)
@@ -302,8 +302,8 @@ pipeline:
                           privileged: false
                           resources:
                             limits:
-                              memory: 4000Mi
-                              cpu: 2000m
+                              memory: 6000Mi
+                              cpu: 4000m
                         description: Install dependencies and build application
                         timeout: 30m
                   stepGroupInfra:
