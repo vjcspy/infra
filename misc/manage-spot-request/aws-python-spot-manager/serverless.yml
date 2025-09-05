@@ -10,6 +10,14 @@ provider:
   environment:
     SPOT_FLEET_REQUEST_ID: sfr-39268480-7edc-4da6-b22d-1480c28a5268
     ALLOCATION_ID: eipalloc-0f53833ea8ff2874c
+    DDB_TABLE_NAME: common
+    DDB_ITEM_ID: health:jhttp-live
+    HEALTHCHECK_URL: https://jhttp.bluestone.systems/q/health/live
+    UNHEALTHY_RESTART_AFTER_SECONDS: 1260
+    HEALTHCHECK_TIMEOUT_SECONDS: 5
+  SLACK_POST_URL: https://slack.bluestone.systems/slack/post-message
+  SLACK_CHANNEL: general-meta-bot-channel
+  SLACK_TOKEN: '1235' # fill in via CI/CD secrets or SSM, keep empty locally
 
 functions:
 #  modifySpotRequestOn:
@@ -30,5 +38,12 @@ functions:
 
   checkSpotInstance:
     handler: assign_eip.check_spot_instance
+    events:
+      - schedule: rate(5 minutes)
+
+  healthcheck:
+    handler: healthcheck.run
+    timeout: 15
+    memorySize: 256
     events:
       - schedule: rate(5 minutes)
