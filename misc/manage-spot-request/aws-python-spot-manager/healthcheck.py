@@ -180,37 +180,21 @@ def run(event, context):
     )
 
     if age is None:
-        # No recorded healthy time yet; establish an unhealthy reference to avoid immediate reboot
-        first_unhealthy_epoch = _mark_unhealthy_reference(table_name, item_id)
-        diff = now - int(first_unhealthy_epoch)
-        print(
-            f"FirstSeenUnhealthyAtEpoch={first_unhealthy_epoch}, diff={diff}s, threshold={UNHEALTHY_RESTART_AFTER_SECONDS}s"
+        # No recorded healthy time yet; notify and wait until we have a healthy baseline
+        _post_slack(
+            "Healthcheck: Unhealthy detected but no last healthy timestamp yet; monitoring and will not reboot until a healthy baseline is recorded."
         )
-        if diff > UNHEALTHY_RESTART_AFTER_SECONDS:
-            ok, ids = _reboot_spot_fleet_instances(sfr_id)
-            _post_slack(
-                f"Healthcheck: Unhealthy for {diff}s (> {UNHEALTHY_RESTART_AFTER_SECONDS}s). Rebooting instances: {ids}"
-            )
-            action = "rebooted" if ok else "no_instances"
-            return {
-                "healthy": False,
-                "action": action,
-                "instanceIds": ids,
-                "reason": "no_last_healthy_threshold_exceeded",
-            }
-        else:
-            return {
-                "healthy": False,
-                "action": "none",
-                "reason": "waiting_for_threshold_without_last_healthy",
-                "age": diff,
-            }
+        return {
+            "healthy": False,
+            "action": "none",
+            "reason": "no_last_healthy_timestamp",
+        }
 
     # We have a last healthy timestamp; compare against threshold
     if age is not None and age > UNHEALTHY_RESTART_AFTER_SECONDS:
         ok, ids = _reboot_spot_fleet_instances(sfr_id)
         _post_slack(
-            f"Healthcheck: Unhealthy age {age}s (> {UNHEALTHY_RESTART_AFTER_SECONDS}s). Rebooting instances: {ids}"
+            f"Healthcheck: Unhealthy for {age}s (> {UNHEALTHY_RESTART_AFTER_SECONDS}s). Rebooting instances: {ids}"
         )
         action = "rebooted" if ok else "no_instances"
         return {
@@ -220,4 +204,9 @@ def run(event, context):
             "age": age,
         }
 
+    # Always notify on unhealthy when below restart threshold
+    _post_slack(
+        f"Healthcheck: Unhealthy for {age}s (< {UNHEALTHY_RESTART_AFTER_SECONDS}s). Monitoring."
+    )
+    
     return {"healthy": False, "action": "none", "age": age}
