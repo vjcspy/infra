@@ -14,7 +14,7 @@ dynamodb = boto3.resource("dynamodb")
 
 HEALTHCHECK_TIMEOUT_SECONDS = int(os.environ.get("HEALTHCHECK_TIMEOUT_SECONDS", "5"))
 UNHEALTHY_RESTART_AFTER_SECONDS = int(
-    os.environ.get("UNHEALTHY_RESTART_AFTER_SECONDS", str(21 * 60))
+    os.environ.get("UNHEALTHY_RESTART_AFTER_SECONDS", str(31 * 60))
 )
 
 SLACK_POST_URL = os.environ.get(
