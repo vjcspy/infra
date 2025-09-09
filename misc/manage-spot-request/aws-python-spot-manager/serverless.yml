@@ -12,12 +12,14 @@ provider:
     ALLOCATION_ID: eipalloc-0f53833ea8ff2874c
     DDB_TABLE_NAME: common
     DDB_ITEM_ID: health:jhttp-live
-    HEALTHCHECK_URL: https://jhttp.bluestone.systems/q/health/live
+    DDB_FLAG_ITEM_ID: "feature:healthcheck-enabled"
+    HEALTHCHECK_URL: "https://jhttp.bluestone.systems/q/health/live"
     UNHEALTHY_RESTART_AFTER_SECONDS: 1860
     HEALTHCHECK_TIMEOUT_SECONDS: 5
-    SLACK_POST_URL: https://slack.bluestone.systems/slack/post-message
+    SLACK_POST_URL: "https://slack.bluestone.systems/slack/post-message"
     SLACK_CHANNEL: general-meta-bot-channel
     SLACK_TOKEN: '1235'
+    HEALTHCHECK_NOTIFY_WHEN_DISABLED: 'false'
 
 functions:
 #  modifySpotRequestOn:
@@ -47,3 +49,16 @@ functions:
     memorySize: 256
     events:
       - schedule: rate(5 minutes)
+
+  toggleHealthcheck:
+    handler: toggle_healthcheck.handler
+    description: Toggle (enable/disable) the healthcheck feature flag
+    memorySize: 128
+    timeout: 10
+    events:
+      - httpApi:
+          path: /healthcheck/flag
+          method: GET
+      - httpApi:
+          path: /healthcheck/flag
+          method: POST

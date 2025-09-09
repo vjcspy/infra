@@ -23,6 +23,17 @@ SLACK_POST_URL = os.environ.get(
 SLACK_TOKEN = os.environ.get("SLACK_TOKEN")
 SLACK_CHANNEL = os.environ.get("SLACK_CHANNEL", "general-meta-bot-channel")
 
+# Feature flag (stored in DynamoDB) configuration
+DDB_FLAG_ITEM_ID = os.environ.get(
+    "DDB_FLAG_ITEM_ID", "feature:healthcheck-enabled"
+)
+HEALTHCHECK_NOTIFY_WHEN_DISABLED = os.environ.get(
+    "HEALTHCHECK_NOTIFY_WHEN_DISABLED", "false"
+).lower() in {"1", "true", "yes"}
+DISABLED_STATUS_STRING = os.environ.get(
+    "HEALTHCHECK_DISABLED_STATUS", "disabled"
+)
+
 
 def _now_epoch() -> int:
     return int(time.time())
@@ -80,6 +91,14 @@ def _get_item(table_name: str, item_id: str) -> dict | None:
     except Exception as e:
         print(f"DynamoDB get_item error: {e}")
         return None
+
+
+def _put_item(table_name: str, item: dict) -> None:
+    table = dynamodb.Table(table_name)
+    try:
+        table.put_item(Item=item)
+    except Exception as e:
+        print(f"DynamoDB put_item error: {e}")
 
 
 def _put_healthy(table_name: str, item_id: str) -> int:
@@ -147,6 +166,25 @@ def _reboot_spot_fleet_instances(spot_fleet_request_id: str) -> tuple[bool, list
         return False, []
 
 
+def _is_healthcheck_disabled(table_name: str, flag_item_id: str) -> bool:
+    """Return True if the healthcheck is disabled via feature flag.
+
+    Convention: Item {"id": flag_item_id, "enabled": <bool>}.
+    Absence of the item OR enabled=True => healthcheck active.
+    enabled=False => disabled.
+    """
+    item = _get_item(table_name, flag_item_id)
+    if not item:
+        return False  # Default enabled
+    enabled = item.get("enabled")
+    # Treat any value explicitly False (bool False or string 'false') as disabled
+    if isinstance(enabled, str):
+        enabled_norm = enabled.lower() in {"1", "true", "yes"}
+    else:
+        enabled_norm = bool(enabled) if enabled is not None else True
+    return not enabled_norm
+
+
 def run(event, context):
     url = os.environ.get(
         "HEALTHCHECK_URL", "https://jhttp.bluestone.systems/q/health/live"
@@ -154,6 +192,31 @@ def run(event, context):
     table_name = os.environ.get("DDB_TABLE_NAME", "common")
     item_id = os.environ.get("DDB_ITEM_ID", "health:jhttp-live")
     sfr_id = os.environ["SPOT_FLEET_REQUEST_ID"]
+    flag_item_id = DDB_FLAG_ITEM_ID
+
+    # Respect feature flag
+    if _is_healthcheck_disabled(table_name, flag_item_id):
+        now_iso = _now_iso()
+        print("Healthcheck disabled via feature flag; skipping logic.")
+        # Optionally record a disabled heartbeat so operators can see it's alive but disabled
+        _put_item(
+            table_name,
+            {
+                "id": item_id,
+                "lastStatus": DISABLED_STATUS_STRING,
+                "updatedAtIso": now_iso,
+            },
+        )
+        if HEALTHCHECK_NOTIFY_WHEN_DISABLED:
+            _post_slack(
+                f"Healthcheck disabled (flag item '{flag_item_id}'). Skipping execution at {now_iso}."
+            )
+        return {
+            "healthy": None,
+            "action": "skipped",
+            "reason": "disabled",
+            "flagItemId": flag_item_id,
+        }
 
     healthy, status = _check_health(url)
 
