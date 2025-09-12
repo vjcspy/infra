@@ -20,7 +20,7 @@ provider:
     SLACK_CHANNEL: general-meta-bot-channel
     SLACK_TOKEN: '1235'
     HEALTHCHECK_NOTIFY_WHEN_DISABLED: 'false'
-    SECONDARY_HEALTHCHECK_URL: "https://jhttp.bluestone.systems/q/health/live2"
+    SECONDARY_HEALTHCHECK_URL: "https://jhttp.bluestone.systems/q/health/live"
     SECONDARY_HEALTHCHECK_ENABLED: 'true'
 
 functions:
