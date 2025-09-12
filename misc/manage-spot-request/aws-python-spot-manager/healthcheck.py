@@ -14,7 +14,7 @@ dynamodb = boto3.resource("dynamodb")
 
 HEALTHCHECK_TIMEOUT_SECONDS = int(os.environ.get("HEALTHCHECK_TIMEOUT_SECONDS", "5"))
 UNHEALTHY_RESTART_AFTER_SECONDS = int(
-    os.environ.get("UNHEALTHY_RESTART_AFTER_SECONDS", str(31 * 60))
+    os.environ.get("UNHEALTHY_RESTART_AFTER_SECONDS", str(13 * 60))
 )
 
 SLACK_POST_URL = os.environ.get(
@@ -187,7 +187,7 @@ def _is_healthcheck_disabled(table_name: str, flag_item_id: str) -> bool:
 
 def run(event, context):
     url = os.environ.get(
-        "HEALTHCHECK_URL", "https://jhttp.bluestone.systems/q/health/live"
+        "HEALTHCHECK_URL", "https://whoami.bluestone.systems"
     )
     table_name = os.environ.get("DDB_TABLE_NAME", "common")
     item_id = os.environ.get("DDB_ITEM_ID", "health:jhttp-live")
