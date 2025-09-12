@@ -34,6 +34,14 @@ DISABLED_STATUS_STRING = os.environ.get(
     "HEALTHCHECK_DISABLED_STATUS", "disabled"
 )
 
+# Secondary healthcheck configuration (does not impact reboot logic)
+SECONDARY_HEALTHCHECK_URL = os.environ.get(
+    "SECONDARY_HEALTHCHECK_URL", "https://jhttp.bluestone.systems/q/health/live"
+)
+SECONDARY_HEALTHCHECK_ENABLED = os.environ.get(
+    "SECONDARY_HEALTHCHECK_ENABLED", "true"
+).lower() in {"1", "true", "yes"}
+
 
 def _now_epoch() -> int:
     return int(time.time())
@@ -148,6 +156,29 @@ def _mark_unhealthy_reference(table_name: str, item_id: str) -> int:
         return now_epoch
 
 
+def _run_secondary_healthcheck(url: str | None) -> dict:
+    """Run the secondary healthcheck and post to Slack if it's unhealthy.
+
+    This does not influence the main health/restart decision; it's fire-and-forget notify.
+
+    Returns a small result dict for observability.
+    """
+    if not SECONDARY_HEALTHCHECK_ENABLED:
+        return {"enabled": False, "skipped": True}
+    if not url:
+        return {"enabled": True, "skipped": True, "reason": "no_url"}
+
+    healthy, status = _check_health(url)
+    if healthy:
+        return {"enabled": True, "healthy": True, "status": status}
+
+    # Unhealthy -> notify via Slack
+    _post_slack(
+        f"healthcheck unhealthy: {url} status={status}. Monitoring only; no reboot action."
+    )
+    return {"enabled": True, "healthy": False, "status": status}
+
+
 def _reboot_spot_fleet_instances(spot_fleet_request_id: str) -> tuple[bool, list[str]]:
     try:
         resp = ec2.describe_spot_fleet_instances(
@@ -217,6 +248,12 @@ def run(event, context):
             "reason": "disabled",
             "flagItemId": flag_item_id,
         }
+
+    try:
+        # Run secondary healthcheck in addition to the main one; notify only when unhealthy
+        _run_secondary_healthcheck(SECONDARY_HEALTHCHECK_URL)
+    except Exception:
+        pass  # IGNORE
 
     healthy, status = _check_health(url)
 
