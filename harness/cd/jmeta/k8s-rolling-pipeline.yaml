@@ -144,6 +144,15 @@ pipeline:
                               echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"
                             }
 
+                            fail() {
+                              log "FAIL: $1"
+                              exit 1
+                            }
+
+                            # Update strategy (hard_reset|rebase|pull) - default hard_reset for deterministic builds
+                            GIT_UPDATE_STRATEGY=${GIT_UPDATE_STRATEGY:-hard_reset}
+                            log "Using update strategy: $GIT_UPDATE_STRATEGY"
+
                             # Store the source code path in a variable
                             SOURCE_CODE_PATH="<+pipeline.stages.Configuration.spec.execution.steps.Resolve_Configuration.output.outputVariables.sourceCodePath>"
                             GIT_BRANCH="<+pipeline.stages.Configuration.spec.execution.steps.Resolve_Configuration.output.outputVariables.gitBranch>"
@@ -175,30 +184,103 @@ pipeline:
                             log "Working with source code path: $SOURCE_CODE_PATH"
 
                             if [ -d "$SOURCE_CODE_PATH/.git" ]; then
-                              log "Git repository already exists. Performing git pull with rebase."
+                              log "Git repository already exists. Starting cleanup/update sequence."
                               cd "$SOURCE_CODE_PATH"
 
-                              # Fetch all branches
-                              git_operation git fetch origin
-
-                              # Check if branch exists
-                              if ! git rev-parse --verify "origin/$GIT_BRANCH" >/dev/null 2>&1; then
-                                log "Error: Branch $GIT_BRANCH does not exist on remote"
-                                exit 1
+                              # Detect and abort in-progress operations (merge, rebase, cherry-pick, revert)
+                              if [ -d .git/rebase-apply ] || [ -d .git/rebase-merge ]; then
+                                log "Rebase in progress - aborting"
+                                git rebase --abort || true
+                              fi
+                              if [ -f .git/MERGE_HEAD ]; then
+                                log "Merge in progress - aborting"
+                                git merge --abort || git reset --merge || true
+                              fi
+                              if [ -f .git/CHERRY_PICK_HEAD ]; then
+                                log "Cherry-pick in progress - aborting"
+                                git cherry-pick --abort || true
+                              fi
+                              if [ -f .git/REVERT_HEAD ]; then
+                                log "Revert in progress - aborting"
+                                git revert --abort || true
                               fi
 
-                              # Checkout and pull
-                              git_operation git checkout "$GIT_BRANCH"
-                              git_operation git pull --rebase --autostash origin "$GIT_BRANCH"
-                            else
-                              log "No Git repository found. Performing fresh clone."
-
-                              # Create parent directory if it doesn't exist
-                              mkdir -p "$(dirname "$SOURCE_CODE_PATH")"
-
-                              # Perform clone
-                              git_operation git clone git@github.com:vjcspy/JMeta.git -b "$GIT_BRANCH" "$SOURCE_CODE_PATH"
+                              # Ensure remote URL matches expected; if not, remove directory to reclone
+                              ORIGIN_URL=$(git remote get-url origin 2>/dev/null || echo "")
+                              if [ "$ORIGIN_URL" != "git@github.com:vjcspy/JMeta.git" ]; then
+                                log "Origin URL ($ORIGIN_URL) does not match expected. Removing directory and recloning."
+                                cd /
+                                rm -rf "$SOURCE_CODE_PATH"
+                              fi
                             fi
+
+                            if [ ! -d "$SOURCE_CODE_PATH/.git" ]; then
+                              log "No valid Git repository found. Performing fresh clone."
+                              mkdir -p "$(dirname "$SOURCE_CODE_PATH")"
+                              git_operation git clone git@github.com:vjcspy/JMeta.git "$SOURCE_CODE_PATH"
+                              cd "$SOURCE_CODE_PATH"
+                            fi
+
+                            # Fetch remote updates
+                            git_operation git remote set-url origin git@github.com:vjcspy/JMeta.git
+                            git_operation git fetch --prune origin
+
+                            # Ensure remote branch exists
+                            if ! git rev-parse --verify "origin/$GIT_BRANCH" >/dev/null 2>&1; then
+                              fail "Branch $GIT_BRANCH does not exist on remote"
+                            fi
+
+                            case "$GIT_UPDATE_STRATEGY" in
+                              hard_reset)
+                                log "Applying hard reset strategy (discarding local changes)."
+                                git reset --hard || true
+                                git clean -fd || true
+                                # Create or switch branch tracking remote
+                                if git rev-parse --verify "$GIT_BRANCH" >/dev/null 2>&1; then
+                                  git checkout "$GIT_BRANCH" || fail "Cannot checkout $GIT_BRANCH"
+                                else
+                                  git checkout -b "$GIT_BRANCH" "origin/$GIT_BRANCH" || fail "Cannot create branch $GIT_BRANCH"
+                                fi
+                                git reset --hard "origin/$GIT_BRANCH" || fail "Hard reset failed"
+                                ;;
+                              rebase)
+                                log "Applying rebase strategy (attempt to rebase local changes)."
+                                if git rev-parse --verify "$GIT_BRANCH" >/dev/null 2>&1; then
+                                  git checkout "$GIT_BRANCH" || fail "Checkout failed"
+                                else
+                                  git checkout -b "$GIT_BRANCH" "origin/$GIT_BRANCH" || fail "Branch create failed"
+                                fi
+                                # Stash uncommitted changes if any
+                                if ! git diff --quiet || ! git diff --cached --quiet; then
+                                  log "Stashing local changes before rebase"
+                                  git stash push -u -m harness-auto-stash || true
+                                  STASHED=1
+                                fi
+                                if ! git rebase "origin/$GIT_BRANCH"; then
+                                  log "Rebase failed; aborting and falling back to hard reset"
+                                  git rebase --abort || true
+                                  git reset --hard "origin/$GIT_BRANCH"
+                                fi
+                                if [ "${STASHED:-0}" = "1" ]; then
+                                  log "Attempting to re-apply stashed changes"
+                                  git stash pop || log "Conflicts encountered when applying stash (manual resolution may be needed)"
+                                fi
+                                ;;
+                              pull)
+                                log "Applying plain pull strategy (fast-forward or merge)."
+                                if git rev-parse --verify "$GIT_BRANCH" >/dev/null 2>&1; then
+                                  git checkout "$GIT_BRANCH" || fail "Checkout failed"
+                                else
+                                  git checkout -b "$GIT_BRANCH" "origin/$GIT_BRANCH" || fail "Branch create failed"
+                                fi
+                                git_operation git pull --ff-only origin "$GIT_BRANCH" || fail "Pull failed (non fast-forward)"
+                                ;;
+                              *)
+                                fail "Unknown GIT_UPDATE_STRATEGY: $GIT_UPDATE_STRATEGY"
+                                ;;
+                            esac
+
+                            log "Repository synchronized successfully with strategy: $GIT_UPDATE_STRATEGY"
 
                             log "Git operations completed successfully"
 
