@@ -140,7 +140,7 @@ ingress:
       paths:
         - path: /
           pathType: Prefix
-    - host: sumoyakiniku.com.vn
+    - host: sumogoya.com.vn
       paths:
         - path: /
           pathType: Prefix

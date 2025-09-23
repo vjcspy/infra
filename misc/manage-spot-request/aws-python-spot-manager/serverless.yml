@@ -6,9 +6,10 @@ provider:
   name: aws
   runtime: python3.12
   region: ap-southeast-1
+  profile: ggg
   role: arn:aws:iam::196761233825:role/lambda-ec2-spot-scheduler-role
   environment:
-    SPOT_FLEET_REQUEST_ID: sfr-fdfb8bae-56ba-41f5-b613-d3b9e2bcd294
+    SPOT_FLEET_REQUEST_ID: sfr-f156d541-5edb-4ab6-bbb4-03baa8e64f72
     ALLOCATION_ID: eipalloc-0f53833ea8ff2874c
     DDB_TABLE_NAME: common
     DDB_ITEM_ID: health:jhttp-live
