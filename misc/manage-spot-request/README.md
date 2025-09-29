@@ -13,5 +13,5 @@ Sửa `serverless.yaml` để config cho đúng:
 
 ### Deploy
 ```shell
-serverless deploy
+serverless deploy --aws-profile ggg
 ```

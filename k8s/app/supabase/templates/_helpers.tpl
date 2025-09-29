@@ -188,7 +188,7 @@ Create the name of the service account to use
 {{- $root := index . 0 -}}
 {{- $dep := index . 1 -}}
 - name: wait-for-{{ $dep }}
-  image: bitnami/kubectl:latest
+  image: bitnamilegacy/kubectl:latest
   command: ["/bin/bash", "-c"]
   args: ["echo 'Waiting for {{ $dep }} to be ready in namespace {{ $root.Release.Namespace }}...'; kubectl rollout status deployment/{{ $dep }} --namespace={{ $root.Release.Namespace }} --timeout=300s; echo '{{ $dep }} is ready.'"]
 {{- end }}

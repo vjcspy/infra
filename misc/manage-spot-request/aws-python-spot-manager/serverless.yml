@@ -9,7 +9,7 @@ provider:
   profile: ggg
   role: arn:aws:iam::196761233825:role/lambda-ec2-spot-scheduler-role
   environment:
-    SPOT_FLEET_REQUEST_ID: sfr-f156d541-5edb-4ab6-bbb4-03baa8e64f72
+    SPOT_FLEET_REQUEST_ID: sfr-a981182e-e977-4a4e-a5a2-a368cf96729e
     ALLOCATION_ID: eipalloc-0f53833ea8ff2874c
     DDB_TABLE_NAME: common
     DDB_ITEM_ID: health:jhttp-live
