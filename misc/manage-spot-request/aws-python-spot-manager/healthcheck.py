@@ -24,15 +24,11 @@ SLACK_TOKEN = os.environ.get("SLACK_TOKEN")
 SLACK_CHANNEL = os.environ.get("SLACK_CHANNEL", "general-meta-bot-channel")
 
 # Feature flag (stored in DynamoDB) configuration
-DDB_FLAG_ITEM_ID = os.environ.get(
-    "DDB_FLAG_ITEM_ID", "feature:healthcheck-enabled"
-)
+DDB_FLAG_ITEM_ID = os.environ.get("DDB_FLAG_ITEM_ID", "feature:healthcheck-enabled")
 HEALTHCHECK_NOTIFY_WHEN_DISABLED = os.environ.get(
     "HEALTHCHECK_NOTIFY_WHEN_DISABLED", "false"
 ).lower() in {"1", "true", "yes"}
-DISABLED_STATUS_STRING = os.environ.get(
-    "HEALTHCHECK_DISABLED_STATUS", "disabled"
-)
+DISABLED_STATUS_STRING = os.environ.get("HEALTHCHECK_DISABLED_STATUS", "disabled")
 
 # Secondary healthcheck configuration (does not impact reboot logic)
 SECONDARY_HEALTHCHECK_URL = os.environ.get(
@@ -216,10 +212,74 @@ def _is_healthcheck_disabled(table_name: str, flag_item_id: str) -> bool:
     return not enabled_norm
 
 
+def health_status(event, context):
+    """Health status endpoint for external services to check this service's health.
+
+    Returns 200 (UP) if age <= UNHEALTHY_RESTART_AFTER_SECONDS, otherwise 503 (DOWN).
+    """
+    table_name = os.environ.get("DDB_TABLE_NAME", "common")
+    item_id = os.environ.get("DDB_ITEM_ID", "health:jhttp-live")
+
+    item = _get_item(table_name, item_id)
+
+    # If no item exists, service hasn't run yet - consider it DOWN
+    if not item:
+        return {
+            "statusCode": 503,
+            "body": json.dumps({"status": "DOWN", "reason": "no_health_record_found"}),
+            "headers": {"Content-Type": "application/json"},
+        }
+
+    last_healthy_epoch = item.get("lastHealthyAtEpoch")
+
+    # If no lastHealthyAtEpoch, service hasn't been healthy yet - DOWN
+    if last_healthy_epoch is None:
+        return {
+            "statusCode": 503,
+            "body": json.dumps(
+                {"status": "DOWN", "reason": "no_last_healthy_timestamp"}
+            ),
+            "headers": {"Content-Type": "application/json"},
+        }
+
+    try:
+        now = _now_epoch()
+        age = now - int(last_healthy_epoch)
+    except Exception as e:
+        return {
+            "statusCode": 503,
+            "body": json.dumps(
+                {"status": "DOWN", "reason": "invalid_timestamp", "error": str(e)}
+            ),
+            "headers": {"Content-Type": "application/json"},
+        }
+
+    # Check if age exceeds threshold
+    if age > UNHEALTHY_RESTART_AFTER_SECONDS + 5 * 60:
+        return {
+            "statusCode": 503,
+            "body": json.dumps(
+                {
+                    "status": "DOWN",
+                    "age": age,
+                    "threshold": UNHEALTHY_RESTART_AFTER_SECONDS,
+                }
+            ),
+            "headers": {"Content-Type": "application/json"},
+        }
+
+    # Healthy - age within acceptable range
+    return {
+        "statusCode": 200,
+        "body": json.dumps(
+            {"status": "UP", "age": age, "threshold": UNHEALTHY_RESTART_AFTER_SECONDS}
+        ),
+        "headers": {"Content-Type": "application/json"},
+    }
+
+
 def run(event, context):
-    url = os.environ.get(
-        "HEALTHCHECK_URL", "https://whoami.bluestone.systems"
-    )
+    url = os.environ.get("HEALTHCHECK_URL", "https://whoami.bluestone.systems")
     table_name = os.environ.get("DDB_TABLE_NAME", "common")
     item_id = os.environ.get("DDB_ITEM_ID", "health:jhttp-live")
     sfr_id = os.environ["SPOT_FLEET_REQUEST_ID"]
@@ -308,5 +368,5 @@ def run(event, context):
     _post_slack(
         f"Healthcheck: Unhealthy for {age}s (< {UNHEALTHY_RESTART_AFTER_SECONDS}s). Monitoring."
     )
-    
+
     return {"healthy": False, "action": "none", "age": age}

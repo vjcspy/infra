@@ -65,3 +65,13 @@ functions:
       - httpApi:
           path: /healthcheck/flag
           method: POST
+
+  healthStatus:
+    handler: healthcheck.health_status
+    description: Health status endpoint for external services
+    memorySize: 128
+    timeout: 5
+    events:
+      - httpApi:
+          path: /health
+          method: GET
