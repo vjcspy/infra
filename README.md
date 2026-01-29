@@ -3,109 +3,347 @@
 This repository serves as the central hub for managing infrastructure as code (IaC), primarily leveraging **Harness** for CI/CD pipelines and **Kubernetes (K8s) with Helm** for application deployments. It encapsulates all configurations and scripts necessary to provision, manage, and deploy applications and their underlying infrastructure.
 
 ## Table of Contents
+
 - [Project Overview](#project-overview)
-- [Folder Structure](#folder-structure)
-  - [harness/](#harness)
-  - [k8s/](#k8s)
-  - [misc/](#misc)
+- [Harness CD](#harness-cd)
+  - [Initial Setup](#initial-setup)
+  - [Connectors](#connectors)
+  - [Environments & Infrastructure](#environments--infrastructure)
+  - [Deploying a New Service](#deploying-a-new-service)
+  - [Pipeline Architecture](#pipeline-architecture)
+- [Kubernetes Management](#kubernetes-management)
+  - [Cluster Setup](#cluster-setup)
+  - [Helm Charts Structure](#helm-charts-structure)
+  - [Available Applications](#available-applications)
+- [Infrastructure Utilities (misc/)](#infrastructure-utilities-misc)
+  - [AWS Spot Instance Manager](#aws-spot-instance-manager)
+  - [EBS Volume Management](#ebs-volume-management)
+  - [Custom Docker Images](#custom-docker-images)
 - [Getting Started](#getting-started)
 - [Contribution Guidelines](#contribution-guidelines)
+
+---
 
 ## Project Overview
 
 This repository's core purpose is to define and manage infrastructure and deployment processes through code. Key technologies and their roles include:
 
--   **Harness**: Used for Continuous Integration (CI) and Continuous Delivery (CD) to automate the build, test, and deployment of applications. Harness configurations are synchronized with this Git repository, enabling GitOps practices.
--   **Kubernetes (K8s)**: The container orchestration platform where applications are deployed.
--   **Helm**: The package manager for Kubernetes, used to define, install, and upgrade complex Kubernetes applications. All application deployments are managed via Helm charts stored in this repository.
--   **AWS**: Utilized for underlying infrastructure, including EC2 instances for Kubernetes clusters and EBS volumes.
+| Technology | Purpose |
+|------------|---------|
+| **Harness** | CI/CD automation with GitOps - pipelines sync from this repo |
+| **Kubernetes (K3s)** | Container orchestration platform |
+| **Helm v3** | Package manager for K8s deployments |
+| **AWS Spot Instances** | Cost-effective infrastructure with auto-recovery |
+| **Serverless Framework** | Lambda functions for infrastructure automation |
+| **Terraform** | IAM and AWS resource provisioning |
 
-## Folder Structure
+---
 
-### `harness/`
+## Harness CD
 
-This directory contains all the configuration files for **Harness CI/CD**. These files are designed to be synchronized with your Harness account, allowing for Git-driven management of your CI/CD pipelines, connectors, and environments.
+Harness configurations are designed to be synchronized with your Harness account, enabling GitOps practices.
 
--   **`harness/cd/`**: Contains definitions for Continuous Delivery (CD) pipelines for various applications. Each subdirectory represents a specific application's deployment pipeline.
-    -   `jmeta/`: CD pipeline configurations for the `jmeta` application.
-    -   `meta/`: CD pipeline configurations for the `meta` application.
-    -   `whoami/`: CD pipeline configurations for the `whoami` application, often used as a starter or test application.
--   **`harness/connector/`**: Defines connectors used by Harness to integrate with external services.
-    -   `github-connector.yaml`: Configuration for connecting Harness to GitHub repositories.
-    -   `kubernetes-connector.yaml`: Configuration for connecting Harness to Kubernetes clusters, typically via a Kubernetes Delegate.
--   **`harness/environment/`**: Contains definitions for deployment environments within Harness.
-    -   `dev-environment.yaml`: Development environment configuration.
-    -   `dev-infra.yaml`: Infrastructure definition for development environments.
-    -   `k8s-helm-chart-infra.yaml`: Infrastructure definition specifically for Kubernetes Helm chart deployments.
-    -   `k8s-single-environment.yaml`: Configuration for a single Kubernetes environment.
--   **`harness/inputset/`**: Stores input sets, which are collections of runtime inputs for Harness pipelines.
-    -   `stock.yaml`: An example input set, likely containing common parameters for pipeline execution.
--   **`harness/README.md`**: Provides setup instructions for Harness, including Kubernetes Delegate installation, GitHub Personal Access Token (PAT) setup, and commands to apply connectors.
+### Initial Setup
 
-### `k8s/`
+Before deploying services, you must configure the following:
 
-This directory houses all **Helm charts** for applications deployed on Kubernetes. When CI/CD pipelines run on Harness, they refer to these charts to deploy and manage applications.
+#### 1. Kubernetes Delegate
 
--   **`k8s/app/`**: Contains individual Helm charts for each application. Each subdirectory is a self-contained Helm chart.
-    -   `db/`: Helm chart for database deployments.
-    -   `fluent-bit/`: Helm chart for Fluent Bit, a log processor and forwarder.
-    -   `ggg-api/`: Helm chart for the `ggg-api` application.
-    -   `ggg-brand/`: Helm chart for the `ggg-brand` application.
-    -   `ggg-temp-pod/`: Contains a simple `pod.yaml` for temporary pod deployments.
-    -   `ggg-website/`: Helm chart for the `ggg-website` application.
-    -   `jmeta/`: Helm chart for the `jmeta` application.
-    -   `meta/`: Helm chart for the `meta` application.
-    -   `notion-proxy/`: Helm chart for the `notion-proxy` application.
-    -   `splunk-server/`: Helm chart for the `splunk-server` application.
-    -   `whoami/`: Helm chart for the `whoami` application.
-    Each application chart typically includes:
-        -   `Chart.yaml`: Metadata about the Helm chart.
-        -   `values.yaml`: Default configuration values for the chart, which can be overridden during deployment.
-        -   `templates/`: Kubernetes manifest templates (e.g., `deployment.yaml`, `service.yaml`, `ingress.yaml`, `hpa.yaml`, `secret.yaml`, `serviceaccount.yaml`, `_helpers.tpl`).
--   **`k8s/init/`**: Contains initial Kubernetes configurations and setup scripts.
-    -   `dashboard/`: Kubernetes manifests for deploying a Kubernetes Dashboard (e.g., `account.yaml`, `ingress.yaml`, `service.yaml`).
-    -   `harness-cd/`: Kubernetes manifests specific to the Harness CD setup, such as `namespace.yaml`.
-    -   `tls.crt`, `tls.key`: TLS certificates, likely for securing ingress or other services.
--   **`k8s/README.md`**: Basic README for the K8s directory.
+Install the Harness Delegate on your K8s cluster (Project Settings → Delegates in Harness UI).
 
-### `misc/`
+#### 2. GitHub PAT Secret
 
-This directory holds various utility tools, scripts, and configurations that support the overall infrastructure.
+Create a secret for GitHub access:
 
--   **`misc/mount-ebs.sh`**: A shell script designed to manage and mount an AWS EBS volume to an EC2 instance. It handles checking volume status, detaching from other instances if necessary, attaching to the current instance, and mounting the volume.
--   **`misc/docker/`**: Contains Dockerfiles for building custom Docker images used across the infrastructure.
-    -   `node16-yarn/`: Dockerfile for a Node.js 16 environment with Yarn.
-    -   `node20-pnpm/`: Dockerfile for a Node.js 20 environment with pnpm.
-    -   `quarkus-jvm-21/`: Dockerfile for a Quarkus application running on JVM 21.
-    -   `quarkus-micro/`: Dockerfile for a Quarkus microservice.
-    -   `splunk-license-server/`: Dockerfile for a Splunk license server.
-    -   `splunk-server/`: Dockerfile for a Splunk server.
--   **`misc/manage-spot-request/`**: Contains configurations and scripts for managing AWS Spot Requests.
-    -   `aws-python-spot-manager/`: A serverless application (AWS Lambda) likely used to manage EC2 Spot Instances, including assigning Elastic IPs. Contains Python scripts (`assign_eip.py`, `handler.py`) and a `serverless.yml` configuration.
-    -   `infra/`: Terraform configurations (`main.tf`, `provider.tf`, `terraform.tf`) for provisioning AWS infrastructure components related to spot instance management.
--   **`misc/spot-request/`**:
-    -   `spot_fleet_request.json`: A JSON file defining an AWS Spot Fleet Request, specifying desired instance types, AMIs, networking, and storage configurations for a fleet of spot instances.
+```shell
+harness secret apply --token YOUR_GITHUB_PAT --secret-name "harness_gitpat"
+```
+
+#### 3. Apply Connectors
+
+**GitHub Connector** - Access repositories:
+
+```shell
+harness connector --file harness/connector/github-connector.yaml apply --git-user YOUR_USERNAME
+```
+
+**Kubernetes Connector** - Access K8s cluster via delegate:
+
+```shell
+harness connector --file harness/connector/kubernetes-connector.yaml apply --delegate-name helm-delegate
+```
+
+### Connectors
+
+| File | Purpose |
+|------|---------|
+| `harness/connector/github-connector.yaml` | GitHub repository access using PAT |
+| `harness/connector/kubernetes-connector.yaml` | K8s cluster access via delegate |
+
+### Environments & Infrastructure
+
+| File | Description |
+|------|-------------|
+| `harness/environment/dev-environment.yaml` | Development environment (PreProduction) |
+| `harness/environment/dev-infra.yaml` | Infrastructure definition for dev |
+| `harness/environment/k8s-single-environment.yaml` | Single K8s environment |
+| `harness/environment/k8s-helm-chart-infra.yaml` | Dynamic namespace infrastructure (namespace derived from pipeline variables) |
+
+### Deploying a New Service
+
+Follow these steps to deploy a new application:
+
+```shell
+# 1. Create the Harness service
+harness service --file harness/cd/whoami/service.yaml apply
+
+# 2. Create environment (if not exists)
+harness environment --file harness/environment/dev-environment.yaml apply
+
+# 3. Create infrastructure definition (if not exists)
+harness infrastructure --file harness/environment/dev-infra.yaml apply
+
+# 4. Create the deployment pipeline
+harness pipeline --file harness/cd/whoami/k8s-rolling-pipeline.yaml apply
+```
+
+### Pipeline Architecture
+
+**Simple Rolling Deployment (e.g., whoami)**
+
+```
+┌─────────────────────────────────────┐
+│  Stage: Deploy                      │
+│  ├─ K8sRollingDeploy               │
+│  └─ Rollback on Failure            │
+└─────────────────────────────────────┘
+```
+
+**Multi-Stage Pipeline (e.g., meta)**
+
+```
+┌─────────────────────────────────────┐
+│  Stage 1: Configuration             │
+│  └─ Resolve project variables       │
+│     (namespace, branch, paths)      │
+├─────────────────────────────────────┤
+│  Stage 2: SourceCode                │
+│  ├─ Git Clone (with SSH keys)       │
+│  └─ Build (pnpm install & build)    │
+├─────────────────────────────────────┤
+│  Stage 3: Deploy                    │
+│  ├─ K8sRollingDeploy               │
+│  └─ Rollback on Failure            │
+└─────────────────────────────────────┘
+```
+
+The meta pipeline uses **pipeline variables** for dynamic configuration:
+- `meta_project_name` - Project branch (e.g., `stock`, `binance`)
+- `api` / `frontend` - Toggle deployment components
+- `num_of_instance` / `num_of_job` - Scaling parameters
+
+---
+
+## Kubernetes Management
+
+### Cluster Setup
+
+Install K3s without Traefik (we use nginx-ingress):
+
+```shell
+curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--disable=traefik" sh -
+```
+
+Install nginx-ingress controller (Kubernetes version, not F5):
+
+```shell
+helm upgrade --install ingress-nginx ingress-nginx \
+  --repo https://kubernetes.github.io/ingress-nginx \
+  --namespace ingress-nginx --create-namespace
+```
+
+### Helm Charts Structure
+
+Each application chart follows standard Helm structure:
+
+```
+k8s/app/<app-name>/
+├── Chart.yaml           # Chart metadata & version
+├── values.yaml          # Default configuration values
+├── README.md            # Application-specific docs
+└── templates/
+    ├── _helpers.tpl     # Template helpers
+    ├── deployment.yaml  # Deployment spec
+    ├── service.yaml     # Service spec
+    ├── ingress.yaml     # Ingress rules
+    ├── hpa.yaml         # Horizontal Pod Autoscaler
+    ├── secret.yaml      # Secrets (if needed)
+    ├── serviceaccount.yaml
+    └── NOTES.txt        # Post-install notes
+```
+
+### Available Applications
+
+| Chart | Description |
+|-------|-------------|
+| `whoami` | Test/healthcheck application |
+| `meta` | Main application with StatefulSet support |
+| `jmeta` / `metan` | Meta variants |
+| `ggg-api` | API service |
+| `ggg-brand` | Brand service |
+| `ggg-website` | Website frontend |
+| `db` | Database deployment |
+| `supabase` | Full Supabase stack (Postgres, Auth, Storage, etc.) |
+| `splunk-server` | Splunk for logging |
+| `fluent-bit` | Log forwarder to Splunk |
+| `notion-proxy` | Notion API proxy |
+| `supabase-proxy` | Supabase proxy (DaemonSet) |
+
+**Initial Setup Charts** (`k8s/init/`):
+
+| Path | Purpose |
+|------|---------|
+| `cert-manager/` | Self-signed CA for TLS |
+| `dashboard/` | Kubernetes Dashboard setup |
+| `harness-cd/` | Namespace for Harness delegate |
+
+---
+
+## Infrastructure Utilities (misc/)
+
+### AWS Spot Instance Manager
+
+A serverless application to manage AWS Spot Fleet instances with automatic Elastic IP assignment and health monitoring.
+
+**Location:** `misc/manage-spot-request/`
+
+#### Components
+
+**Terraform Infrastructure** (`infra/`)
+
+Creates IAM role with permissions for:
+- EC2 Spot Fleet management
+- Elastic IP association
+- DynamoDB access for health state
+- CloudWatch Logs
+
+```shell
+cd misc/manage-spot-request/infra
+terraform init
+terraform apply
+```
+
+**Lambda Functions** (`aws-python-spot-manager/`)
+
+| Function | Schedule | Purpose |
+|----------|----------|---------|
+| `checkSpotInstance` | Every 5 min | Assigns Elastic IP to new spot instances |
+| `healthcheck` | Every 5 min | Monitors application health, reboots unhealthy instances |
+| `toggleHealthcheck` | HTTP API | Enable/disable healthcheck via feature flag |
+| `healthStatus` | HTTP API | External health status endpoint |
+
+**Configuration** (in `serverless.yml`):
+
+```yaml
+SPOT_FLEET_REQUEST_ID: sfr-xxx          # Your spot fleet ID
+ALLOCATION_ID: eipalloc-xxx             # Elastic IP allocation ID
+HEALTHCHECK_URL: https://your-app.com   # Primary health endpoint
+UNHEALTHY_RESTART_AFTER_SECONDS: 780    # Reboot threshold (13 min)
+SLACK_POST_URL: https://...             # Slack notifications
+```
+
+**Deploy:**
+
+```shell
+cd misc/manage-spot-request/aws-python-spot-manager
+serverless deploy --aws-profile ggg
+```
+
+#### Health Check Logic
+
+```
+┌─────────────────────────────────────────────────┐
+│  Check HEALTHCHECK_URL                          │
+│  ├─ Healthy? → Update DynamoDB, done           │
+│  └─ Unhealthy?                                  │
+│      ├─ Age < threshold → Notify Slack, wait   │
+│      └─ Age > threshold → Reboot + Notify      │
+└─────────────────────────────────────────────────┘
+```
+
+### EBS Volume Management
+
+**Location:** `misc/mount-ebs.sh`
+
+Script to manage EBS volume attachment for spot instances:
+
+1. Detects current instance ID
+2. Checks if volume is attached elsewhere
+3. Detaches from old instance if needed
+4. Attaches and mounts to current instance
+
+**Usage:** Called during spot instance bootstrap (user-data).
+
+```shell
+# Mount point: /mnt/existing_ebs_volume
+# Device: /dev/sdb
+```
+
+### Custom Docker Images
+
+**Location:** `misc/docker/`
+
+| Image | Base | Purpose |
+|-------|------|---------|
+| `node16-yarn/` | Node 16 | Legacy Node.js builds |
+| `node20-pnpm/` | Node 20 | Modern Node.js with pnpm |
+| `python/` | Python | Python applications |
+| `quarkus-jvm-21/` | JVM 21 | Quarkus Java apps |
+| `quarkus-micro/` | GraalVM | Native Quarkus builds |
+| `splunk-license-server/` | Custom | Splunk licensing |
+| `splunk-server/` | Splunk | Full Splunk server |
+
+---
 
 ## Getting Started
 
-To effectively use and contribute to this repository, you will need:
+**Prerequisites:**
 
-1.  **Harness Account**: Access to a Harness platform account.
-2.  **Harness CLI**: Installed and configured to interact with your Harness account.
-3.  **Kubernetes Cluster**: A running Kubernetes cluster where applications will be deployed.
-4.  **AWS Account**: An AWS account with appropriate permissions for managing EC2, EBS, and other related services.
-5.  **Helm**: Installed locally for managing Kubernetes applications.
-6.  **Terraform**: Installed locally if you plan to manage AWS infrastructure via Terraform.
-7.  **Docker**: Installed locally if you plan to build custom Docker images.
+| Tool | Required For |
+|------|--------------|
+| Harness CLI | Pipeline management |
+| kubectl | K8s cluster access |
+| Helm v3 | Chart deployments |
+| AWS CLI | Spot instance management |
+| Terraform | IAM provisioning |
+| Serverless Framework | Lambda deployments |
 
-Refer to the `harness/README.md` for initial Harness setup steps.
+**Quick Start:**
+
+1. Set up Harness connectors (see [Initial Setup](#initial-setup))
+2. Deploy a test service:
+
+```shell
+# Deploy whoami as a test
+harness service --file harness/cd/whoami/service.yaml apply
+harness pipeline --file harness/cd/whoami/k8s-rolling-pipeline.yaml apply
+```
+
+3. Verify deployment:
+
+```shell
+kubectl get pods -n default
+curl https://whoami.your-domain.com
+```
+
+---
 
 ## Contribution Guidelines
 
-When contributing to this repository, please adhere to the following guidelines:
-
--   **Follow Existing Patterns**: Maintain consistency with existing file structures, naming conventions, and configuration styles within each directory (`harness`, `k8s`, `misc`).
--   **Test Your Changes**: Before submitting, ensure your changes are thoroughly tested. For Helm charts, consider using `helm lint` and `helm template` to validate syntax and generated manifests. For Harness configurations, test pipeline execution.
--   **Documentation**: Update relevant `README.md` files or add new ones if you introduce new components or complex configurations.
--   **Pull Requests**: Submit your changes via pull requests, providing a clear description of the changes and their purpose.
--   **Security**: Ensure that no sensitive information (e.g., API keys, secrets) is hardcoded or committed directly into the repository. Utilize Harness Secrets Management or Kubernetes Secrets for sensitive data.
+- **Follow Existing Patterns**: Maintain consistency with existing file structures and naming conventions
+- **Test Your Changes**: 
+  - Helm: `helm lint` and `helm template` before committing
+  - Harness: Test pipeline execution in dev environment
+- **Documentation**: Update relevant README files when introducing new components
+- **Security**: Never hardcode secrets - use Harness Secrets Management or K8s Secrets
+- **Pull Requests**: Provide clear descriptions of changes and their purpose
