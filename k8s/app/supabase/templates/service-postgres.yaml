@@ -8,7 +8,7 @@ metadata:
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/component: postgres
 spec:
-  type: ClusterIP
+  type: NodePort
   publishNotReadyAddresses: true
   selector:
     app.kubernetes.io/name: supabase
@@ -18,4 +18,5 @@ spec:
     - name: postgres
       port: {{ .Values.postgres.service.port }}
       targetPort: {{ .Values.postgres.service.port }}
+      nodePort: 32264
 {{- end }}
