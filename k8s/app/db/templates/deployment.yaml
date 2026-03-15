@@ -55,12 +55,32 @@ spec:
           args:
             - "postgres"
             - "-c"
-            - "max_connections=1000"
+            - "max_connections=50"
+            - "-c"
+            - "shared_buffers=1GB"
+            - "-c"
+            - "effective_cache_size=3GB"
+            - "-c"
+            - "work_mem=128MB"
+            - "-c"
+            - "maintenance_work_mem=512MB"
+            - "-c"
+            - "wal_buffers=16MB"
+            - "-c"
+            - "random_page_cost=1.1"
+            - "-c"
+            - "effective_io_concurrency=200"
+            - "-c"
+            - "huge_pages=off"
+            - "-c"
+            - "max_parallel_workers_per_gather=2"
+            - "-c"
+            - "max_parallel_workers=4"
           env:
             - name: POSTGRES_USER
               value: root
             - name: POSTGRES_PASSWORD
-              value: root
+              value: admin123
             # Thêm biến môi trường này để sử dụng trong health check
             - name: POSTGRES_DB
               value: postgres
