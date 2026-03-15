@@ -94,8 +94,8 @@ spec:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
             - name: host-volume
-              mountPath: /var/lib/postgresql/data
-              subPath: docker_data/postgres/data
+              mountPath: /var/lib/postgresql
+              subPath: docker_data/postgres
             - name: host-volume
               mountPath: /var/dump
               subPath: docker_data/postgres/dump
