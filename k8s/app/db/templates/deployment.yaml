@@ -80,7 +80,7 @@ spec:
             - name: POSTGRES_USER
               value: root
             - name: POSTGRES_PASSWORD
-              value: admin123
+              value: root
             # Thêm biến môi trường này để sử dụng trong health check
             - name: POSTGRES_DB
               value: postgres
