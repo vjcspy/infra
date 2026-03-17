@@ -13,6 +13,7 @@ dynamodb = boto3.resource("dynamodb")
 
 
 HEALTHCHECK_TIMEOUT_SECONDS = int(os.environ.get("HEALTHCHECK_TIMEOUT_SECONDS", "5"))
+_UA = "AwHealthcheck/1.0"
 UNHEALTHY_RESTART_AFTER_SECONDS = int(
     os.environ.get("UNHEALTHY_RESTART_AFTER_SECONDS", str(13 * 60))
 )
@@ -49,7 +50,7 @@ def _now_iso() -> str:
 
 def _check_health(url: str) -> tuple[bool, int | None]:
     try:
-        req = urllib.request.Request(url, method="GET")
+        req = urllib.request.Request(url, method="GET", headers={"User-Agent": _UA})
         with urllib.request.urlopen(req, timeout=HEALTHCHECK_TIMEOUT_SECONDS) as resp:
             status = resp.getcode()
             is_healthy = 200 <= status < 300
@@ -78,7 +79,7 @@ def _post_slack(text: str) -> None:
         req = urllib.request.Request(
             SLACK_POST_URL,
             data=data,
-            headers={"Content-Type": "application/json"},
+            headers={"Content-Type": "application/json", "User-Agent": _UA},
             method="POST",
         )
         with urllib.request.urlopen(req, timeout=HEALTHCHECK_TIMEOUT_SECONDS) as resp:
@@ -289,15 +290,16 @@ def run(event, context):
     if _is_healthcheck_disabled(table_name, flag_item_id):
         now_iso = _now_iso()
         print("Healthcheck disabled via feature flag; skipping logic.")
-        # Optionally record a disabled heartbeat so operators can see it's alive but disabled
-        _put_item(
-            table_name,
-            {
-                "id": item_id,
-                "lastStatus": DISABLED_STATUS_STRING,
-                "updatedAtIso": now_iso,
-            },
-        )
+        existing = _get_item(table_name, item_id) or {}
+        disabled_item = {
+            "id": item_id,
+            "lastStatus": DISABLED_STATUS_STRING,
+            "updatedAtIso": now_iso,
+        }
+        if "lastHealthyAtEpoch" in existing:
+            disabled_item["lastHealthyAtEpoch"] = existing["lastHealthyAtEpoch"]
+            disabled_item["lastHealthyAtIso"] = existing.get("lastHealthyAtIso")
+        _put_item(table_name, disabled_item)
         if HEALTHCHECK_NOTIFY_WHEN_DISABLED:
             _post_slack(
                 f"Healthcheck disabled (flag item '{flag_item_id}'). Skipping execution at {now_iso}."
