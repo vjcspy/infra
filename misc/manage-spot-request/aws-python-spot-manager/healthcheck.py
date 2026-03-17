@@ -55,6 +55,9 @@ def _check_health(url: str) -> tuple[bool, int | None]:
             status = resp.getcode()
             is_healthy = 200 <= status < 300
             return is_healthy, status
+    except urllib.error.HTTPError as e:
+        print(f"Healthcheck HTTP error: {e.code} {e.reason} for {url}")
+        return False, e.code
     except Exception as e:
         print(f"Healthcheck error: {e}")
         return False, None
@@ -110,47 +113,19 @@ def _put_healthy(table_name: str, item_id: str) -> int:
     table = dynamodb.Table(table_name)
     now_epoch = _now_epoch()
     now_iso = _now_iso()
-    # PutItem replaces the entire item; we intentionally omit firstSeenUnhealthyAtEpoch when healthy
-    table.put_item(
-        Item={
-            "id": item_id,
-            "lastHealthyAtEpoch": now_epoch,
-            "lastHealthyAtIso": now_iso,
-            "lastStatus": "healthy",
-            "updatedAtIso": now_iso,
-        }
-    )
-    return now_epoch
-
-
-def _mark_unhealthy_reference(table_name: str, item_id: str) -> int:
-    """Ensure an 'unhealthy reference' timestamp exists; return the firstSeenUnhealthyAtEpoch.
-
-    We don't misuse lastHealthyAt*; instead, we track first time we've noticed unhealthy when
-    a healthy timestamp doesn't exist yet, to avoid immediate reboot thrash.
-    """
-    table = dynamodb.Table(table_name)
-    now_epoch = _now_epoch()
-    now_iso = _now_iso()
     try:
-        res = table.update_item(
-            Key={"id": item_id},
-            UpdateExpression=(
-                "SET firstSeenUnhealthyAtEpoch = if_not_exists(firstSeenUnhealthyAtEpoch, :now), "
-                "lastStatus = :status, updatedAtIso = :iso"
-            ),
-            ExpressionAttributeValues={
-                ":now": now_epoch,
-                ":status": "unhealthy",
-                ":iso": now_iso,
-            },
-            ReturnValues="ALL_NEW",
+        table.put_item(
+            Item={
+                "id": item_id,
+                "lastHealthyAtEpoch": now_epoch,
+                "lastHealthyAtIso": now_iso,
+                "lastStatus": "healthy",
+                "updatedAtIso": now_iso,
+            }
         )
-        item = res.get("Attributes", {})
-        return int(item.get("firstSeenUnhealthyAtEpoch", now_epoch))
     except Exception as e:
-        print(f"DynamoDB update_item error: {e}")
-        return now_epoch
+        print(f"DynamoDB put_healthy error: {e}")
+    return now_epoch
 
 
 def _run_secondary_healthcheck(url: str | None) -> dict:
@@ -213,70 +188,50 @@ def _is_healthcheck_disabled(table_name: str, flag_item_id: str) -> bool:
     return not enabled_norm
 
 
-def health_status(event, context):
-    """Health status endpoint for external services to check this service's health.
+def _health_response(status_code: int, body: dict) -> dict:
+    return {
+        "statusCode": status_code,
+        "body": json.dumps(body),
+        "headers": {"Content-Type": "application/json"},
+    }
 
-    Returns 200 (UP) if age <= UNHEALTHY_RESTART_AFTER_SECONDS, otherwise 503 (DOWN).
-    """
+
+# health_status uses a stricter threshold (restart window + 5 min buffer) to avoid
+# flapping: the run() function reboots at UNHEALTHY_RESTART_AFTER_SECONDS, but the
+# external status stays UP for a grace period so downstream consumers don't react to
+# transient restarts.
+_DOWN_THRESHOLD = UNHEALTHY_RESTART_AFTER_SECONDS + 5 * 60
+
+
+def health_status(event, context):
+    """Health status endpoint for external services to check this service's health."""
     table_name = os.environ.get("DDB_TABLE_NAME", "common")
     item_id = os.environ.get("DDB_ITEM_ID", "health:jhttp-live")
 
     item = _get_item(table_name, item_id)
 
-    # If no item exists, service hasn't run yet - consider it DOWN
     if not item:
-        return {
-            "statusCode": 503,
-            "body": json.dumps({"status": "DOWN", "reason": "no_health_record_found"}),
-            "headers": {"Content-Type": "application/json"},
-        }
+        return _health_response(503, {"status": "DOWN", "reason": "no_health_record_found"})
+
+    last_status = item.get("lastStatus")
+    if last_status == DISABLED_STATUS_STRING:
+        return _health_response(200, {"status": "DISABLED", "lastStatus": last_status})
 
     last_healthy_epoch = item.get("lastHealthyAtEpoch")
 
-    # If no lastHealthyAtEpoch, service hasn't been healthy yet - DOWN
     if last_healthy_epoch is None:
-        return {
-            "statusCode": 503,
-            "body": json.dumps(
-                {"status": "DOWN", "reason": "no_last_healthy_timestamp"}
-            ),
-            "headers": {"Content-Type": "application/json"},
-        }
+        return _health_response(503, {"status": "DOWN", "reason": "no_last_healthy_timestamp"})
 
     try:
         now = _now_epoch()
         age = now - int(last_healthy_epoch)
     except Exception as e:
-        return {
-            "statusCode": 503,
-            "body": json.dumps(
-                {"status": "DOWN", "reason": "invalid_timestamp", "error": str(e)}
-            ),
-            "headers": {"Content-Type": "application/json"},
-        }
+        return _health_response(503, {"status": "DOWN", "reason": "invalid_timestamp", "error": str(e)})
 
-    # Check if age exceeds threshold
-    if age > UNHEALTHY_RESTART_AFTER_SECONDS + 5 * 60:
-        return {
-            "statusCode": 503,
-            "body": json.dumps(
-                {
-                    "status": "DOWN",
-                    "age": age,
-                    "threshold": UNHEALTHY_RESTART_AFTER_SECONDS,
-                }
-            ),
-            "headers": {"Content-Type": "application/json"},
-        }
+    if age > _DOWN_THRESHOLD:
+        return _health_response(503, {"status": "DOWN", "age": age, "threshold": _DOWN_THRESHOLD})
 
-    # Healthy - age within acceptable range
-    return {
-        "statusCode": 200,
-        "body": json.dumps(
-            {"status": "UP", "age": age, "threshold": UNHEALTHY_RESTART_AFTER_SECONDS}
-        ),
-        "headers": {"Content-Type": "application/json"},
-    }
+    return _health_response(200, {"status": "UP", "age": age, "threshold": _DOWN_THRESHOLD})
 
 
 def run(event, context):
@@ -342,7 +297,14 @@ def run(event, context):
     )
 
     if age is None:
-        # No recorded healthy time yet; notify and wait until we have a healthy baseline
+        _put_item(
+            table_name,
+            {
+                "id": item_id,
+                "lastStatus": "unhealthy",
+                "updatedAtIso": _now_iso(),
+            },
+        )
         _post_slack(
             "Healthcheck: Unhealthy detected but no last healthy timestamp yet; monitoring and will not reboot until a healthy baseline is recorded."
         )
@@ -352,8 +314,7 @@ def run(event, context):
             "reason": "no_last_healthy_timestamp",
         }
 
-    # We have a last healthy timestamp; compare against threshold
-    if age is not None and age > UNHEALTHY_RESTART_AFTER_SECONDS:
+    if age > UNHEALTHY_RESTART_AFTER_SECONDS:
         ok, ids = _reboot_spot_fleet_instances(sfr_id)
         _post_slack(
             f"Healthcheck: Unhealthy for {age}s (> {UNHEALTHY_RESTART_AFTER_SECONDS}s). Rebooting instances: {ids}"
