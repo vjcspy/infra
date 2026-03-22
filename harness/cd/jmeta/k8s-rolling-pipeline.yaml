@@ -349,7 +349,7 @@ pipeline:
                         identifier: Build
                         spec:
                           connectorRef: account.harnessImage
-                          image: gradle:8.14-jdk21-corretto-al2023
+                          image: gradle:9.4-jdk25-corretto-al2023
                           shell: Sh
                           command: |-
                             #!/bin/sh
