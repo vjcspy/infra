@@ -152,6 +152,10 @@ ingress:
       paths:
         - path: /
           pathType: Prefix
+    - host: daoniuguo.com.vn
+      paths:
+        - path: /
+          pathType: Prefix
 
 resources:
   limits:
