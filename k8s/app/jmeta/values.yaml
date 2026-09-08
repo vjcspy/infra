@@ -97,13 +97,15 @@ ingress:
     nginx.ingress.kubernetes.io/proxy-buffers-number: "8"
     nginx.ingress.kubernetes.io/proxy-buffer-size: "8k"
   hosts:
-    - host: j<+pipeline.variables.project_name>.bluestone.systems
+    # Fixed host: external coupling (Cloudflare DNS). `jstock.bluestone.systems`
+    # does not resolve, so the host is NOT derived from project_name.
+    - host: jhttp.bluestone.systems
       paths:
         - path: /
           pathType: Prefix
   tls:
     - hosts:
-        - j<+pipeline.variables.project_name>.bluestone.systems
+        - jhttp.bluestone.systems
 
 resources:
   limits:
@@ -160,7 +162,9 @@ volumeMounts:
     # mountPath: la path trong docker
     mountPath: /deployments
     # subPath: la path con o trong volume mount
-    subPath: jmeta/<+pipeline.variables.project_name>/projects/<+pipeline.variables.project_name>/build/quarkus-app
+    # The Gradle module is `projects/http` on every branch (including
+    # projects/stock) — only the checkout dir is keyed by project_name.
+    subPath: jmeta/<+pipeline.variables.project_name>/projects/http/build/quarkus-app
   - name: tmp-volume
     mountPath: /tmp
 

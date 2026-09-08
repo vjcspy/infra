@@ -1,5 +1,5 @@
 pipeline:
-  name: metan
+  name: metan-deployment
   identifier: metan
   projectIdentifier: default_project
   orgIdentifier: default
@@ -27,6 +27,8 @@ pipeline:
                       spec:
                         script: |
                           #!/bin/bash
+                          # Pure string resolution only — NO Git operations here
+                          # (this step runs on helm-delegate with no SSH credentials).
 
                           # Lấy giá trị của biến đầu vào từ pipeline
                           project_name="<+pipeline.variables.project_name>"
@@ -48,25 +50,34 @@ pipeline:
                             exit 1
                           fi
 
-                          # In ra giá trị của project_name nếu hợp lệ
                           echo "Project Name: ${project_name}"
 
-                          # Build output variable
+                          # Standard convention shared with jmeta:
+                          #   namespace  = <app>-<project_name>
+                          #   git branch = projects/<project_name>
+                          #   host dir   = /mnt/existing_ebs_volume/<app>/<project_name>
                           namespace="metan-${project_name}"
-                          sourceCodePath="/metan/${project_name}"
                           gitBranch="projects/${project_name}"
+                          # In-container base dir for release-addressed checkouts
+                          # (host: /mnt/existing_ebs_volume/metan/${project_name}).
+                          baseDir="/metan/${project_name}"
                           buildTime=$(date '+%Y-%m-%d %H:%M:%S')
+
+                          echo "namespace: ${namespace}"
+                          echo "gitBranch: ${gitBranch}"
+                          echo "baseDir: ${baseDir}"
+                          echo "buildTime: ${buildTime}"
                     environmentVariables: []
                     outputVariables:
                       - name: namespace
                         type: String
                         value: namespace
-                      - name: sourceCodePath
-                        type: String
-                        value: sourceCodePath
                       - name: gitBranch
                         type: String
                         value: gitBranch
+                      - name: baseDir
+                        type: String
+                        value: baseDir
                       - name: buildTime
                         type: String
                         value: buildTime
@@ -91,8 +102,8 @@ pipeline:
                   steps:
                     - step:
                         type: Run
-                        name: Git Clone Source
-                        identifier: Git_Clone_Source
+                        name: Prepare Release
+                        identifier: Prepare_Release
                         spec:
                           connectorRef: account.harnessImage
                           image: alpine/git:2.45.2
@@ -106,15 +117,17 @@ pipeline:
                               echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"
                             }
 
-                            # Store the source code path in a variable
-                            SOURCE_CODE_PATH="<+pipeline.stages.Configuration.spec.execution.steps.Resolve_Configuration.output.outputVariables.sourceCodePath>"
                             GIT_BRANCH="<+pipeline.stages.Configuration.spec.execution.steps.Resolve_Configuration.output.outputVariables.gitBranch>"
+                            BASE_DIR="<+pipeline.stages.Configuration.spec.execution.steps.Resolve_Configuration.output.outputVariables.baseDir>"
+                            RELEASE_SHA_INPUT="<+pipeline.variables.release_sha>"
+                            REPO_URL="git@github.com:vjcspy/metan.git"
+                            CRED_FILE="/credentials/metan/.env.production"
 
                             # Validate input parameters
-                            if [ -z "$SOURCE_CODE_PATH" ] || [ -z "$GIT_BRANCH" ]; then
+                            if [ -z "$GIT_BRANCH" ] || [ -z "$BASE_DIR" ]; then
                               log "Error: Required parameters are missing"
-                              log "SOURCE_CODE_PATH: $SOURCE_CODE_PATH"
                               log "GIT_BRANCH: $GIT_BRANCH"
+                              log "BASE_DIR: $BASE_DIR"
                               exit 1
                             fi
 
@@ -125,49 +138,100 @@ pipeline:
                               exit 1
                             fi
 
-                            # Function to handle Git operations with error checking
-                            git_operation() {
-                              if ! "$@"; then
-                                log "Error: Git operation failed: $*"
+                            # --- Resolve the FULL commit SHA exactly once ---------------------
+                            # Pinned/rollback runs may pass a validated release_sha; otherwise
+                            # resolve the branch tip via git ls-remote. Identity comes from the
+                            # resolved SHA, never the (possibly-advancing) branch ref.
+                            if [ -n "$RELEASE_SHA_INPUT" ] && [ "$RELEASE_SHA_INPUT" != "null" ]; then
+                              if ! echo "$RELEASE_SHA_INPUT" | grep -Eq '^[0-9a-f]{40}$'; then
+                                log "Error: release_sha must be a full 40-char hex commit SHA, got '$RELEASE_SHA_INPUT'"
                                 exit 1
                               fi
-                            }
-
-                            log "Current directory: $(pwd)"
-                            log "Working with source code path: $SOURCE_CODE_PATH"
-
-                            if [ -d "$SOURCE_CODE_PATH/.git" ]; then
-                              log "Git repository already exists. Performing git pull with rebase."
-                              cd "$SOURCE_CODE_PATH"
-
-                              # Fetch all branches
-                              git_operation git fetch origin
-
-                              # Check if branch exists
-                              if ! git rev-parse --verify "origin/$GIT_BRANCH" >/dev/null 2>&1; then
-                                log "Error: Branch $GIT_BRANCH does not exist on remote"
-                                exit 1
-                              fi
-
-                              # Checkout and pull
-                              git_operation git checkout "$GIT_BRANCH"
-                              git_operation git pull --rebase --autostash origin "$GIT_BRANCH"
+                              RELEASE_SHA="$RELEASE_SHA_INPUT"
+                              log "Using pinned release_sha: $RELEASE_SHA"
                             else
-                              log "No Git repository found. Performing fresh clone."
-
-                              # Create parent directory if it doesn't exist
-                              mkdir -p "$(dirname "$SOURCE_CODE_PATH")"
-
-                              # Perform clone
-                              git_operation git clone git@github.com:vjcspy/metan.git -b "$GIT_BRANCH" "$SOURCE_CODE_PATH"
+                              log "Resolving branch tip via git ls-remote for $GIT_BRANCH"
+                              RELEASE_SHA=$(git ls-remote "$REPO_URL" "refs/heads/$GIT_BRANCH" | awk '{print $1}' | head -1)
+                              if ! echo "$RELEASE_SHA" | grep -Eq '^[0-9a-f]{40}$'; then
+                                log "Error: failed to resolve branch tip SHA for $GIT_BRANCH (got '$RELEASE_SHA')"
+                                exit 1
+                              fi
+                              log "Resolved branch tip: $RELEASE_SHA"
                             fi
 
-                            log "Git operations completed successfully"
+                            SHA12=$(echo "$RELEASE_SHA" | cut -c1-12)
+                            RELEASE_DIR="releases/$SHA12"
+                            RELEASE_PATH="$BASE_DIR/$RELEASE_DIR"
+                            log "Release dir (in-container): $RELEASE_PATH"
+
+                            # --- Short-circuit if this exact release is already built ---------
+                            BUILD_NEEDED="true"
+                            if [ -f "$RELEASE_PATH/RELEASE_OK" ]; then
+                              EXISTING=$(tr -d '[:space:]' < "$RELEASE_PATH/RELEASE_OK")
+                              if [ "$EXISTING" = "$RELEASE_SHA" ]; then
+                                log "RELEASE_OK already records $RELEASE_SHA — skipping checkout, signalling Build to skip"
+                                BUILD_NEEDED="false"
+                              fi
+                            fi
+
+                            if [ "$BUILD_NEEDED" = "true" ]; then
+                              # Fresh, exact-SHA, detached checkout into a clean release dir.
+                              log "Preparing fresh detached checkout at $RELEASE_PATH"
+                              rm -rf "$RELEASE_PATH"
+                              mkdir -p "$RELEASE_PATH"
+                              cd "$RELEASE_PATH"
+                              git init -q
+                              git remote add origin "$REPO_URL"
+                              git fetch --depth 1 origin "$RELEASE_SHA"
+                              git checkout --detach FETCH_HEAD
+
+                              # Assert the checked-out HEAD is exactly the resolved SHA.
+                              HEAD_SHA=$(git rev-parse HEAD)
+                              if [ "$HEAD_SHA" != "$RELEASE_SHA" ]; then
+                                log "Error: checked-out HEAD ($HEAD_SHA) != resolved release SHA ($RELEASE_SHA)"
+                                exit 1
+                              fi
+                              log "Checked out $HEAD_SHA (detached)"
+                            fi
+
+                            # --- Validate + copy production env into the release --------------
+                            # Existence / size / permission checks only — NEVER print contents.
+                            if [ ! -f "$CRED_FILE" ]; then
+                              log "Error: credentials file $CRED_FILE not found"
+                              exit 1
+                            fi
+                            if [ ! -r "$CRED_FILE" ]; then
+                              log "Error: credentials file $CRED_FILE is not readable"
+                              exit 1
+                            fi
+                            CRED_SIZE=$(wc -c < "$CRED_FILE" | tr -d ' ')
+                            if [ "$CRED_SIZE" -le 0 ]; then
+                              log "Error: credentials file $CRED_FILE is empty"
+                              exit 1
+                            fi
+                            log "Credentials present and readable (size=${CRED_SIZE} bytes; contents not printed)"
+                            cp "$CRED_FILE" "$RELEASE_PATH/.env.production"
+                            chmod 640 "$RELEASE_PATH/.env.production"
+                            # This step runs as root, but the runtime pods run as UID 1000 on a
+                            # hostPath mount (fsGroup does not apply) — without this the app
+                            # cannot read its env and /ready 503s forever.
+                            chown 1000:1000 "$RELEASE_PATH/.env.production"
+                            log "Copied .env.production into release (verified by size/permission, not contents)"
+
+                            # --- Publish step output variables -------------------------------
+                            export releaseSha="$RELEASE_SHA"
+                            export releaseDir="$RELEASE_DIR"
+                            export buildNeeded="$BUILD_NEEDED"
+                            log "Prepared release: releaseSha=$RELEASE_SHA releaseDir=$RELEASE_DIR buildNeeded=$BUILD_NEEDED"
                           resources:
                             limits:
                               memory: 2000Mi
                               cpu: 500m
                         timeout: 2m
+                        outputVariables:
+                          - name: releaseSha
+                          - name: releaseDir
+                          - name: buildNeeded
                   stepGroupInfra:
                     type: KubernetesDirect
                     spec:
@@ -189,6 +253,14 @@ pipeline:
                           spec:
                             path: /home/ec2-user/.ssh/id_rsa.pub
                             type: File
+                        # Read-only credentials mount — ONLY on the release-prep group,
+                        # so Build and runtime pods never see the credentials tree.
+                        - mountPath: /credentials/metan
+                          type: HostPath
+                          spec:
+                            path: /mnt/existing_ebs_volume/credentials/metan
+                            type: Directory
+                            readOnly: true
                       initTimeout: 10m
               - stepGroup:
                   name: Build Code
@@ -211,33 +283,66 @@ pipeline:
                               echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"
                             }
 
-                            SOURCE_CODE_PATH="<+pipeline.stages.Configuration.spec.execution.steps.Resolve_Configuration.output.outputVariables.sourceCodePath>"
+                            BASE_DIR="<+pipeline.stages.Configuration.spec.execution.steps.Resolve_Configuration.output.outputVariables.baseDir>"
+                            RELEASE_DIR="<+pipeline.stages.SourceCode.spec.execution.steps.Prepare_Source_Code.steps.Prepare_Release.output.outputVariables.releaseDir>"
+                            RELEASE_SHA="<+pipeline.stages.SourceCode.spec.execution.steps.Prepare_Source_Code.steps.Prepare_Release.output.outputVariables.releaseSha>"
+                            BUILD_NEEDED="<+pipeline.stages.SourceCode.spec.execution.steps.Prepare_Source_Code.steps.Prepare_Release.output.outputVariables.buildNeeded>"
 
-                            # Validate source code path
-                            if [ -z "$SOURCE_CODE_PATH" ]; then
-                              log "Error: SOURCE_CODE_PATH is missing"
+                            if [ -z "$RELEASE_DIR" ] || [ -z "$RELEASE_SHA" ]; then
+                              log "Error: release outputs missing (releaseDir='$RELEASE_DIR' releaseSha='$RELEASE_SHA')"
                               exit 1
                             fi
 
-                            # Change to source code directory
-                            log "Changing to source code directory: $SOURCE_CODE_PATH"
-                            cd "$SOURCE_CODE_PATH"
+                            RELEASE_PATH="$BASE_DIR/$RELEASE_DIR"
 
-                            log "Check if build script exists"
-                            if [ ! -f "./scripts/cd-build.sh" ]; then
-                              log "Error: build.sh script not found in $SOURCE_CODE_PATH/scripts"
+                            if [ "$BUILD_NEEDED" = "false" ]; then
+                              log "RELEASE_OK already present for $RELEASE_SHA — skipping build"
+                            else
+                              # Change to the release directory (replaces the old fixed
+                              # sourceCodePath build command).
+                              log "Changing to release directory: $RELEASE_PATH"
+                              cd "$RELEASE_PATH"
+
+                              if [ ! -f "./scripts/cd-build.sh" ]; then
+                                log "Error: cd-build.sh not found in $RELEASE_PATH/scripts"
+                                exit 1
+                              fi
+                              log "Executing build script"
+                              chmod +x ./scripts/cd-build.sh && ./scripts/cd-build.sh
+
+                              # --- Build verification (import + artifact checks) -------------
+                              log "Verifying build artifacts in ./deps"
+                              for M in metan/http fastapi uvicorn; do
+                                if [ ! -e "$RELEASE_PATH/deps/$M" ]; then
+                                  log "Error: expected dependency '$M' missing in ./deps"
+                                  exit 1
+                                fi
+                              done
+                              log "Import-checking http app + cli entrypoints"
+                              PYTHONPATH="$RELEASE_PATH/deps" python -c "import fastapi, uvicorn; from metan.http.main import app; import metan.cli.main" \
+                                || { log "Error: import verification failed"; exit 1; }
+
+                              # Write the RELEASE_OK marker (full SHA) ONLY after success.
+                              printf '%s\n' "$RELEASE_SHA" > "$RELEASE_PATH/RELEASE_OK"
+                              log "Wrote RELEASE_OK ($RELEASE_SHA)"
+                            fi
+
+                            # Retention GC deliberately does NOT run here: deleting releases
+                            # before Deploy succeeds can remove the release the live pods are
+                            # mounted on (e.g. after a pinned rollback). It lives in the
+                            # Finalize stage, which runs only after a successful Deploy.
+                            if [ ! -f "$RELEASE_PATH/RELEASE_OK" ]; then
+                              log "Error: RELEASE_OK missing at $RELEASE_PATH after build"
                               exit 1
                             fi
-                            log "Executing build script"
-                            chmod +x ./scripts/cd-build.sh && ./scripts/cd-build.sh
 
-                            log "Build completed successfully"
+                            log "Build stage completed successfully"
                           privileged: false
                           resources:
                             limits:
                               memory: 4000Mi
                               cpu: 2000m
-                        description: Install dependencies and build application
+                        description: Install dependencies and build application into the release dir
                         timeout: 30m
                   stepGroupInfra:
                     type: KubernetesDirect
@@ -304,17 +409,209 @@ pipeline:
                 - AllErrors
               action:
                 type: StageRollback
+    - stage:
+        name: Finalize
+        identifier: Finalize
+        description: Record CURRENT/PREVIOUS markers and run retention GC after a successful Deploy
+        type: Custom
+        spec:
+          execution:
+            steps:
+              - stepGroup:
+                  name: Finalize Release
+                  identifier: Finalize_Release
+                  steps:
+                    - step:
+                        type: Run
+                        name: Record Markers And GC
+                        identifier: Record_Markers_And_GC
+                        spec:
+                          connectorRef: account.harnessImage
+                          image: alpine:3.20
+                          shell: Sh
+                          command: |-
+                            #!/bin/sh
+                            set -e  # Exit on error
+
+                            # Define function to log with timestamp
+                            log() {
+                              echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"
+                            }
+
+                            # Fail closed: any validation error aborts BEFORE any deletion.
+                            fail() {
+                              log "FAIL (fail-closed, nothing deleted): $1"
+                              exit 1
+                            }
+
+                            BASE_DIR="<+pipeline.stages.Configuration.spec.execution.steps.Resolve_Configuration.output.outputVariables.baseDir>"
+                            RELEASE_DIR="<+pipeline.stages.SourceCode.spec.execution.steps.Prepare_Source_Code.steps.Prepare_Release.output.outputVariables.releaseDir>"
+                            RELEASES_DIR="$BASE_DIR/releases"
+                            KEEP=3
+
+                            [ -n "$BASE_DIR" ] || fail "baseDir output is empty"
+                            [ -n "$RELEASE_DIR" ] || fail "releaseDir output is empty"
+                            [ -d "$RELEASES_DIR" ] || fail "$RELEASES_DIR does not exist"
+
+                            # A value is valid ONLY when it is a bare sha12 whose release dir
+                            # exists and carries the RELEASE_OK completion marker.
+                            is_valid_release() {
+                              echo "$1" | grep -Eq '^[0-9a-f]{12}$' || return 1
+                              [ -d "$RELEASES_DIR/$1" ] || return 1
+                              [ -f "$RELEASES_DIR/$1/RELEASE_OK" ] || return 1
+                              return 0
+                            }
+
+                            read_marker() {
+                              if [ -f "$BASE_DIR/$1" ]; then
+                                tr -d '[:space:]' < "$BASE_DIR/$1"
+                              fi
+                            }
+
+                            # Atomic marker write: same-directory temp file + sync + mv.
+                            # An interrupted Finalize can never leave a truncated marker that
+                            # unprotects the live release.
+                            write_marker() {
+                              printf '%s\n' "$2" > "$BASE_DIR/.marker.tmp"
+                              sync
+                              mv -f "$BASE_DIR/.marker.tmp" "$BASE_DIR/$1"
+                              sync
+                              log "Marker $1 = $2"
+                            }
+
+                            # --- 1. The release just deployed by this run --------------------
+                            NEW=$(basename "$RELEASE_DIR")
+                            is_valid_release "$NEW" || fail "deployed release '$NEW' is not a complete sha12 release dir"
+                            log "Deployed release: $NEW"
+
+                            # --- 2. Validate the existing CURRENT before writing anything ----
+                            OLD=""
+                            if [ -f "$BASE_DIR/CURRENT" ]; then
+                              OLD=$(read_marker CURRENT)
+                              is_valid_release "$OLD" || fail "existing CURRENT ('$OLD') does not resolve to a complete release"
+                              log "Existing CURRENT: $OLD"
+                            else
+                              log "No existing CURRENT (first deploy into $BASE_DIR)"
+                            fi
+
+                            # --- 3. Marker writes: PREVIOUS first, then CURRENT --------------
+                            if [ -n "$OLD" ] && [ "$OLD" != "$NEW" ]; then
+                              write_marker PREVIOUS "$OLD"
+                            fi
+                            write_marker CURRENT "$NEW"
+
+                            # --- 4. Re-read markers from disk and build the protect set ------
+                            CUR=$(read_marker CURRENT)
+                            PREV=$(read_marker PREVIOUS)
+
+                            is_valid_release "$CUR" || fail "CURRENT ('$CUR') does not resolve after write"
+                            if [ -f "$BASE_DIR/PREVIOUS" ]; then
+                              is_valid_release "$PREV" || fail "PREVIOUS ('$PREV') does not resolve after write"
+                            fi
+
+                            PROTECT=" $NEW $CUR "
+                            if [ -n "$PREV" ]; then
+                              PROTECT="$PROTECT$PREV "
+                            fi
+
+                            # Newest 3 complete releases by mtime are protected as well.
+                            n=0
+                            for d in $(ls -1dt "$RELEASES_DIR"/*/ 2>/dev/null); do
+                              [ -f "${d}RELEASE_OK" ] || continue
+                              b=$(basename "$d")
+                              echo "$b" | grep -Eq '^[0-9a-f]{12}$' || continue
+                              n=$((n + 1))
+                              [ "$n" -le "$KEEP" ] || break
+                              case "$PROTECT" in
+                                *" $b "*) ;;
+                                *) PROTECT="$PROTECT$b " ;;
+                              esac
+                            done
+
+                            log "Protect set:$PROTECT"
+
+                            # --- 5. Delete only what is outside the protect set --------------
+                            for d in "$RELEASES_DIR"/*/; do
+                              [ -d "$d" ] || continue
+                              b=$(basename "$d")
+                              if ! echo "$b" | grep -Eq '^[0-9a-f]{12}$'; then
+                                log "Skipping non-release dir: $b"
+                                continue
+                              fi
+                              case "$PROTECT" in
+                                *" $b "*)
+                                  log "Keeping protected release: $b"
+                                  continue
+                                  ;;
+                              esac
+                              if [ -f "${d}RELEASE_OK" ]; then
+                                log "GC removing complete release outside protect set: $b"
+                                rm -rf "$d"
+                              elif [ -n "$(find "$RELEASES_DIR" -mindepth 1 -maxdepth 1 -type d -name "$b" -mtime +0 2>/dev/null)" ]; then
+                                log "GC removing incomplete release older than 1 day: $b"
+                                rm -rf "$d"
+                              else
+                                log "Keeping recent incomplete release: $b"
+                              fi
+                            done
+
+                            log "Finalize completed successfully"
+                          privileged: false
+                          resources:
+                            limits:
+                              memory: 256Mi
+                              cpu: 200m
+                        description: Atomic CURRENT/PREVIOUS markers + fail-closed retention GC
+                        timeout: 2m
+                  stepGroupInfra:
+                    type: KubernetesDirect
+                    spec:
+                      connectorRef: harnessk8sconnector
+                      namespace: harness-cd
+                      volumes:
+                        - mountPath: /metan
+                          type: HostPath
+                          spec:
+                            path: /mnt/existing_ebs_volume/metan
+                            type: Directory
+                      initTimeout: 10m
+            rollbackSteps: []
+          serviceDependencies: []
+          environment:
+            environmentRef: k8ssingleenv
+            deployToAll: false
+            infrastructureDefinitions:
+              - identifier: k8shelmchartinfra
+        tags: {}
+        timeout: 10m
+        # MarkAsFailure only — a Finalize failure must NEVER roll back Deploy.
+        failureStrategies:
+          - onFailure:
+              errors:
+                - AllErrors
+              action:
+                type: MarkAsFailure
   variables:
     - name: project_name
       type: String
-      description: Phải có branch projects/NAME
+      description: Phải có branch projects/NAME (hiện chỉ hỗ trợ stock)
       required: true
-      value: <+input>.default(cli).allowedValues(cli)
-    - name: num_of_instance
+      value: <+input>.default(stock).allowedValues(stock)
+    - name: num_of_worker_instance
       type: Number
-      description: Số lượng instance
+      description: Số lượng worker pod
       required: true
       value: <+input>.default(1)
+    - name: num_of_http_instance
+      type: Number
+      description: Số lượng http pod
+      required: true
+      value: <+input>.default(1)
+    - name: release_sha
+      type: String
+      description: Optional full 40-char commit SHA to deploy (empty = resolve branch tip)
+      required: false
+      value: <+input>
   timeout: 60m
   allowStageExecutions: true
   fixedInputsOnRerun: true

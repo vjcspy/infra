@@ -109,6 +109,11 @@ pipeline:
                   timeout: 10m
             rollbackSteps: []
         tags: {}
+        # Skipped on the bootstrap run: the Deployment does not exist yet, so
+        # K8sDelete would fail. Every later run keeps fail-on-real-error.
+        when:
+          pipelineStatus: Success
+          condition: '<+pipeline.variables.first_deploy> == "false"'
         failureStrategies:
           - onFailure:
               errors:
@@ -387,7 +392,9 @@ pipeline:
                               memory: 1000Mi
                               cpu: 250m
                             limits:
-                              memory: 3000Mi
+                              # scripts/build.sh sets -Xmx4096m + MaxMetaspaceSize=512m;
+                              # 3000Mi could not hold the configured Gradle heap.
+                              memory: 5000Mi
                               cpu: 2000m
                         description: Install dependencies and build application
                         timeout: 30m
@@ -454,9 +461,14 @@ pipeline:
   variables:
     - name: project_name
       type: String
-      description: Phải có branch projects/NAME
+      description: Phải có branch projects/NAME (hiện chỉ hỗ trợ stock)
       required: true
-      value: <+input>.default(http).allowedValues(stock,http)
+      value: <+input>.default(stock).allowedValues(stock)
+    - name: first_deploy
+      type: String
+      description: "Set true only for the first deploy into a new namespace: skips ScaleDown (K8sDelete of a not-yet-existing Deployment)"
+      required: true
+      value: <+input>.default(false).allowedValues(true,false)
     - name: num_of_instance
       type: Number
       description: Số lượng api request instance

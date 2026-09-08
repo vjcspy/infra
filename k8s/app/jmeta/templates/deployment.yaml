@@ -46,7 +46,9 @@ spec:
               
               # Define base paths
               BASE_PATH="/host_ebs_volume/jmeta/{{ .Values.projectName }}"
-              PROJECT_PATH="$BASE_PATH/projects/{{ .Values.projectName }}"
+              # The Gradle module is always `projects/http`; only the checkout
+              # dir is keyed by project_name. Must match values.yaml subPath.
+              PROJECT_PATH="$BASE_PATH/projects/http"
               QUARKUS_APP_PATH="$PROJECT_PATH/build/quarkus-app"
               CONFIG_DIR="$QUARKUS_APP_PATH/config"
               

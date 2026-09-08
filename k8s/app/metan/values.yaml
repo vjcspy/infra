@@ -2,11 +2,14 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
-# This will set the replicaset count more information can be found here: https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/
-replicaCount: <+pipeline.variables.num_of_instance>
-
 namespace: <+pipeline.stages.Configuration.spec.execution.steps.Resolve_Configuration.output.outputVariables.namespace>
 projectName: <+pipeline.variables.project_name>
+
+# Release-addressed artifact directory (releases/<sha12>) + the full commit SHA,
+# resolved once by the SourceCode "Prepare Release" step and consumed here so
+# the Deployment subPath and pod annotation point at an immutable release.
+releaseDir: <+pipeline.stages.SourceCode.spec.execution.steps.Prepare_Source_Code.steps.Prepare_Release.output.outputVariables.releaseDir>
+releaseSha: <+pipeline.stages.SourceCode.spec.execution.steps.Prepare_Source_Code.steps.Prepare_Release.output.outputVariables.releaseSha>
 
 # This sets the container image more information can be found here: https://kubernetes.io/docs/concepts/containers/images/
 image:
@@ -19,8 +22,41 @@ image:
 # This is for the secrets for pulling an image from a private repository more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
 imagePullSecrets: [ ]
 # This is to override the chart name.
-nameOverride: "metan-<+pipeline.variables.project_name>"
-fullnameOverride: "metan-<+pipeline.variables.project_name>"
+nameOverride: "metan"
+fullnameOverride: "metan"
+
+# Per-workload settings (single project renders 2 Deployments).
+worker:
+  replicaCount: <+pipeline.variables.num_of_worker_instance>
+  livenessProbe: { }
+  readinessProbe: { }
+
+http:
+  replicaCount: <+pipeline.variables.num_of_http_instance>
+  # Liveness/startup stay on the dependency-free /health so a DB outage degrades
+  # a pod to NotReady instead of restart-looping it.
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: http
+    initialDelaySeconds: 20
+    periodSeconds: 30
+    failureThreshold: 3
+  # Readiness points at /ready (production config + bounded DB check) so Harness
+  # does not report success while every real endpoint 500s.
+  readinessProbe:
+    httpGet:
+      path: /ready
+      port: http
+    initialDelaySeconds: 10
+    periodSeconds: 15
+    failureThreshold: 3
+  startupProbe:
+    httpGet:
+      path: /health
+      port: http
+    failureThreshold: 30
+    periodSeconds: 10
 
 # This section builds out the service account more information can be found here: https://kubernetes.io/docs/concepts/security/service-accounts/
 serviceAccount:
@@ -37,7 +73,7 @@ serviceAccount:
 # This is for setting Kubernetes Annotations to a Pod.
 # For more information checkout: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
 podAnnotations:
-  redeployTimestamp: "{{ now | unixEpoch }}"
+  releaseSha: "<+pipeline.stages.SourceCode.spec.execution.steps.Prepare_Source_Code.steps.Prepare_Release.output.outputVariables.releaseSha>"
 # This is for setting Kubernetes Labels to a Pod.
 # For more information checkout: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
 podLabels: { }
@@ -69,20 +105,34 @@ service:
 
 # This block is for setting up the ingress for more information can be found here: https://kubernetes.io/docs/concepts/services-networking/ingress/
 ingress:
-  enabled: false
-  className: ""
-  annotations: { }
-    # kubernetes.io/ingress.class: nginx
-  # kubernetes.io/tls-acme: "true"
+  enabled: true
+  className: "nginx"
+  annotations:
+    # Origin TLS via the cluster's existing self-signed CA issuer. DNS is
+    # Cloudflare-proxied, so clients never see this certificate — same model as
+    # jmeta; removes ACME/HTTP-01 as a failure mode.
+    cert-manager.io/cluster-issuer: k8s-ca-issuer
+
+    # Enable SSL redirect
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+
+    # TLS 1.2/1.3 only (jmeta's obsolete TLSv1/TLSv1.1 line is deliberately NOT copied).
+    nginx.ingress.kubernetes.io/ssl-protocols: "TLSv1.2 TLSv1.3"
+
+    # GZIP compression
+    nginx.ingress.kubernetes.io/enable-gzip: "true"
+    nginx.ingress.kubernetes.io/gzip-types: "text/plain text/css application/javascript application/json application/xml image/svg+xml"
+    nginx.ingress.kubernetes.io/gzip-min-length: "1100"
+    nginx.ingress.kubernetes.io/gzip-comp-level: "6"
   hosts:
-    - host: chart-example.local
+    - host: metan.bluestone.systems
       paths:
         - path: /
-          pathType: ImplementationSpecific
-  tls: [ ]
-  #  - secretName: chart-example-tls
-  #    hosts:
-  #      - chart-example.local
+          pathType: Prefix
+  tls:
+    - hosts:
+        - metan.bluestone.systems
+      secretName: metan-tls-ca-issuer
 
 resources: { }
   # We usually recommend not to specify default resources and to leave this as a conscious
@@ -95,10 +145,6 @@ resources: { }
   # requests:
   #   cpu: 100m
 #   memory: 128Mi
-
-# This is to setup the liveness and readiness probes more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
-livenessProbe: { }
-readinessProbe: { }
 
 # This section is for setting up autoscaling more information can be found here: https://kubernetes.io/docs/concepts/workloads/autoscaling/
 autoscaling:
@@ -120,8 +166,9 @@ volumeMounts:
   - name: host-volume
     # mountPath: la path trong docker
     mountPath: /app
-    # subPath: la path con o trong volume mount
-    subPath: metan/<+pipeline.variables.project_name>
+    # subPath: release-addressed dir relative to the host EBS volume
+    # (/mnt/existing_ebs_volume) → metan/<project_name>/releases/<sha12>
+    subPath: metan/<+pipeline.variables.project_name>/<+pipeline.stages.SourceCode.spec.execution.steps.Prepare_Source_Code.steps.Prepare_Release.output.outputVariables.releaseDir>
 
 nodeSelector: { }
 

@@ -51,6 +51,41 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
+Per-workload fully qualified names (single project renders 2 Deployments).
+*/}}
+{{- define "metan.worker.fullname" -}}
+{{- printf "%s-worker" (include "metan.fullname" .) | trunc 63 | trimSuffix "-" }}
+{{- end }}
+{{- define "metan.http.fullname" -}}
+{{- printf "%s-http" (include "metan.fullname" .) | trunc 63 | trimSuffix "-" }}
+{{- end }}
+
+{{/*
+Per-component selector labels — MUST differ per workload so the http Service
+selects only http pods (selectors are immutable post-create).
+*/}}
+{{- define "metan.worker.selectorLabels" -}}
+{{ include "metan.selectorLabels" . }}
+app.kubernetes.io/component: worker
+{{- end }}
+{{- define "metan.http.selectorLabels" -}}
+{{ include "metan.selectorLabels" . }}
+app.kubernetes.io/component: http
+{{- end }}
+
+{{/*
+Per-component full label sets (common labels + the component discriminator).
+*/}}
+{{- define "metan.worker.labels" -}}
+{{ include "metan.labels" . }}
+app.kubernetes.io/component: worker
+{{- end }}
+{{- define "metan.http.labels" -}}
+{{ include "metan.labels" . }}
+app.kubernetes.io/component: http
+{{- end }}
+
+{{/*
 Create the name of the service account to use
 */}}
 {{- define "metan.serviceAccountName" -}}

@@ -1,18 +1,18 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "metan.fullname" . }}
+  name: {{ include "metan.http.fullname" . }}
   labels:
-    {{- include "metan.labels" . | nindent 4 }}
+    {{- include "metan.http.labels" . | nindent 4 }}
   annotations:
     redeployTimestamp: "{{ now | unixEpoch }}"
 spec:
   {{- if not .Values.autoscaling.enabled }}
-  replicas: {{ .Values.replicaCount }}
+  replicas: {{ .Values.http.replicaCount }}
   {{- end }}
   selector:
     matchLabels:
-      {{- include "metan.selectorLabels" . | nindent 6 }}
+      {{- include "metan.http.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       {{- with .Values.podAnnotations }}
@@ -20,7 +20,7 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-        {{- include "metan.labels" . | nindent 8 }}
+        {{- include "metan.http.labels" . | nindent 8 }}
         {{- with .Values.podLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -44,28 +44,36 @@ spec:
               mountPath: /host_ebs_volume
 
       containers:
-        - name: {{ .Chart.Name }}
+        - name: {{ .Chart.Name }}-http
           {{- with .Values.securityContext }}
           securityContext:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          command: [ "python", "-m", "metan.cli.main", "worker", "start"]
+          command: [ "python", "-m", "uvicorn", "metan.http.main:app", "--host", "0.0.0.0", "--port", "8000" ]
           workingDir: /app
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
           env:
             - name: BUILD_TIME
               value: {{ .Values.podEnv.BUILD_TIME }}
             - name: PYTHONPATH
               value: /app/deps
             - name: ENVIRONMENT
-              value: prod
-          {{- with .Values.livenessProbe }}
+              value: production
+          {{- with .Values.http.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- with .Values.readinessProbe }}
+          {{- with .Values.http.readinessProbe }}
           readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.http.startupProbe }}
+          startupProbe:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           {{- with .Values.resources }}
