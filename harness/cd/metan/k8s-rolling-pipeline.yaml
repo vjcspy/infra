@@ -179,14 +179,16 @@ pipeline:
                               log "Preparing fresh detached checkout at $RELEASE_PATH"
                               rm -rf "$RELEASE_PATH"
                               mkdir -p "$RELEASE_PATH"
-                              cd "$RELEASE_PATH"
-                              git init -q
-                              git remote add origin "$REPO_URL"
-                              git fetch --depth 1 origin "$RELEASE_SHA"
-                              git checkout --detach FETCH_HEAD
+                              # Never `cd` in this step: Harness captures outputVariables relative to
+                              # the step working directory after the script ends; a changed cwd left
+                              # every output empty (observed: releaseDir resolved to "null").
+                              git init -q "$RELEASE_PATH"
+                              git -C "$RELEASE_PATH" remote add origin "$REPO_URL"
+                              git -C "$RELEASE_PATH" fetch --depth 1 origin "$RELEASE_SHA"
+                              git -C "$RELEASE_PATH" checkout --detach FETCH_HEAD
 
                               # Assert the checked-out HEAD is exactly the resolved SHA.
-                              HEAD_SHA=$(git rev-parse HEAD)
+                              HEAD_SHA=$(git -C "$RELEASE_PATH" rev-parse HEAD)
                               if [ "$HEAD_SHA" != "$RELEASE_SHA" ]; then
                                 log "Error: checked-out HEAD ($HEAD_SHA) != resolved release SHA ($RELEASE_SHA)"
                                 exit 1
