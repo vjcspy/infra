@@ -230,17 +230,17 @@ pipeline:
                             limits:
                               memory: 2000Mi
                               cpu: 500m
+                          outputVariables:
+                            - name: releaseSha
+                              type: String
+                              value: RELEASE_SHA
+                            - name: releaseDir
+                              type: String
+                              value: RELEASE_DIR
+                            - name: buildNeeded
+                              type: String
+                              value: BUILD_NEEDED
                         timeout: 2m
-                        outputVariables:
-                          - name: releaseSha
-                            type: String
-                            value: RELEASE_SHA
-                          - name: releaseDir
-                            type: String
-                            value: RELEASE_DIR
-                          - name: buildNeeded
-                            type: String
-                            value: BUILD_NEEDED
                   stepGroupInfra:
                     type: KubernetesDirect
                     spec:
