@@ -219,6 +219,7 @@ pipeline:
                             log "Copied .env.production into release (verified by size/permission, not contents)"
 
                             # --- Publish step output variables -------------------------------
+                            export RELEASE_SHA RELEASE_DIR BUILD_NEEDED
                             export releaseSha="$RELEASE_SHA"
                             export releaseDir="$RELEASE_DIR"
                             export buildNeeded="$BUILD_NEEDED"
@@ -230,8 +231,14 @@ pipeline:
                         timeout: 2m
                         outputVariables:
                           - name: releaseSha
+                            type: String
+                            value: RELEASE_SHA
                           - name: releaseDir
+                            type: String
+                            value: RELEASE_DIR
                           - name: buildNeeded
+                            type: String
+                            value: BUILD_NEEDED
                   stepGroupInfra:
                     type: KubernetesDirect
                     spec:

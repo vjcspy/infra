@@ -125,13 +125,13 @@ ingress:
     nginx.ingress.kubernetes.io/gzip-min-length: "1100"
     nginx.ingress.kubernetes.io/gzip-comp-level: "6"
   hosts:
-    - host: metan.bluestone.systems
+    - host: metan-<+pipeline.variables.project_name>.bluestone.systems
       paths:
         - path: /
           pathType: Prefix
   tls:
     - hosts:
-        - metan.bluestone.systems
+        - metan-<+pipeline.variables.project_name>.bluestone.systems
       secretName: metan-tls-ca-issuer
 
 resources: { }

@@ -97,15 +97,15 @@ ingress:
     nginx.ingress.kubernetes.io/proxy-buffers-number: "8"
     nginx.ingress.kubernetes.io/proxy-buffer-size: "8k"
   hosts:
-    # Fixed host: external coupling (Cloudflare DNS). `jstock.bluestone.systems`
-    # does not resolve, so the host is NOT derived from project_name.
-    - host: jhttp.bluestone.systems
+    # Host convention: <app>-<project_name>.bluestone.systems (Cloudflare DNS
+    # record must exist for each project_name).
+    - host: jmeta-<+pipeline.variables.project_name>.bluestone.systems
       paths:
         - path: /
           pathType: Prefix
   tls:
     - hosts:
-        - jhttp.bluestone.systems
+        - jmeta-<+pipeline.variables.project_name>.bluestone.systems
 
 resources:
   limits:
