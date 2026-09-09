@@ -21,7 +21,8 @@ provider:
     SLACK_CHANNEL: general-meta-bot-channel
     SLACK_TOKEN: '1235'
     HEALTHCHECK_NOTIFY_WHEN_DISABLED: 'false'
-    SECONDARY_HEALTHCHECK_URL: "https://jhttp.bluestone.systems/q/health/live"
+    # Notify-only checks of the k3s apps (see resources/workspaces/k/stock/_infra/__references/k3s-harness-deploy-model.md)
+    SECONDARY_HEALTHCHECK_URLS: "https://jmeta-stock.bluestone.systems/q/health/live,https://metan-stock.bluestone.systems/health"
     SECONDARY_HEALTHCHECK_ENABLED: 'true'
 
 functions:

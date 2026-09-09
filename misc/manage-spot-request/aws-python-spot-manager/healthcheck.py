@@ -31,10 +31,21 @@ HEALTHCHECK_NOTIFY_WHEN_DISABLED = os.environ.get(
 ).lower() in {"1", "true", "yes"}
 DISABLED_STATUS_STRING = os.environ.get("HEALTHCHECK_DISABLED_STATUS", "disabled")
 
-# Secondary healthcheck configuration (does not impact reboot logic)
-SECONDARY_HEALTHCHECK_URL = os.environ.get(
-    "SECONDARY_HEALTHCHECK_URL", "https://jhttp.bluestone.systems/q/health/live"
+# Secondary healthchecks (notify-only; never influence the reboot decision).
+# SECONDARY_HEALTHCHECK_URLS is a comma-separated list; the legacy singular
+# SECONDARY_HEALTHCHECK_URL is still honoured when the plural is unset.
+_DEFAULT_SECONDARY_URLS = (
+    "https://jmeta-stock.bluestone.systems/q/health/live,"
+    "https://metan-stock.bluestone.systems/health"
 )
+SECONDARY_HEALTHCHECK_URLS = [
+    u.strip()
+    for u in os.environ.get(
+        "SECONDARY_HEALTHCHECK_URLS",
+        os.environ.get("SECONDARY_HEALTHCHECK_URL", _DEFAULT_SECONDARY_URLS),
+    ).split(",")
+    if u.strip()
+]
 SECONDARY_HEALTHCHECK_ENABLED = os.environ.get(
     "SECONDARY_HEALTHCHECK_ENABLED", "true"
 ).lower() in {"1", "true", "yes"}
@@ -128,8 +139,8 @@ def _put_healthy(table_name: str, item_id: str) -> int:
     return now_epoch
 
 
-def _run_secondary_healthcheck(url: str | None) -> dict:
-    """Run the secondary healthcheck and post to Slack if it's unhealthy.
+def _run_secondary_healthchecks(urls: list[str]) -> dict:
+    """Run every secondary healthcheck and post to Slack for each unhealthy one.
 
     This does not influence the main health/restart decision; it's fire-and-forget notify.
 
@@ -137,18 +148,18 @@ def _run_secondary_healthcheck(url: str | None) -> dict:
     """
     if not SECONDARY_HEALTHCHECK_ENABLED:
         return {"enabled": False, "skipped": True}
-    if not url:
+    if not urls:
         return {"enabled": True, "skipped": True, "reason": "no_url"}
 
-    healthy, status = _check_health(url)
-    if healthy:
-        return {"enabled": True, "healthy": True, "status": status}
-
-    # Unhealthy -> notify via Slack
-    _post_slack(
-        f"healthcheck unhealthy: {url} status={status}. Monitoring only; no reboot action."
-    )
-    return {"enabled": True, "healthy": False, "status": status}
+    results = {}
+    for url in urls:
+        healthy, status = _check_health(url)
+        results[url] = {"healthy": healthy, "status": status}
+        if not healthy:
+            _post_slack(
+                f"healthcheck unhealthy: {url} status={status}. Monitoring only; no reboot action."
+            )
+    return {"enabled": True, "results": results}
 
 
 def _reboot_spot_fleet_instances(spot_fleet_request_id: str) -> tuple[bool, list[str]]:
@@ -237,6 +248,8 @@ def health_status(event, context):
 def run(event, context):
     url = os.environ.get("HEALTHCHECK_URL", "https://whoami.bluestone.systems")
     table_name = os.environ.get("DDB_TABLE_NAME", "common")
+    # Item id is historical (named after the retired jhttp host); it only keys the
+    # DynamoDB record, so it is kept for state continuity.
     item_id = os.environ.get("DDB_ITEM_ID", "health:jhttp-live")
     sfr_id = os.environ["SPOT_FLEET_REQUEST_ID"]
     flag_item_id = DDB_FLAG_ITEM_ID
@@ -268,7 +281,7 @@ def run(event, context):
 
     try:
         # Run secondary healthcheck in addition to the main one; notify only when unhealthy
-        _run_secondary_healthcheck(SECONDARY_HEALTHCHECK_URL)
+        _run_secondary_healthchecks(SECONDARY_HEALTHCHECK_URLS)
     except Exception:
         pass  # IGNORE
 
