@@ -606,11 +606,11 @@ pipeline:
       description: Phải có branch projects/NAME (hiện chỉ hỗ trợ stock)
       required: true
       value: <+input>.default(stock).allowedValues(stock)
-    - name: num_of_worker_instance
-      type: Number
-      description: Số lượng worker pod
+    - name: worker_enabled
+      type: String
+      description: Bật/tắt metan-worker (fixed 3 replicas); false = scale to 0 cho worker handover
       required: true
-      value: <+input>.default(1)
+      value: <+input>.default(true).allowedValues(true,false)
     - name: num_of_http_instance
       type: Number
       description: Số lượng http pod

@@ -27,7 +27,12 @@ fullnameOverride: "metan"
 
 # Per-workload settings (single project renders 2 Deployments).
 worker:
-  replicaCount: <+pipeline.variables.num_of_worker_instance>
+  # Fixed 3-pod fleet (fan-out benchmark: T4 = T2, one shared vnstock key is
+  # enough — see resources/workspaces/k/stock/_plans/260926-wavetrend-eod-job-and-fixed-3-metan-workers.md).
+  # `enabled=false` is the supported way to reach 0 replicas for the mandatory
+  # worker handover (two code versions must never share the queue).
+  enabled: <+pipeline.variables.worker_enabled>
+  fixedReplicas: 3
   livenessProbe: { }
   readinessProbe: { }
 

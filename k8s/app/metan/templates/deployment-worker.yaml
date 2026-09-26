@@ -8,7 +8,7 @@ metadata:
     redeployTimestamp: "{{ now | unixEpoch }}"
 spec:
   {{- if not .Values.autoscaling.enabled }}
-  replicas: {{ .Values.worker.replicaCount }}
+  replicas: {{ if eq (toString .Values.worker.enabled) "true" }}{{ .Values.worker.fixedReplicas }}{{ else }}0{{ end }}
   {{- end }}
   selector:
     matchLabels:
