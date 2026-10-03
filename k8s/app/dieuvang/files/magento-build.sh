@@ -17,7 +17,9 @@ mage() { php -d memory_limit=-1 bin/magento "$@"; }
 mkdir -p var
 touch var/.maintenance.flag
 
-# 2. Dependencies.
+# 2. Dependencies. Empty generated/ BEFORE the dump: an optimized classmap that lists previously generated classes
+# breaks the next DI compile once Magento's composer plugin has cleared them ("Failed to open stream ... Proxy.php").
+rm -rf generated/code generated/metadata
 php -d memory_limit=-1 "$(command -v composer)" install --no-dev --no-interaction --optimize-autoloader
 
 if [ ! -f app/etc/env.php ]; then
