@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dieuvang-opensearch
+  labels:
+    {{- include "dieuvang.labels" . | nindent 4 }}
+    app.kubernetes.io/component: opensearch
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "dieuvang.selector" (dict "root" . "component" "opensearch") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "dieuvang.labels" . | nindent 8 }}
+        app.kubernetes.io/component: opensearch
+    spec:
+      initContainers:
+        {{- include "dieuvang.sentinel" (dict "root" . "db" false) | nindent 8 }}
+      containers:
+        - name: opensearch
+          image: {{ .Values.images.opensearch }}
+          env:
+            - name: discovery.type
+              value: single-node
+            - name: node.store.allow_mmap
+              value: "false"
+            - name: DISABLE_SECURITY_PLUGIN
+              value: "true"
+            - name: DISABLE_INSTALL_DEMO_CONFIG
+              value: "true"
+            - name: OPENSEARCH_JAVA_OPTS
+              value: -Xms512m -Xmx512m
+          ports:
+            - name: http
+              containerPort: 9200
+          readinessProbe:
+            httpGet:
+              path: /_cluster/health?wait_for_status=yellow&timeout=1s
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 12
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 90
+            periodSeconds: 20
+            failureThreshold: 6
+          resources:
+            {{- toYaml .Values.resources.opensearch | nindent 12 }}
+          volumeMounts:
+            - name: app-volume
+              mountPath: /usr/share/opensearch/data
+              subPath: {{ .Values.hostPaths.appRoot }}/opensearch
+      volumes:
+        {{- include "dieuvang.appVolume" . | nindent 8 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dieuvang-opensearch
+  labels:
+    {{- include "dieuvang.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 9200
+      targetPort: http
+  selector:
+    {{- include "dieuvang.selector" (dict "root" . "component" "opensearch") | nindent 4 }}

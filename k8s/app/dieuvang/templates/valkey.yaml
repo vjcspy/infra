@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dieuvang-valkey
+  labels:
+    {{- include "dieuvang.labels" . | nindent 4 }}
+    app.kubernetes.io/component: valkey
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "dieuvang.selector" (dict "root" . "component" "valkey") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "dieuvang.labels" . | nindent 8 }}
+        app.kubernetes.io/component: valkey
+    spec:
+      containers:
+        - name: valkey
+          image: {{ .Values.images.valkey }}
+          # Cache + full-page cache only (disposable). Sessions are files on the persistent hostPath.
+          args: ["valkey-server", "--save", "", "--appendonly", "no", "--maxmemory", "192mb", "--maxmemory-policy", "allkeys-lru"]
+          ports:
+            - name: redis
+              containerPort: 6379
+          readinessProbe:
+            exec:
+              command: ["valkey-cli", "ping"]
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: redis
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          resources:
+            {{- toYaml .Values.resources.valkey | nindent 12 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dieuvang-valkey
+  labels:
+    {{- include "dieuvang.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: redis
+  selector:
+    {{- include "dieuvang.selector" (dict "root" . "component" "valkey") | nindent 4 }}

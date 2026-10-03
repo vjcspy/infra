@@ -1,0 +1,6 @@
+apiVersion: v2
+name: dieuvang
+description: Diệu Vang - Magento 2.4.9 backend (MariaDB, OpenSearch, Valkey) and Next.js storefront on one host
+type: application
+version: 0.1.0
+appVersion: "1.0.0"

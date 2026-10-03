@@ -1,0 +1,178 @@
+# Suspended CronJobs used only as Job templates: `kubectl create job --from=cronjob/<name> <job>` (scripts/deploy.sh).
+# The schedule never fires. Build Jobs never mount the database volume.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: dieuvang-magento-build
+  labels:
+    {{- include "dieuvang.labels" . | nindent 4 }}
+    app.kubernetes.io/component: build
+spec:
+  schedule: "0 0 1 1 *"
+  suspend: true
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    metadata:
+      labels:
+        {{- include "dieuvang.labels" . | nindent 8 }}
+        app.kubernetes.io/component: build
+        dieuvang/build: magento
+    spec:
+      backoffLimit: 0
+      ttlSecondsAfterFinished: 86400
+      activeDeadlineSeconds: 3600
+      template:
+        metadata:
+          labels:
+            {{- include "dieuvang.labels" . | nindent 12 }}
+            app.kubernetes.io/component: build
+            dieuvang/build: magento
+        spec:
+          restartPolicy: Never
+          securityContext:
+            fsGroup: 1000
+          initContainers:
+            {{- include "dieuvang.sentinel" (dict "root" . "db" false) | nindent 12 }}
+          containers:
+            - name: build
+              image: {{ .Values.images.php }}
+              securityContext:
+                runAsUser: 1000
+              workingDir: /var/www/html
+              command: ["bash", "/scripts/magento-build.sh"]
+              env:
+                - name: COMPOSER_AUTH
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .Values.secrets.composerAuth }}
+                      key: COMPOSER_AUTH
+                - name: COMPOSER_CACHE_DIR
+                  value: /srv/cache/composer
+                - name: COMPOSER_NO_INTERACTION
+                  value: "1"
+                - name: DB_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .Values.secrets.mariadb }}
+                      key: password
+                - name: ADMIN_USER
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .Values.secrets.admin }}
+                      key: username
+                - name: ADMIN_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .Values.secrets.admin }}
+                      key: password
+                - name: ADMIN_EMAIL
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .Values.secrets.admin }}
+                      key: email
+                - name: ADMIN_FRONTNAME
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .Values.secrets.admin }}
+                      key: frontName
+                - name: BASE_HOST
+                  value: {{ .Values.host | quote }}
+                - name: SEED_ON_INSTALL
+                  value: {{ ternary "1" "0" .Values.magento.seedOnInstall | quote }}
+                - name: SHOP_LANGUAGE
+                  value: {{ .Values.magento.language | quote }}
+                - name: SHOP_CURRENCY
+                  value: {{ .Values.magento.currency | quote }}
+                - name: SHOP_TIMEZONE
+                  value: {{ .Values.magento.timezone | quote }}
+              resources:
+                {{- toYaml .Values.resources.magentoBuild | nindent 16 }}
+              volumeMounts:
+                - name: app-volume
+                  mountPath: /var/www/html
+                  subPath: {{ .Values.hostPaths.appRoot }}/magento/src
+                - name: app-volume
+                  mountPath: /srv/cache/composer
+                  subPath: {{ .Values.hostPaths.appRoot }}/cache/composer
+                - name: scripts
+                  mountPath: /scripts
+          volumes:
+            {{- include "dieuvang.appVolume" . | nindent 12 }}
+            - name: scripts
+              configMap:
+                name: dieuvang-config
+                items:
+                  - key: magento-build.sh
+                    path: magento-build.sh
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: dieuvang-storefront-build
+  labels:
+    {{- include "dieuvang.labels" . | nindent 4 }}
+    app.kubernetes.io/component: build
+spec:
+  schedule: "0 0 1 1 *"
+  suspend: true
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    metadata:
+      labels:
+        {{- include "dieuvang.labels" . | nindent 8 }}
+        app.kubernetes.io/component: build
+        dieuvang/build: storefront
+    spec:
+      backoffLimit: 0
+      ttlSecondsAfterFinished: 86400
+      activeDeadlineSeconds: 3600
+      template:
+        metadata:
+          labels:
+            {{- include "dieuvang.labels" . | nindent 12 }}
+            app.kubernetes.io/component: build
+            dieuvang/build: storefront
+        spec:
+          restartPolicy: Never
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+            fsGroup: 1000
+          initContainers:
+            {{- include "dieuvang.sentinel" (dict "root" . "db" false) | nindent 12 }}
+          containers:
+            - name: build
+              image: {{ .Values.images.node }}
+              command: ["bash", "/scripts/storefront-build.sh"]
+              env:
+                - name: MAGENTO_MEDIA_HOST
+                  value: {{ .Values.host | quote }}
+                - name: NODE_OPTIONS
+                  value: --max-old-space-size=2048
+                - name: COREPACK_HOME
+                  value: /srv/cache/corepack
+                - name: COREPACK_ENABLE_DOWNLOAD_PROMPT
+                  value: "0"
+                - name: NEXT_TELEMETRY_DISABLED
+                  value: "1"
+                - name: CI
+                  value: "true"
+              resources:
+                {{- toYaml .Values.resources.storefrontBuild | nindent 16 }}
+              volumeMounts:
+                - name: app-volume
+                  mountPath: /srv/storefront
+                  subPath: {{ .Values.hostPaths.appRoot }}/storefront
+                - name: app-volume
+                  mountPath: /srv/cache
+                  subPath: {{ .Values.hostPaths.appRoot }}/cache
+                - name: scripts
+                  mountPath: /scripts
+          volumes:
+            {{- include "dieuvang.appVolume" . | nindent 12 }}
+            - name: scripts
+              configMap:
+                name: dieuvang-config
+                items:
+                  - key: storefront-build.sh
+                    path: storefront-build.sh

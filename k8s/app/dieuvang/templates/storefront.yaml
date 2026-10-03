@@ -1,0 +1,88 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dieuvang-storefront
+  labels:
+    {{- include "dieuvang.labels" . | nindent 4 }}
+    app.kubernetes.io/component: storefront
+spec:
+  replicas: {{ required "storefront.replicas is required (scripts/deploy.sh passes it)" .Values.storefront.replicas }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      {{- include "dieuvang.selector" (dict "root" . "component" "storefront") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "dieuvang.labels" . | nindent 8 }}
+        app.kubernetes.io/component: storefront
+    spec:
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      initContainers:
+        {{- include "dieuvang.sentinel" (dict "root" . "db" false) | nindent 8 }}
+      containers:
+        - name: storefront
+          image: {{ .Values.images.node }}
+          # Resolve `current` once and stay pinned to that immutable release directory for the life of the pod.
+          command:
+            - sh
+            - -c
+            - 'rel="$(readlink -f /srv/storefront/current)" && cd "$rel" && exec node node_modules/next/dist/bin/next start -H 0.0.0.0 -p 3000'
+          env:
+            - name: NODE_ENV
+              value: production
+            - name: MAGENTO_GRAPHQL_URL
+              value: {{ .Values.storefront.magentoGraphqlUrl | quote }}
+            - name: MAGENTO_STORE_CODE
+              value: {{ .Values.storefront.storeCode | quote }}
+            - name: MAGENTO_MEDIA_HOST
+              value: {{ .Values.host | quote }}
+            - name: APP_BASE_URL
+              value: {{ printf "https://%s" .Values.host | quote }}
+            - name: LOG_LEVEL
+              value: {{ .Values.storefront.logLevel | quote }}
+          ports:
+            - name: http
+              containerPort: 3000
+          # A static asset that never calls Magento: a Magento build window must not unready the storefront.
+          readinessProbe:
+            httpGet:
+              path: /favicon.ico
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 20
+          resources:
+            {{- toYaml .Values.resources.storefront | nindent 12 }}
+          volumeMounts:
+            - name: app-volume
+              mountPath: /srv/storefront
+              subPath: {{ .Values.hostPaths.appRoot }}/storefront
+      volumes:
+        {{- include "dieuvang.appVolume" . | nindent 8 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dieuvang-storefront
+  labels:
+    {{- include "dieuvang.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 3000
+      targetPort: http
+  selector:
+    {{- include "dieuvang.selector" (dict "root" . "component" "storefront") | nindent 4 }}

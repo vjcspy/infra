@@ -1,0 +1,67 @@
+{{- $admin := required "magento.adminFrontName is required (pass --set; deploy.sh reads it from the Secret)" .Values.magento.adminFrontName }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: dieuvang-magento
+  labels:
+    {{- include "dieuvang.labels" . | nindent 4 }}
+  annotations:
+    cert-manager.io/cluster-issuer: {{ .Values.ingress.clusterIssuer }}
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/enable-gzip: "true"
+    nginx.ingress.kubernetes.io/gzip-types: "text/plain text/css text/js text/xml text/javascript application/javascript application/x-javascript application/json application/xml application/xml+rss image/svg+xml"
+    nginx.ingress.kubernetes.io/gzip-min-length: "1100"
+    nginx.ingress.kubernetes.io/gzip-comp-level: "6"
+    nginx.ingress.kubernetes.io/proxy-body-size: 64m
+    nginx.ingress.kubernetes.io/proxy-buffer-size: 128k
+    nginx.ingress.kubernetes.io/proxy-buffers-number: "4"
+    nginx.ingress.kubernetes.io/proxy-busy-buffers-size: 256k
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  tls:
+    - hosts:
+        - {{ .Values.host }}
+      secretName: {{ .Values.ingress.tlsSecretName }}
+  rules:
+    - host: {{ .Values.host }}
+      http:
+        paths:
+          {{- range (list "/media/" "/static/" (printf "/%s" $admin)) }}
+          - path: {{ . }}
+            pathType: Prefix
+            backend:
+              service:
+                name: dieuvang-magento
+                port:
+                  number: 8000
+          {{- end }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: dieuvang-storefront
+  labels:
+    {{- include "dieuvang.labels" . | nindent 4 }}
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/enable-gzip: "true"
+    nginx.ingress.kubernetes.io/gzip-types: "text/plain text/css text/js text/xml text/javascript application/javascript application/x-javascript application/json application/xml application/xml+rss image/svg+xml"
+    nginx.ingress.kubernetes.io/gzip-min-length: "1100"
+    nginx.ingress.kubernetes.io/gzip-comp-level: "6"
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  tls:
+    - hosts:
+        - {{ .Values.host }}
+      secretName: {{ .Values.ingress.tlsSecretName }}
+  rules:
+    - host: {{ .Values.host }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: dieuvang-storefront
+                port:
+                  number: 3000

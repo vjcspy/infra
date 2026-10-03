@@ -1,0 +1,108 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dieuvang-magento
+  labels:
+    {{- include "dieuvang.labels" . | nindent 4 }}
+    app.kubernetes.io/component: magento
+spec:
+  replicas: {{ required "magento.replicas is required (scripts/deploy.sh passes it)" .Values.magento.replicas }}
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "dieuvang.selector" (dict "root" . "component" "magento") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "dieuvang.labels" . | nindent 8 }}
+        app.kubernetes.io/component: magento
+    spec:
+      terminationGracePeriodSeconds: 60
+      securityContext:
+        fsGroup: 1000
+      initContainers:
+        {{- include "dieuvang.sentinel" (dict "root" . "db" false) | nindent 8 }}
+      containers:
+        - name: php-fpm
+          image: {{ .Values.images.php }}
+          securityContext:
+            runAsUser: 1000
+          ports:
+            - name: fpm
+              containerPort: 9000
+          readinessProbe:
+            tcpSocket:
+              port: fpm
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: fpm
+            initialDelaySeconds: 20
+            periodSeconds: 20
+          resources:
+            {{- toYaml .Values.resources.phpfpm | nindent 12 }}
+          volumeMounts:
+            - name: app-volume
+              mountPath: /var/www/html
+              subPath: {{ .Values.hostPaths.appRoot }}/magento/src
+        - name: nginx
+          image: {{ .Values.images.nginx }}
+          ports:
+            - name: http
+              containerPort: 8000
+          readinessProbe:
+            httpGet:
+              path: /health_check.php
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          resources:
+            {{- toYaml .Values.resources.nginx | nindent 12 }}
+          volumeMounts:
+            - name: app-volume
+              mountPath: /var/www/html
+              subPath: {{ .Values.hostPaths.appRoot }}/magento/src
+            - name: config
+              mountPath: /etc/nginx/conf.d/default.conf
+              subPath: nginx-default.conf
+        - name: cron
+          image: {{ .Values.images.php }}
+          securityContext:
+            runAsUser: 1000
+          workingDir: /var/www/html
+          command:
+            - bash
+            - -c
+            - 'while true; do [ -f app/etc/env.php ] && php bin/magento cron:run >> var/log/cron-loop.log 2>&1; sleep 60; done'
+          resources:
+            {{- toYaml .Values.resources.cron | nindent 12 }}
+          volumeMounts:
+            - name: app-volume
+              mountPath: /var/www/html
+              subPath: {{ .Values.hostPaths.appRoot }}/magento/src
+      volumes:
+        {{- include "dieuvang.appVolume" . | nindent 8 }}
+        - name: config
+          configMap:
+            name: dieuvang-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dieuvang-magento
+  labels:
+    {{- include "dieuvang.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http
+  selector:
+    {{- include "dieuvang.selector" (dict "root" . "component" "magento") | nindent 4 }}

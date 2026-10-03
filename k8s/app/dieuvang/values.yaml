@@ -1,0 +1,74 @@
+# Non-secret values only: this repository is PUBLIC. Passwords, the admin frontName and the Marketplace keys live in
+# k8s Secrets created by scripts/deploy.sh. Replica counts are intentionally absent: scripts/deploy.sh passes them on
+# every render (magento.replicas, storefront.replicas, magento.adminFrontName).
+
+host: dieuvang.bluestone.systems
+
+images:
+  busybox: busybox:1.37
+  mariadb: mariadb:11.8
+  opensearch: markoshust/magento-opensearch:3-0
+  valkey: valkey/valkey:9.1-alpine
+  php: markoshust/magento-php:8.5-fpm-0
+  nginx: markoshust/magento-nginx:1.28-0
+  node: node:22-bookworm-slim
+
+hostPaths:
+  # Application volume: code, media, caches, search index (contains DONT_DELETE).
+  appVolume: /mnt/existing_ebs_volume
+  appRoot: dieuvang
+  # Database volume: only the MariaDB data directory below this root (contains DONT_DELETE).
+  dbVolume: /mnt/ebs_postgres_data
+  mariadbData: docker_data/mariadb/dieuvang
+
+secrets:
+  mariadb: dieuvang-mariadb
+  admin: dieuvang-magento-admin
+  composerAuth: dieuvang-composer-auth
+
+magento:
+  # adminFrontName: "" -> must be passed with --set (read from Secret dieuvang-magento-admin by deploy.sh)
+  adminFrontName: ""
+  seedOnInstall: true
+  language: vi_VN
+  currency: VND
+  timezone: Asia/Ho_Chi_Minh
+
+storefront:
+  magentoGraphqlUrl: http://dieuvang-magento.dieuvang.svc.cluster.local:8000/graphql
+  storeCode: default
+  logLevel: info
+
+resources:
+  mariadb:
+    requests: { cpu: 100m, memory: 512Mi }
+    limits: { cpu: "1", memory: 1Gi }
+  opensearch:
+    requests: { cpu: 100m, memory: 1Gi }
+    limits: { cpu: "1", memory: 1536Mi }
+  valkey:
+    requests: { cpu: 20m, memory: 64Mi }
+    limits: { cpu: 200m, memory: 256Mi }
+  phpfpm:
+    requests: { cpu: 100m, memory: 512Mi }
+    limits: { cpu: "2", memory: 2Gi }
+  nginx:
+    requests: { cpu: 20m, memory: 64Mi }
+    limits: { cpu: 500m, memory: 256Mi }
+  cron:
+    requests: { cpu: 20m, memory: 256Mi }
+    limits: { cpu: "1", memory: 1Gi }
+  storefront:
+    requests: { cpu: 100m, memory: 256Mi }
+    limits: { cpu: "1", memory: 1Gi }
+  magentoBuild:
+    requests: { cpu: 500m, memory: 1Gi }
+    limits: { cpu: "3", memory: 3Gi }
+  storefrontBuild:
+    requests: { cpu: 500m, memory: 1Gi }
+    limits: { cpu: "2", memory: 2560Mi }
+
+ingress:
+  className: nginx
+  clusterIssuer: k8s-ca-issuer
+  tlsSecretName: dieuvang-tls

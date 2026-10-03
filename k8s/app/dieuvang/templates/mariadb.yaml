@@ -1,0 +1,83 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dieuvang-mariadb
+  labels:
+    {{- include "dieuvang.labels" . | nindent 4 }}
+    app.kubernetes.io/component: mariadb
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "dieuvang.selector" (dict "root" . "component" "mariadb") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "dieuvang.labels" . | nindent 8 }}
+        app.kubernetes.io/component: mariadb
+    spec:
+      initContainers:
+        {{- include "dieuvang.sentinel" (dict "root" . "db" true) | nindent 8 }}
+      containers:
+        - name: mariadb
+          image: {{ .Values.images.mariadb }}
+          args:
+            - --innodb-buffer-pool-size=256M
+            - --max-connections=60
+          env:
+            - name: MARIADB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.mariadb }}
+                  key: rootPassword
+            - name: MARIADB_DATABASE
+              value: magento
+            - name: MARIADB_USER
+              value: magento
+            - name: MARIADB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.mariadb }}
+                  key: password
+          ports:
+            - name: mysql
+              containerPort: 3306
+          readinessProbe:
+            exec:
+              command: ["healthcheck.sh", "--connect", "--innodb_initialized"]
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            exec:
+              command: ["healthcheck.sh", "--connect"]
+            initialDelaySeconds: 60
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 6
+          resources:
+            {{- toYaml .Values.resources.mariadb | nindent 12 }}
+          volumeMounts:
+            - name: db-volume
+              mountPath: /var/lib/mysql
+              subPath: {{ .Values.hostPaths.mariadbData }}
+      volumes:
+        {{- include "dieuvang.appVolume" . | nindent 8 }}
+        {{- include "dieuvang.dbVolume" . | nindent 8 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dieuvang-mariadb
+  labels:
+    {{- include "dieuvang.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - name: mysql
+      port: 3306
+      targetPort: mysql
+  selector:
+    {{- include "dieuvang.selector" (dict "root" . "component" "mariadb") | nindent 4 }}
