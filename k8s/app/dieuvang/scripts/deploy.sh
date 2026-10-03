@@ -249,7 +249,9 @@ do_magento() { # ref
   git -C "$D/magento" rev-parse HEAD >"$D/magento.prev" 2>/dev/null || true
   mkdir -p "$D/magento/src/var"
   touch "$D/magento/src/var/.maintenance.flag"
-  git -C "$D/magento" checkout --detach "$sha"
+  # --force: composer's magento2-base deploy rewrites tracked files (nginx.conf.sample, dev/tests data);
+  # the build Job re-deploys them, so local edits must never block the checkout after quiescing.
+  git -C "$D/magento" checkout --force --detach "$sha"
   if ! run_job dieuvang-magento-build "$job"; then
     state_set magento "failed $sha build"
     INFLIGHT=""
