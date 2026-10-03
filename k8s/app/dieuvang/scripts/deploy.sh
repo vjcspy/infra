@@ -418,8 +418,10 @@ cmd_status() {
   echo "== nonterminal build Jobs"
   nonterminal_jobs
   echo "== lock"
-  if (
-    exec 8>"$D/.deploy.lock"
+  if [ ! -e "$D/.deploy.lock" ]; then
+    echo "free (never taken)"
+  elif (
+    exec 8<"$D/.deploy.lock"
     flock -n 8
   ) 2>/dev/null; then echo "free"; else echo "HELD"; fi
   echo "== pods"
