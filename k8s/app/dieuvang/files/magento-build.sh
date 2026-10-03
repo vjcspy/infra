@@ -40,9 +40,9 @@ if [ ! -f app/etc/env.php ]; then
   mage deploy:mode:set production
 else
   echo "== upgrade mode"
-  # 4. Upgrade.
-  mage setup:upgrade --keep-generated
+  # 4. Upgrade. `composer install` empties generated/, so compile first, then upgrade with --keep-generated.
   mage setup:di:compile
+  mage setup:upgrade --keep-generated
   rm -rf pub/static/frontend pub/static/adminhtml var/view_preprocessed
   mage setup:static-content:deploy -f en_US vi_VN
 fi
