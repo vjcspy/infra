@@ -58,7 +58,8 @@ acquire_lock() {
   exec 9>"$D/.deploy.lock"
   flock -n 9 || die "another deploy.sh run holds $D/.deploy.lock"
   LOG="$D/logs/$(date -u +%Y%m%d%H%M%S)-${SUBCMD}.log"
-  exec > >(tee -a "$LOG") 2>&1
+  # tee must not inherit the lock fd, or a killed script would leave the lock held by its logger.
+  exec > >(tee -a "$LOG" 9>&-) 2>&1
   log "log: $LOG"
 }
 
