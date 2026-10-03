@@ -28,16 +28,14 @@ spec:
           image: {{ .Values.images.php }}
           securityContext:
             runAsUser: 1000
-          ports:
-            - name: fpm
-              containerPort: 9000
+          # php-fpm listens on /sock/phpfpm.sock (image php-fpm.conf), shared with nginx through an emptyDir.
           readinessProbe:
-            tcpSocket:
-              port: fpm
+            exec:
+              command: ["test", "-S", "/sock/phpfpm.sock"]
             periodSeconds: 10
           livenessProbe:
-            tcpSocket:
-              port: fpm
+            exec:
+              command: ["test", "-S", "/sock/phpfpm.sock"]
             initialDelaySeconds: 20
             periodSeconds: 20
           resources:
@@ -46,6 +44,8 @@ spec:
             - name: app-volume
               mountPath: /var/www/html
               subPath: {{ .Values.hostPaths.appRoot }}/magento/src
+            - name: sock
+              mountPath: /sock
         - name: nginx
           image: {{ .Values.images.nginx }}
           ports:
@@ -68,6 +68,8 @@ spec:
             - name: app-volume
               mountPath: /var/www/html
               subPath: {{ .Values.hostPaths.appRoot }}/magento/src
+            - name: sock
+              mountPath: /sock
             - name: config
               mountPath: /etc/nginx/conf.d/default.conf
               subPath: nginx-default.conf
@@ -82,7 +84,8 @@ spec:
           command:
             - bash
             - -c
-            - 'while true; do [ -f app/etc/env.php ] && php bin/magento cron:run >> var/log/cron-loop.log 2>&1; sleep 60; done'
+            # One group at a time: a bare `cron:run` forks ~10 Magento processes at once (~1.7 GiB peak, OOM at 1Gi).
+            - 'while true; do if [ -f app/etc/env.php ]; then for g in default index consumers; do php -d memory_limit=-1 bin/magento cron:run --group=$g >> var/log/cron-loop.log 2>&1; done; fi; sleep 60; done'
           resources:
             {{- toYaml .Values.resources.cron | nindent 12 }}
           volumeMounts:
@@ -91,6 +94,8 @@ spec:
               subPath: {{ .Values.hostPaths.appRoot }}/magento/src
       volumes:
         {{- include "dieuvang.appVolume" . | nindent 8 }}
+        - name: sock
+          emptyDir: {}
         - name: config
           configMap:
             name: dieuvang-config
