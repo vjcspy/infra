@@ -160,6 +160,10 @@ ingress:
       paths:
         - path: /
           pathType: Prefix
+    - host: phoinn.com
+      paths:
+        - path: /
+          pathType: Prefix
     - host: ashimaforest.com.vn
       paths:
         - path: /
