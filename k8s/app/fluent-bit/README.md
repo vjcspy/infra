@@ -10,6 +10,7 @@ helm repo update
 Install helm chart by command
 ```shell
 helm upgrade --install fluent-bit fluent/fluent-bit \
+  --version 0.50.0 \
   -f fluent-bit-values.yaml \
   --namespace fluent-bit \
   --create-namespace

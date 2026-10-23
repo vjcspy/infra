@@ -1,4 +1,5 @@
-# fluent-bit-values.yaml - Optimized for JSON logs from jmeta-http and metan-cli
+# fluent-bit-values.yaml - jmeta-stock and metan-stock container logs -> VictoriaLogs (http jsonline).
+# No secrets here. Canonical guide: resources/workspaces/k/infrastructure/_guides/victorialogs-production-logs.md
 
 kind: DaemonSet
 
@@ -112,10 +113,10 @@ readinessProbe:
 
 resources:
   limits:
-    memory: 200Mi
-    cpu: 100m
+    memory: 256Mi
+    cpu: 200m
   requests:
-    memory: 100Mi
+    memory: 64Mi
     cpu: 50m
 
 ingress:
@@ -194,127 +195,75 @@ config:
         HTTP_Listen 0.0.0.0
         HTTP_Port {{ .Values.metricsPort }}
         Health_Check On
-        Storage.path /var/log/flb-storage/
-        Storage.sync_rate 1
-        Storage.max_chunks_up 128
-        Storage.checkpoint On
+        storage.path /var/log/flb-storage/
+        storage.sync normal
+        storage.checkpoint on
+        storage.max_chunks_up 16
+        storage.backlog.mem_limit 16M
 
   inputs: |
     [INPUT]
         Name tail
-        Path /var/log/containers/*_jmeta-http_jmeta*.log
-        Parser docker_custom
-        Tag kube.jmeta-http.*
-        Mem_Buf_Limit 10MB
-        Skip_Long_Lines On
-        DB /var/log/flb_kube_jmeta.db
-
-    [INPUT]
-        Name tail
-        Path /var/log/containers/*_metan-cli_metan*.log
-        Parser docker_custom
-        Tag kube.metan-cli.*
-        Mem_Buf_Limit 10MB
-        Skip_Long_Lines On
-        DB /var/log/flb_kube_metan.db
+        Path /var/log/containers/*_jmeta-stock_jmeta-*.log,/var/log/containers/*_metan-stock_metan-*.log
+        Tag kube.*
+        multiline.parser cri
+        storage.type filesystem
+        DB /var/log/flb_kube_vlogs.db
+        Read_from_Head On
+        Refresh_Interval 5
+        Rotate_Wait 30
+        Skip_Long_Lines Off
+        Buffer_Max_Size 1M
 
   filters: |
     [FILTER]
-        Name parser
-        Match kube.jmeta-http.*
-        Key_Name log
-        Parser json_application_log
-        Reserve_Data On
-        Preserve_Key Off
-
-    [FILTER]
-        Name parser
-        Match kube.metan-cli.*
-        Key_Name log
-        Parser json_application_log
-        Reserve_Data On
-        Preserve_Key Off
-    
-    [FILTER]
         Name kubernetes
-        Match kube.jmeta-http.*
-        Merge_Log Off
+        Match kube.*
+        Kube_Tag_Prefix kube.var.log.containers.
+        Merge_Log On
         Keep_Log Off
+        Labels Off
+        Annotations Off
         K8S-Logging.Parser Off
         K8S-Logging.Exclude Off
 
     [FILTER]
-        Name kubernetes
-        Match kube.metan-cli.*
-        Merge_Log Off
-        Keep_Log Off
-        K8S-Logging.Parser Off
-        K8S-Logging.Exclude Off
-    
-    [FILTER]
-        Name modify
-        Match kube.jmeta-http.*
-        Rename container_runtime_time kubernetes_time
-        Remove stream
-        Remove logtag
+        Name nest
+        Match kube.*
+        Operation lift
+        Nested_under kubernetes
+        Add_prefix kubernetes_
 
     [FILTER]
         Name modify
-        Match kube.metan-cli.*
-        Rename container_runtime_time kubernetes_time
-        Remove stream
-        Remove logtag
+        Match kube.*
+        Rename kubernetes_namespace_name namespace
+        Rename kubernetes_container_name container
+        Rename kubernetes_pod_name pod
+        Remove kubernetes_host
+        Remove kubernetes_docker_id
+        Remove kubernetes_container_hash
+        Remove kubernetes_container_image
+        Remove kubernetes_pod_id
+        Remove _p
 
   outputs: |
     [OUTPUT]
-        Name stdout
-        Match kube.jmeta-http.*
+        Name http
+        Match kube.*
+        Host victoria-logs.victoria-logs.svc.cluster.local
+        Port 9428
+        URI /insert/jsonline?_stream_fields=namespace,container&_msg_field=message,msg,log&_time_field=date
         Format json_lines
-
-    [OUTPUT]
-        Name stdout
-        Match kube.metan-cli.*
-        Format json_lines
-    
-    [OUTPUT]
-        Name splunk
-        Match kube.jmeta-http.*
-        Host splunk-server-hec.splunk-server.svc.cluster.local
-        Port 8088
-        Splunk_Token cca20de9-28a3-46e8-9d95-94054f79f772
-        TLS Off
-        TLS.Verify Off
-        Retry_Limit False
-        splunk_send_raw off
-
-    [OUTPUT]
-        Name splunk
-        Match kube.metan-cli.*
-        Host splunk-server-hec.splunk-server.svc.cluster.local
-        Port 8088
-        Splunk_Token 174e89d1-db9d-4b54-8347-4c37d0623a0e
-        TLS Off
-        TLS.Verify Off
-        Retry_Limit False
-        splunk_send_raw off
+        json_date_key date
+        json_date_format iso8601
+        Retry_Limit no_limits
+        storage.total_limit_size 1G
 
   upstream: {}
 
   customParsers: |
-    [PARSER]
-        Name docker_custom
-        Format regex
-        Regex ^(?<container_runtime_time>[^ ]+) (?<stream>stdout|stderr) (?<logtag>[^ ]*) (?<log>.*)$
-        Time_Key container_runtime_time
-        Time_Format %Y-%m-%dT%H:%M:%S.%L%z
-        Time_Keep On
-    
-    [PARSER]
-        Name json_application_log
-        Format json
-        Time_Key time
-        Time_Format %Y-%m-%dT%H:%M:%S.%L%z
-        Time_Keep On
+    # none: the built-in cri multiline parser and Merge_Log replace the old custom parsers
 
   extraFiles: {}
 
@@ -334,10 +283,12 @@ daemonSetVolumes:
     hostPath:
       path: /etc/machine-id
       type: FileOrCreate
-  - name: fluent-bit-storage
+  # App EBS root, fail-closed (type: Directory, never DirectoryOrCreate on a data path);
+  # the collector mounts only subPath fluent-bit/storage, the init container checks the sentinel at the root.
+  - name: ebs-root
     hostPath:
-      path: /var/lib/fluent-bit/storage
-      type: DirectoryOrCreate
+      path: /mnt/existing_ebs_volume
+      type: Directory
 
 daemonSetVolumeMounts:
   - name: varlog
@@ -348,8 +299,9 @@ daemonSetVolumeMounts:
   - name: etcmachineid
     mountPath: /etc/machine-id
     readOnly: true
-  - name: fluent-bit-storage
+  - name: ebs-root
     mountPath: /var/log/flb-storage
+    subPath: fluent-bit/storage
     readOnly: false
 
 command:
@@ -359,7 +311,14 @@ args:
   - --workdir=/fluent-bit/etc
   - --config=/fluent-bit/etc/conf/fluent-bit.conf
 
-initContainers: []
+initContainers:
+  - name: init-container-check-host-mounted-ebs-volume
+    image: busybox
+    command: [ 'sh', '-c', 'for i in $(seq 1 5); do echo "Checking attempt $i..."; if [ -f /host_ebs_volume/DONT_DELETE ]; then echo "File found, exiting successfully."; exit 0; fi; echo "File not found, retrying..."; sleep 10; done; echo "File not found after 5 attempts, exiting with error."; exit 1' ]
+    volumeMounts:
+      - name: ebs-root
+        mountPath: /host_ebs_volume
+        readOnly: true
 
 logLevel: info
 
