@@ -194,8 +194,8 @@ k8s/app/<app-name>/
 | `ggg-website` | Website frontend |
 | `db` | Database deployment |
 | `supabase` | Full Supabase stack (Postgres, Auth, Storage, etc.) |
-| `splunk-server` | Splunk for logging |
-| `fluent-bit` | Log forwarder to Splunk |
+| `victoria-logs` | VictoriaLogs log store (jmeta and metan logs) |
+| `fluent-bit` | Log forwarder to VictoriaLogs |
 | `notion-proxy` | Notion API proxy |
 | `supabase-proxy` | Supabase proxy (DaemonSet) |
 
@@ -300,8 +300,6 @@ Script to manage EBS volume attachment for spot instances:
 | `python/` | Python | Python applications |
 | `quarkus-jvm-21/` | JVM 21 | Quarkus Java apps |
 | `quarkus-micro/` | GraalVM | Native Quarkus builds |
-| `splunk-license-server/` | Custom | Splunk licensing |
-| `splunk-server/` | Splunk | Full Splunk server |
 
 ---
 
