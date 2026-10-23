@@ -245,6 +245,7 @@ config:
         Remove kubernetes_container_hash
         Remove kubernetes_container_image
         Remove kubernetes_pod_id
+        Remove kubernetes_pod_ip
         Remove _p
 
   outputs: |
