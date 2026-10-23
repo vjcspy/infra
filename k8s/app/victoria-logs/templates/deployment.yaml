@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "victoria-logs.fullname" . }}
+  labels:
+    {{- include "victoria-logs.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "victoria-logs.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "victoria-logs.selectorLabels" . | nindent 8 }}
+    spec:
+      initContainers:
+        # Fail-closed: refuse to start on an unmounted EBS volume (never create the sentinel to pass).
+        - name: init-container-check-host-mounted-ebs-volume
+          image: busybox
+          command: [ 'sh', '-c', 'for i in $(seq 1 5); do echo "Checking attempt $i..."; if [ -f /host_ebs_volume/DONT_DELETE ]; then echo "File found, exiting successfully."; exit 0; fi; echo "File not found, retrying..."; sleep 10; done; echo "File not found after 5 attempts, exiting with error."; exit 1' ]
+          volumeMounts:
+            - name: host-volume
+              mountPath: /host_ebs_volume
+              readOnly: true
+      containers:
+        - name: victoria-logs
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            {{- toYaml .Values.args | nindent 12 }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            failureThreshold: 5
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: host-volume
+              mountPath: /victoria-logs-data
+              subPath: {{ .Values.hostVolume.subPath }}
+      volumes:
+        - name: host-volume
+          hostPath:
+            path: {{ .Values.hostVolume.path }}
+            type: Directory

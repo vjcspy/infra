@@ -1,0 +1,50 @@
+# VictoriaLogs single-node. No secrets here: the ingress basic-auth Secret
+# `victoria-logs-basic-auth` is created out-of-band with kubectl (see README.md).
+
+nameOverride: ""
+fullnameOverride: victoria-logs
+
+image:
+  repository: victoriametrics/victoria-logs
+  tag: v1.53.0
+  pullPolicy: IfNotPresent
+
+# Single writer on the hostPath: never raise replicas (strategy is Recreate).
+replicaCount: 1
+
+service:
+  port: 9428
+
+# App EBS volume root; mounted fail-closed (type: Directory) and used with subPath.
+hostVolume:
+  path: /mnt/existing_ebs_volume
+  subPath: victoria-logs
+
+args:
+  - -storageDataPath=/victoria-logs-data
+  - -retentionPeriod=90d
+  # Soft threshold (keeps the last two days, checked periodically).
+  - -retention.maxDiskSpaceUsageBytes=20GiB
+  # Enforced guard on the shared volume: read-only below this free space.
+  - -storage.minFreeDiskSpaceBytes=30GiB
+  - -httpListenAddr=:9428
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: "1"
+    memory: 1Gi
+
+ingress:
+  enabled: true
+  className: nginx
+  host: logs.bluestone.systems
+  tlsSecretName: victoria-logs-tls
+  basicAuthSecret: victoria-logs-basic-auth
+  annotations:
+    cert-manager.io/cluster-issuer: k8s-ca-issuer
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/ssl-protocols: "TLSv1.2 TLSv1.3"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "90"
