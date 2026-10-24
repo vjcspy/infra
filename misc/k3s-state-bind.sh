@@ -9,10 +9,11 @@ if [ ! -f "/mnt/existing_ebs_volume/DONT_DELETE" ]; then
     exit 1
 fi
 
-# Pre-migration fallback: if K3S state not yet on EBS, let K3S start from root volume
+# K3S state must come from EBS; never start K3S on the root volume
 if [ ! -d "$K3S_STATE_EBS/server" ]; then
-    echo "INFO: K3S state not found on EBS at $K3S_STATE_EBS — running from root volume (pre-migration mode)"
-    exit 0
+    echo "ERROR: K3S state not found at $K3S_STATE_EBS/server; refusing to start K3S on the root volume." \
+         "Restore the app volume from a snapshot, or create $K3S_STATE_EBS/server to bootstrap a new cluster on purpose."
+    exit 1
 fi
 
 if mountpoint -q "$K3S_STATE_LOCAL" 2>/dev/null; then
