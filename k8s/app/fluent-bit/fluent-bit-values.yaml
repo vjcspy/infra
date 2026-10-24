@@ -209,7 +209,6 @@ config:
         multiline.parser cri
         storage.type filesystem
         DB /var/log/flb_kube_vlogs.db
-        DB.compare_filename On
         Read_from_Head On
         Refresh_Interval 5
         Rotate_Wait 30
