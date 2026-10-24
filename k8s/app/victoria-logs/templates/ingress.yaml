@@ -7,9 +7,14 @@ metadata:
   labels:
     {{- include "victoria-logs.labels" . | nindent 4 }}
   annotations:
+    {{- if .Values.ingress.basicAuth.enabled }}
     nginx.ingress.kubernetes.io/auth-type: basic
-    nginx.ingress.kubernetes.io/auth-secret: {{ .Values.ingress.basicAuthSecret }}
+    nginx.ingress.kubernetes.io/auth-secret: {{ .Values.ingress.basicAuth.secret }}
     nginx.ingress.kubernetes.io/auth-realm: "VictoriaLogs - authentication required"
+    {{- end }}
+    {{- with .Values.ingress.appRoot }}
+    nginx.ingress.kubernetes.io/app-root: {{ . }}
+    {{- end }}
     {{- with .Values.ingress.annotations }}
     {{- toYaml . | nindent 4 }}
     {{- end }}

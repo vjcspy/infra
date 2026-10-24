@@ -1,4 +1,4 @@
-# VictoriaLogs single-node. No secrets here: the ingress basic-auth Secret
+# VictoriaLogs single-node. No secrets here: the optional ingress basic-auth Secret
 # `victoria-logs-basic-auth` is created out-of-band with kubectl (see README.md).
 
 nameOverride: ""
@@ -42,7 +42,13 @@ ingress:
   className: nginx
   host: logs.bluestone.systems
   tlsSecretName: victoria-logs-tls
-  basicAuthSecret: victoria-logs-basic-auth
+  # Off by Human decision (2026-10-24): read-only log viewing needs no login. The Secret stays in the
+  # cluster, so setting enabled back to true restores auth with the existing credentials.
+  basicAuth:
+    enabled: false
+    secret: victoria-logs-basic-auth
+  # `/` redirects to the web UI; only /select is routed either way.
+  appRoot: /select/vmui/
   annotations:
     cert-manager.io/cluster-issuer: k8s-ca-issuer
     nginx.ingress.kubernetes.io/ssl-redirect: "true"

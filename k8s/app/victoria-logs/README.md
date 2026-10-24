@@ -5,7 +5,9 @@ volume at `/mnt/existing_ebs_volume/victoria-logs/`. Canonical usage and ops gui
 `resources/workspaces/k/infrastructure/_guides/victorialogs-production-logs.md` (written in the plan's Step F).
 
 Safety: `replicas: 1` + `strategy: Recreate` (single writer on the hostPath), DONT_DELETE sentinel init container,
-root hostPath `type: Directory` with `subPath`. The ingress routes only `/select` behind nginx basic auth.
+root hostPath `type: Directory` with `subPath`. The ingress routes only `/select` (web UI at `/select/vmui/`, `/`
+redirects there) and is public: nginx basic auth is off since 2026-10-24 (`ingress.basicAuth.enabled: false`). The
+Secrets below stay in the cluster so flipping that value to `true` and upgrading restores auth.
 
 ## Out-of-band Secrets (never in git)
 
